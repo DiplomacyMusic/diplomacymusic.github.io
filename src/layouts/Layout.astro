@@ -1,0 +1,88 @@
+---
+import '@fontsource-variable/outfit';
+import '../styles/global.css';
+import Nav from '../components/Nav.astro';
+import SoundToggle from '../components/SoundToggle.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  withSound?: boolean;
+}
+
+const { title, description, withSound = true } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  </head>
+  <body>
+    <Nav />
+    <slot />
+    {withSound && <SoundToggle />}
+    <footer class="site-footer wrap">
+      <span class="overline">Diplomacy</span>
+      <span>Sound is listening.</span>
+    </footer>
+  </body>
+</html>
+
+<script>
+  // Reveal cards as they enter the view. Marked html.js so the CSS only
+  // hides things when this script is actually running.
+  document.documentElement.classList.add('js');
+
+  const items = document.querySelectorAll('[data-reveal]');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (!reduced && 'IntersectionObserver' in window && items.length) {
+    let observerAlive = false;
+    const seen = new IntersectionObserver(
+      (entries) => {
+        observerAlive = true;
+        let order = 0;
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.style.transitionDelay = `${order * 70}ms`;
+          entry.target.classList.add('is-seen');
+          seen.unobserve(entry.target);
+          order += 1;
+        }
+      },
+      { rootMargin: '0px 0px -8% 0px', threshold: 0.15 }
+    );
+    items.forEach((item) => seen.observe(item));
+
+    // The observer always reports once right away. If that report never
+    // comes (some embedded browsers), show everything rather than nothing.
+    setTimeout(() => {
+      if (!observerAlive) {
+        seen.disconnect();
+        items.forEach((item) => item.classList.add('is-seen'));
+      }
+    }, 1500);
+  } else {
+    items.forEach((item) => item.classList.add('is-seen'));
+  }
+</script>
+
+<style>
+  .site-footer {
+    display: flex;
+    gap: var(--space-2);
+    align-items: baseline;
+    padding-block: var(--space-4) var(--space-3);
+    color: var(--ink-quiet);
+    font-size: 0.9rem;
+  }
+</style>

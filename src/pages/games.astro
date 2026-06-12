@@ -1,0 +1,88 @@
+---
+import Layout from '../layouts/Layout.astro';
+import games from '../data/games.json';
+---
+
+<Layout
+  title="Games. Diplomacy game audio."
+  description="Game audio from Diplomacy. Over one hundred shipped titles, major licensed IP, and real time adaptive music systems."
+>
+  <main class="wrap">
+    <header class="games-head">
+      <h1>Games</h1>
+      <p class="lede">
+        Over one hundred shipped titles. Major licensed IP. Dynamic music
+        engines with over a million combinations, built in Unity and FMOD.
+      </p>
+    </header>
+
+    {games.length === 0 ? (
+      <p class="cataloging">Cataloging in progress. The shipped list is long and it is being counted properly.</p>
+    ) : (
+      <div class="games-grid">
+        {games.map((game) => (
+          <article class="card" data-reveal>
+            {game.artwork ? (
+              <img src={game.artwork} alt={`Art for ${game.title}`} loading="lazy" width="600" height="400" />
+            ) : (
+              <div class="art-pending" aria-hidden="true"></div>
+            )}
+            <h2>{game.title}</h2>
+            <p class="card-meta">
+              {game.publisher}{game.year && ` · ${game.year}`}
+            </p>
+            {game.license && <span class="badge">{game.license}</span>}
+            {game.note && <p>{game.note}</p>}
+          </article>
+        ))}
+      </div>
+    )}
+  </main>
+</Layout>
+
+<style>
+  .games-head {
+    padding-block: var(--space-4) var(--space-2);
+  }
+
+  .lede {
+    color: var(--ink-quiet);
+  }
+
+  .cataloging {
+    border-top: 1px solid var(--haze);
+    padding-block: var(--space-3) var(--space-5);
+    color: var(--ink-quiet);
+  }
+
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: var(--space-3);
+    padding-block: var(--space-3) var(--space-4);
+  }
+
+  .card img,
+  .art-pending {
+    aspect-ratio: 3 / 2;
+    width: 100%;
+    /* contain, never crop: a logo should read whole in its box */
+    object-fit: contain;
+    border-radius: 6px;
+    padding: 0.6rem;
+    box-sizing: border-box;
+    margin-bottom: var(--space-1);
+    background: var(--haze);
+  }
+
+  .card h2 {
+    font-size: 1.05rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .card-meta {
+    color: var(--ink-quiet);
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+  }
+</style>

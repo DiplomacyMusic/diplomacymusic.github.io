@@ -1,0 +1,487 @@
+---
+import Layout from '../layouts/Layout.astro';
+import LogoWall from '../components/LogoWall.astro';
+import BuildCollage from '../components/BuildCollage.astro';
+import credits from '../data/credits.json';
+import games from '../data/games.json';
+
+const featured = credits.filter((credit) => credit.featured);
+
+// one card per show for the series stretch of the ribbon
+const seen = new Set();
+const seriesCards = credits.filter((credit) => {
+  if (!credit.group) return true;
+  if (seen.has(credit.group)) return false;
+  seen.add(credit.group);
+  return true;
+});
+const listenLink = (credit) =>
+  credit.links.apple || credit.links.spotify || credit.links.official;
+---
+
+<Layout
+  title="Diplomacy. An audio studio."
+  description="Diplomacy is an audio studio for stories, games, and the machines that give them voice. Audio drama, game audio, and original production instruments."
+>
+  <div class="environment" id="environment" aria-hidden="true"></div>
+
+  <section class="hero">
+    <div class="hero-copy wrap">
+      <h1 class="visually-hidden">
+        Diplomacy. An audio studio for stories, games, and the machines that give them voice.
+      </h1>
+      <span class="brand-mask hero-wordmark" role="img" aria-label="Diplomacy"></span>
+      <p class="overline">Sound is listening</p>
+      <p class="hero-line">An audio studio for stories, games,<br />and the machines that give them voice.</p>
+      <div class="pillars">
+        <a href="/#featured"><span class="overline">Story</span> Audio drama</a>
+        <a href="/games"><span class="overline">Play</span> Game audio</a>
+        <a href="/studio"><span class="overline">Build</span> The studio</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="featured wrap soft-veil" id="featured">
+    <h2>Featured work</h2>
+    <p class="lede">Places to stop and listen. Each one opens with the audio and the intent side by side.</p>
+    <div class="featured-grid">
+      {featured.map((credit) => (
+        <article class="card" data-reveal>
+          {credit.artwork && (
+            <img src={credit.artwork} alt={`Cover art for ${credit.title}`} loading="lazy" width="600" height="600" />
+          )}
+          <h3>{credit.title}</h3>
+          <p class="card-meta">{credit.roles.join(', ')}</p>
+          {credit.badges.length > 0 && <span class="badge">{credit.badges[0]}</span>}
+        </article>
+      ))}
+    </div>
+    <p class="all-link"><a href="/indexlist">Every credit, one page, no waiting.</a></p>
+  </section>
+
+  <LogoWall />
+
+  <section class="ribbon-series" id="series">
+    <div class="wrap">
+      <header class="section-head soft-veil">
+        <p class="overline">Series</p>
+        <h2>Stories, told in the dark.</h2>
+        <p class="lede">Every show opens where it lives, ready to play.</p>
+      </header>
+      <div class="sr-grid">
+        {seriesCards.map((credit, i) => (
+          <a class="sr-card" data-reveal={i % 2 ? 'right' : 'left'} href={listenLink(credit)} target="_blank" rel="noopener">
+            {credit.artwork && (
+              <span class="sr-art">
+                <img src={credit.artwork} alt={`Cover art for ${credit.title}`} loading="lazy" width="600" height="600" />
+              </span>
+            )}
+            <h3>{credit.group ? credit.title.replace(/,?\s*Season \d+/, '') : credit.title}</h3>
+            <p class="sr-meta">{credit.roles.join(', ')}</p>
+            {credit.badges.length > 0 && <span class="badge">{credit.badges[0]}</span>}
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="ribbon-games" id="games">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="overline">Games</p>
+        <h2>The casino floor, heard properly.</h2>
+        <p class="lede">
+          Over one hundred shipped titles. Dynamic music engines with
+          <span class="odometer" id="combo-count">1,048,576</span> combinations,
+          built in Unity and FMOD.
+        </p>
+      </header>
+      <div class="gm-grid">
+        {games.map((game, i) => (
+          <article class={game.license ? 'gm-card licensed' : 'gm-card'} data-reveal>
+            <span class="gm-index">{String(i + 1).padStart(3, '0')}</span>
+            <span class="gm-art">
+              {game.artwork ? (
+                <img src={game.artwork} alt={`Art for ${game.title}`} loading="lazy" width="600" height="400" />
+              ) : (
+                <span class="gm-pending" aria-hidden="true"></span>
+              )}
+            </span>
+            <h3>{game.title}</h3>
+            <p class="gm-meta">{game.publisher}{game.year && ` · ${game.year}`}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="ribbon-build" id="build">
+    <div class="wrap">
+      <header class="section-head soft-veil">
+        <p class="overline">Build</p>
+        <h2>The studio makes its own instruments.</h2>
+        <p class="lede">
+          Alignment systems, assembly automation, adaptive music engines.
+          Stated plainly, never explained.
+        </p>
+      </header>
+    </div>
+    <BuildCollage />
+    <div class="wrap studio-meta soft-veil">
+      <p>
+        Diplomacy is the studio of composer and sound designer Daniel Brunelle.
+        Chicago, IL.
+      </p>
+      <p>
+        <a href="mailto:daniel@diplomacymusic.com">daniel@diplomacymusic.com</a>
+        <span class="dot"> · </span>
+        <a href="/studio">The longer story</a>
+      </p>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 86vh;
+    display: grid;
+    align-items: center;
+  }
+
+  /* The environment rides behind the whole page now, so the shapes can
+     follow the visitor all the way down and pile up at the bottom. The
+     still gradient is always present, even without the animated layer. */
+  .environment {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(ellipse 90% 60% at 70% 20%, var(--glow) 0%, transparent 55%),
+      radial-gradient(ellipse 70% 70% at 20% 80%, var(--water) 0%, transparent 60%),
+      linear-gradient(175deg, var(--haze) 0%, var(--paper) 70%);
+  }
+
+  .environment :global(canvas) {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 1200ms var(--ease-drift);
+  }
+
+  .environment.is-live :global(canvas) {
+    opacity: 1;
+  }
+
+  .hero-copy {
+    position: relative;
+    z-index: 1; /* keeps the scrim below the words but above the environment */
+    padding-block: var(--space-5);
+  }
+
+  /* a breath of paper behind the words so the shapes never crowd them:
+     dim plus an edgeless blur, feathered away by the mask */
+  .hero-copy::before {
+    content: '';
+    position: absolute;
+    inset: -14% -22%;
+    background: radial-gradient(
+      ellipse 62% 75% at 32% 50%,
+      var(--veil) 0%,
+      rgba(242, 241, 240, 0.55) 45%,
+      transparent 68%
+    );
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    -webkit-mask-image: radial-gradient(ellipse 62% 75% at 32% 50%, black 38%, transparent 66%);
+    mask-image: radial-gradient(ellipse 62% 75% at 32% 50%, black 38%, transparent 66%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* the official wordmark, large and calm over the environment */
+  .hero-wordmark {
+    --brand-asset: url('/brand/diplomacy-wordmark.png');
+    display: block;
+    width: min(100%, 46rem);
+    aspect-ratio: 3182 / 418;
+    mask-position: left center;
+    -webkit-mask-position: left center;
+    margin-bottom: var(--space-2);
+  }
+
+  .hero-line {
+    font-size: clamp(1.1rem, 2.5vw, 1.45rem);
+    font-weight: 300;
+    line-height: 1.4;
+  }
+
+  .pillars {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+  }
+
+  .pillars a {
+    display: grid;
+    gap: 0.15rem;
+    color: var(--ink);
+    border-top: 1px solid var(--deep);
+    padding-top: 0.6rem;
+    min-width: 8.5rem;
+  }
+
+  .pillars a:hover .overline,
+  .pillars a:focus-visible .overline {
+    color: var(--deep);
+  }
+
+  .featured {
+    padding-block: var(--space-4);
+  }
+
+  .lede {
+    color: var(--ink-quiet);
+  }
+
+  .featured-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: var(--space-3);
+    margin-block: var(--space-3);
+  }
+
+  .card img {
+    border-radius: 6px;
+    margin-bottom: var(--space-1);
+    aspect-ratio: 1;
+    object-fit: cover;
+  }
+
+  .card h3 {
+    margin-bottom: 0.2rem;
+  }
+
+  .card-meta {
+    color: var(--ink-quiet);
+    font-size: 0.88rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .all-link {
+    margin-top: var(--space-2);
+  }
+
+  /* ----- the ribbon sections, each with its own weather ----- */
+
+  .section-head {
+    padding-block: var(--space-4) var(--space-2);
+    max-width: 38rem;
+  }
+
+  /* Series: cards approach from the wings, covers leaning forward */
+  .ribbon-series {
+    padding-block: var(--space-3);
+  }
+
+  .sr-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: var(--space-3);
+    padding-bottom: var(--space-3);
+  }
+
+  .sr-card {
+    display: block;
+    color: var(--ink);
+  }
+
+  .sr-art {
+    display: block;
+    overflow: hidden;
+    border-radius: 6px;
+    margin-bottom: var(--space-1);
+  }
+
+  .sr-card img {
+    aspect-ratio: 1;
+    object-fit: cover;
+    transition: scale 900ms var(--ease-drift), filter 900ms var(--ease-drift);
+  }
+
+  .sr-card h3 {
+    font-size: 1.02rem;
+    margin-bottom: 0.15rem;
+    transition: color var(--t-soft) var(--ease-drift);
+  }
+
+  .sr-meta {
+    color: var(--ink-quiet);
+    font-size: 0.84rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .sr-card:hover img,
+  .sr-card:focus-visible img {
+    scale: 1.05;
+    filter: saturate(1.12) brightness(1.03);
+  }
+
+  .sr-card:hover h3,
+  .sr-card:focus-visible h3 {
+    color: var(--deep);
+  }
+
+  /* Games: the lights go down and the drawings come out. Engineery:
+     hairline rules, index numbers, registration ticks, nothing soft */
+  .ribbon-games {
+    background: var(--ink);
+    color: var(--paper);
+    padding-block: var(--space-2) var(--space-4);
+    margin-block: var(--space-4);
+  }
+
+  .ribbon-games .section-head {
+    border-bottom: 1px solid rgba(242, 241, 240, 0.22);
+    padding-bottom: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+
+  .odometer {
+    font-family: 'SF Mono', Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.92em;
+    color: var(--haze);
+  }
+
+  .ribbon-games .overline {
+    color: var(--haze);
+  }
+
+  .ribbon-games .lede {
+    color: var(--stone);
+  }
+
+  .gm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: var(--space-3);
+  }
+
+  /* the licensed flagships take the wider bays */
+  .gm-card.licensed {
+    grid-column: span 2;
+  }
+
+  @media (max-width: 560px) {
+    .gm-card.licensed {
+      grid-column: span 1;
+    }
+  }
+
+  .gm-card {
+    position: relative;
+    border-top: 1px solid rgba(242, 241, 240, 0.25);
+    padding-top: 0.55rem;
+  }
+
+  /* a registration tick at every bay corner: the tiny white marks */
+  .gm-card::before {
+    content: '+';
+    position: absolute;
+    top: -0.62em;
+    left: -2px;
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 0.8rem;
+    color: rgba(242, 241, 240, 0.65);
+  }
+
+  .gm-index {
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    color: var(--stone);
+    display: block;
+    margin-bottom: 0.45rem;
+  }
+
+  .gm-art {
+    display: block;
+    margin-bottom: var(--space-1);
+  }
+
+  .gm-card img,
+  .gm-pending {
+    aspect-ratio: 3 / 2;
+    width: 100%;
+    display: block;
+    object-fit: contain;
+  }
+
+  .gm-card:hover {
+    border-top-color: var(--paper);
+  }
+
+  .gm-card:hover .gm-index {
+    color: var(--paper);
+  }
+
+  .gm-card h3 {
+    font-size: 0.98rem;
+    margin-bottom: 0.1rem;
+  }
+
+  .gm-meta {
+    font-family: 'SF Mono', Menlo, monospace;
+    color: var(--stone);
+    font-size: 0.7rem;
+    letter-spacing: 0.03em;
+  }
+
+  /* Build: the collage carries it, the copy stays calm */
+  .ribbon-build {
+    padding-block: var(--space-3) var(--space-4);
+  }
+
+  .studio-meta {
+    padding-block: var(--space-3);
+    font-size: 1.05rem;
+  }
+
+  .studio-meta .dot {
+    color: var(--stone);
+  }
+</style>
+
+<script>
+  import { shouldAnimate, startEnvironment } from '../scripts/environment.js';
+
+  // the jackpot odometer: the million combination claim, counted out
+  const combo = document.getElementById('combo-count');
+  if (combo && !window.matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
+    const TARGET = 1048576;
+    const watcher = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      watcher.disconnect();
+      const startedAt = performance.now();
+      const DURATION = 2200;
+      const tick = () => {
+        const progress = Math.min(1, (performance.now() - startedAt) / DURATION);
+        const eased = 1 - (1 - progress) ** 3;
+        combo.textContent = Math.round(TARGET * eased).toLocaleString('en-US');
+        if (progress < 1) requestAnimationFrame(tick);
+      };
+      tick();
+    }, { threshold: 0.4 });
+    watcher.observe(combo);
+  }
+
+  const container = document.getElementById('environment');
+  if (container && shouldAnimate()) {
+    const begin = () => startEnvironment(container);
+    'requestIdleCallback' in window
+      ? requestIdleCallback(begin, { timeout: 2000 })
+      : setTimeout(begin, 300);
+  }
+</script>

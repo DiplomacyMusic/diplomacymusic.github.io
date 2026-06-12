@@ -1,0 +1,806 @@
+[
+  {
+    "id": "summer-oath",
+    "title": "The Summer Oath",
+    "roles": [
+      "Post Production Supervisor",
+      "Composer"
+    ],
+    "publisher": "Audible",
+    "producers": [
+      "Broadway Video"
+    ],
+    "genre": "Romantic Comedy",
+    "badges": [],
+    "awards": [],
+    "stars": [
+      "Maya Hawke"
+    ],
+    "note": null,
+    "links": {
+      "apple": null,
+      "spotify": null,
+      "official": "https://www.audible.com/pd/B0GS6L96GF"
+    },
+    "artwork": "/art/summer-oath.jpg",
+    "featured": false,
+    "group": null
+  },
+  {
+    "id": "sonic-chaotix",
+    "title": "Sonic the Hedgehog Presents: The Chaotix Case Files",
+    "roles": [
+      "Lead Sound Designer",
+      "Mix"
+    ],
+    "publisher": "Sega",
+    "producers": [
+      "Realm"
+    ],
+    "genre": "Cartoon",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/sonic-the-hedgehog-presents-the-chaotix-casefiles/id1860961470?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/sonic-chaotix.jpg",
+    "featured": false,
+    "group": null
+  },
+  {
+    "id": "star-trek-khan",
+    "title": "Star Trek: Khan",
+    "roles": [
+      "Post Production Supervisor"
+    ],
+    "publisher": "CBS / Paramount",
+    "producers": [
+      "Secret Hideout",
+      "Realm"
+    ],
+    "genre": "Sci-Fi",
+    "badges": [
+      "Apple Fiction #1"
+    ],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/star-trek-khan/id1829173222?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/star-trek-khan.jpg",
+    "featured": true,
+    "group": null
+  },
+  {
+    "id": "happily-never-after",
+    "title": "Happily Never After: Dan and Nancy",
+    "roles": [
+      "Composer",
+      "Sound Designer"
+    ],
+    "publisher": "Amazon",
+    "producers": [
+      "Wondery"
+    ],
+    "genre": "True Crime",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/happily-never-after-dan-and-nancy/id1743266064?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/happily-never-after.jpg",
+    "featured": false,
+    "group": null
+  },
+  {
+    "id": "hit-singles",
+    "title": "Hit Singles",
+    "roles": [
+      "Re-recording Mixer",
+      "Sound Designer"
+    ],
+    "publisher": "Audible",
+    "producers": [
+      "Fresh Produce"
+    ],
+    "genre": "Romantic Comedy",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": null,
+      "spotify": null,
+      "official": "https://www.audible.com/pd/B0DYGL75BF"
+    },
+    "artwork": "/art/hit-singles.jpg",
+    "featured": false,
+    "group": null
+  },
+  {
+    "id": "patel-motel",
+    "title": "Murder at the Patel Motel",
+    "roles": [
+      "Post Production Supervisor",
+      "Composer"
+    ],
+    "publisher": "Audible",
+    "producers": [
+      "Broadway Video"
+    ],
+    "genre": "Comedy Thriller",
+    "badges": [
+      "Ambie Winner"
+    ],
+    "awards": [
+      "Ambies: Best Performance in Audio Fiction, Winner",
+      "Ambie nominations: Best Comedy Podcast, Best Original Score and Music Supervision, Best Scriptwriting Fiction",
+      "Signal nominations: Best Original Score and Music, Comedy, Scripted Fiction, LGBTQ+"
+    ],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": null,
+      "spotify": null,
+      "official": "https://www.audible.com/pd/B0F4L1ZYRY"
+    },
+    "artwork": "/art/patel-motel.jpg",
+    "featured": true,
+    "group": null
+  },
+  {
+    "id": "dc-batman",
+    "title": "DC High Volume: Batman",
+    "roles": [
+      "Sound Designer"
+    ],
+    "publisher": "DC Comics",
+    "producers": [
+      "Realm"
+    ],
+    "genre": "Action",
+    "badges": [
+      "Apple Fiction #1",
+      "Signal Winner"
+    ],
+    "awards": [
+      "Signal Award Winner: Most Innovative Audio Experience, Best Original Score and Music, Best Scripted Fiction, Best Editing",
+      "Ambie nominations: Best Original Score and Music Supervision, Best Production and Sound Design"
+    ],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/dc-high-volume-batman/id1802737962?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/dc-batman.jpg",
+    "featured": true,
+    "group": null
+  },
+  {
+    "id": "big-ideas-lab",
+    "title": "Big Ideas Lab: Lawrence Livermore National Laboratory",
+    "roles": [
+      "Story Editor",
+      "Sound Designer"
+    ],
+    "publisher": "Mission.org",
+    "producers": [],
+    "genre": "Science",
+    "badges": [
+      "#1 Apple Science Podcast"
+    ],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/big-ideas-lab/id1766302914?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/big-ideas-lab.jpg",
+    "featured": false,
+    "group": null
+  },
+  {
+    "id": "pearl-onion",
+    "title": "The Pearl and the Onion",
+    "roles": [
+      "Post Production Supervisor",
+      "Composer"
+    ],
+    "publisher": "Audible",
+    "producers": [
+      "Fresh Produce"
+    ],
+    "genre": "Action Comedy",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": null,
+      "spotify": null,
+      "official": "https://www.audible.com/pd/B0DZPHTQ2B"
+    },
+    "artwork": "/art/pearl-onion.jpg",
+    "featured": false,
+    "group": null
+  },
+  {
+    "id": "case-63-s2",
+    "title": "Case 63, Season 2",
+    "roles": [
+      "Sound Designer",
+      "Atmos Mix"
+    ],
+    "publisher": "Spotify",
+    "producers": [],
+    "genre": "Sci-Fi",
+    "badges": [
+      "Spotify Global #1"
+    ],
+    "awards": [],
+    "stars": [
+      "Julianne Moore",
+      "Oscar Isaac"
+    ],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/case-63/id1703294291?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/case-63-s2.jpg",
+    "featured": true,
+    "group": "case-63"
+  },
+  {
+    "id": "good-morning-monster",
+    "title": "Good Morning Monster",
+    "roles": [
+      "Composer"
+    ],
+    "publisher": "Dear Media",
+    "producers": [
+      "Wolf at the Door"
+    ],
+    "genre": "Drama",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/good-morning-monster/id1708505387?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/good-morning-monster.jpg",
+    "featured": false,
+    "group": null
+  },
+  {
+    "id": "harley-quinn",
+    "title": "Harley Quinn: Sound Mind",
+    "roles": [
+      "Sound Designer"
+    ],
+    "publisher": "DC Comics",
+    "producers": [
+      "Realm"
+    ],
+    "genre": "Action",
+    "badges": [
+      "Spotify Global #1"
+    ],
+    "awards": [],
+    "stars": [
+      "Christina Ricci"
+    ],
+    "note": null,
+    "links": {
+      "apple": null,
+      "spotify": "https://open.spotify.com/show/0LwynFnRBJBHaZRdkqC9fc",
+      "official": null
+    },
+    "artwork": "/art/harley-quinn.jpg",
+    "featured": false,
+    "group": null
+  },
+  {
+    "id": "quiet-part-loud",
+    "title": "Quiet Part Loud",
+    "roles": [
+      "Sound Designer"
+    ],
+    "publisher": "Spotify",
+    "producers": [
+      "Monkeypaw / Jordan Peele"
+    ],
+    "genre": "Horror",
+    "badges": [
+      "Spotify Global #1"
+    ],
+    "awards": [],
+    "stars": [
+      "Tracy Letts"
+    ],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/quiet-part-loud/id1671646421?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/quiet-part-loud.jpg",
+    "featured": true,
+    "group": null
+  },
+  {
+    "id": "case-63-s1",
+    "title": "Case 63, Season 1",
+    "roles": [
+      "Sound Designer"
+    ],
+    "publisher": "Spotify",
+    "producers": [],
+    "genre": "Sci-Fi",
+    "badges": [
+      "Spotify Global #1"
+    ],
+    "awards": [],
+    "stars": [
+      "Julianne Moore",
+      "Oscar Isaac"
+    ],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/case-63/id1703294291?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/case-63-s1.jpg",
+    "featured": false,
+    "group": "case-63"
+  },
+  {
+    "id": "wastelanders-wolverine",
+    "title": "Marvel Wastelanders: Wolverine",
+    "roles": [
+      "Re-recording Mixer",
+      "Sound Designer"
+    ],
+    "publisher": "Marvel / SiriusXM",
+    "producers": [
+      "Waverunner"
+    ],
+    "genre": "Action",
+    "badges": [
+      "Apple Fiction #1"
+    ],
+    "awards": [],
+    "stars": [
+      "Robert Patrick"
+    ],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/marvels-wastelanders-wolverine/id1625915759?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/wastelanders-wolverine.jpg",
+    "featured": true,
+    "group": null
+  },
+  {
+    "id": "gay-pride-prejudice",
+    "title": "Gay Pride and Prejudice",
+    "roles": [
+      "Sound Designer"
+    ],
+    "publisher": "Spotify",
+    "producers": [],
+    "genre": "Romantic Comedy",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/gay-pride-prejudice/id1688736369?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/gay-pride-prejudice.jpg",
+    "featured": false,
+    "group": null
+  },
+  {
+    "id": "bone-marry-bury",
+    "title": "Bone Marry Bury",
+    "roles": [
+      "Sound Designer"
+    ],
+    "publisher": "Dear Media",
+    "producers": [
+      "Pod People"
+    ],
+    "genre": "Comedy Thriller",
+    "badges": [
+      "Apple Fiction #1"
+    ],
+    "awards": [],
+    "stars": [
+      "Sarah Hyland",
+      "Harvey Guillen"
+    ],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/bone-marry-bury/id1606269525?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/bone-marry-bury.jpg",
+    "featured": false,
+    "group": null
+  },
+  {
+    "id": "wastelanders-black-widow",
+    "title": "Marvel Wastelanders: Black Widow",
+    "roles": [
+      "Post Production Supervisor",
+      "Composer"
+    ],
+    "publisher": "Marvel / SiriusXM",
+    "producers": [
+      "Waverunner"
+    ],
+    "genre": "Action",
+    "badges": [
+      "Apple Fiction #1"
+    ],
+    "awards": [],
+    "stars": [
+      "Susan Sarandon",
+      "Michael Imperioli"
+    ],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/marvels-wastelanders-black-widow/id1702054154?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/wastelanders-black-widow.jpg",
+    "featured": true,
+    "group": null
+  },
+  {
+    "id": "red-frontier",
+    "title": "Red Frontier",
+    "roles": [
+      "Sound Designer"
+    ],
+    "publisher": "Spotify",
+    "producers": [],
+    "genre": "Sci-Fi",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/red-frontier/id1690676876?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/red-frontier.jpg",
+    "featured": false,
+    "group": null
+  },
+  {
+    "id": "showmance",
+    "title": "RomComPods: Showmance",
+    "roles": [
+      "Composer",
+      "Sound Designer"
+    ],
+    "publisher": "Pod People",
+    "producers": [],
+    "genre": "Romantic Comedy",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/showmance/id1565850616?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/showmance.jpg",
+    "featured": false,
+    "group": "romcompods"
+  },
+  {
+    "id": "motherhacker-s2",
+    "title": "Motherhacker, Season 2",
+    "roles": [
+      "Sound Designer"
+    ],
+    "publisher": "Spotify",
+    "producers": [],
+    "genre": "Thriller",
+    "badges": [],
+    "awards": [],
+    "stars": [
+      "Carrie Coon"
+    ],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/motherhacker/id1487213874?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/motherhacker-s2.jpg",
+    "featured": false,
+    "group": "motherhacker"
+  },
+  {
+    "id": "vote-for-love",
+    "title": "RomComPods: Vote for Love",
+    "roles": [
+      "Composer",
+      "Sound Designer"
+    ],
+    "publisher": "Pod People",
+    "producers": [],
+    "genre": "Romantic Comedy",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/vote-for-love/id1511796352?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/vote-for-love.jpg",
+    "featured": false,
+    "group": "romcompods"
+  },
+  {
+    "id": "two-princes-s3",
+    "title": "The Two Princes, Season 3",
+    "roles": [
+      "Sound Designer"
+    ],
+    "publisher": "Spotify",
+    "producers": [],
+    "genre": "Fantasy",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/the-two-princes/id1464586861?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/two-princes-s3.jpg",
+    "featured": false,
+    "group": "two-princes"
+  },
+  {
+    "id": "honeymoon-for-one",
+    "title": "RomComPods: Honeymoon for One",
+    "roles": [
+      "Composer",
+      "Sound Designer"
+    ],
+    "publisher": "Pod People",
+    "producers": [],
+    "genre": "Romantic Comedy",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/honeymoon-for-one/id1563469910?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/honeymoon-for-one.jpg",
+    "featured": false,
+    "group": "romcompods"
+  },
+  {
+    "id": "dolores-roach-s2",
+    "title": "The Horror of Dolores Roach, Season 2",
+    "roles": [
+      "Sound Designer"
+    ],
+    "publisher": "Gimlet",
+    "producers": [],
+    "genre": "Horror",
+    "badges": [
+      "Adapted into an Amazon Prime series"
+    ],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/the-horror-of-dolores-roach/id1437288075?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/dolores-roach-s2.jpg",
+    "featured": false,
+    "group": null
+  },
+  {
+    "id": "two-princes-s2",
+    "title": "The Two Princes, Season 2",
+    "roles": [
+      "Sound Designer"
+    ],
+    "publisher": "Gimlet",
+    "producers": [],
+    "genre": "Fantasy",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/the-two-princes/id1464586861?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/two-princes-s2.jpg",
+    "featured": false,
+    "group": "two-princes"
+  },
+  {
+    "id": "motherhacker-s1",
+    "title": "Motherhacker, Season 1",
+    "roles": [
+      "Sound Designer"
+    ],
+    "publisher": "Gimlet",
+    "producers": [],
+    "genre": "Thriller",
+    "badges": [],
+    "awards": [],
+    "stars": [
+      "Carrie Coon"
+    ],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/motherhacker/id1487213874?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/motherhacker-s1.jpg",
+    "featured": false,
+    "group": "motherhacker"
+  },
+  {
+    "id": "two-princes-s1",
+    "title": "The Two Princes, Season 1",
+    "roles": [
+      "Sound Designer"
+    ],
+    "publisher": "Gimlet",
+    "producers": [],
+    "genre": "Fantasy",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/the-two-princes/id1464586861?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/two-princes-s1.jpg",
+    "featured": false,
+    "group": "two-princes"
+  },
+  {
+    "id": "sandra",
+    "title": "SANDRA",
+    "roles": [
+      "Composer"
+    ],
+    "publisher": "Gimlet",
+    "producers": [],
+    "genre": "Comedy",
+    "badges": [],
+    "awards": [],
+    "stars": [
+      "Kristen Wiig"
+    ],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/sandra/id1369393683?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/sandra.jpg",
+    "featured": false,
+    "group": null
+  },
+  {
+    "id": "lyft-pick-me-up",
+    "title": "Lyft: Pick Me Up",
+    "roles": [
+      "Composer"
+    ],
+    "publisher": "Gimlet Creative",
+    "producers": [],
+    "genre": "Docu-series",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/pick-me-up/id1436207907?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/lyft-pick-me-up.jpg",
+    "featured": false,
+    "group": null
+  },
+  {
+    "id": "every-little-thing",
+    "title": "Every Little Thing",
+    "roles": [
+      "Composer"
+    ],
+    "publisher": "Gimlet",
+    "producers": [],
+    "genre": "Science",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/every-little-thing/id1225760210?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/every-little-thing.jpg",
+    "featured": false,
+    "group": null
+  },
+  {
+    "id": "secret-to-victory",
+    "title": "Gatorade: The Secret to Victory",
+    "roles": [
+      "Composer"
+    ],
+    "publisher": "Gimlet Creative",
+    "producers": [],
+    "genre": "Sports",
+    "badges": [],
+    "awards": [],
+    "stars": [],
+    "note": null,
+    "links": {
+      "apple": "https://podcasts.apple.com/us/podcast/the-secret-to-victory/id1252154385?uo=4",
+      "spotify": null,
+      "official": null
+    },
+    "artwork": "/art/secret-to-victory.jpg",
+    "featured": false,
+    "group": null
+  }
+]

@@ -1,0 +1,83 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      name: 'Diplomacy',
+      url: 'https://www.diplomacymusic.com',
+      description: 'An audio studio for stories, games, and the machines that give them voice.',
+      founder: { '@id': '#daniel-brunelle' },
+    },
+    {
+      '@type': 'Person',
+      '@id': '#daniel-brunelle',
+      name: 'Daniel Brunelle',
+      jobTitle: 'Composer and Sound Designer',
+      url: 'https://www.diplomacymusic.com/studio',
+      worksFor: { '@type': 'Organization', name: 'Diplomacy' },
+    },
+  ],
+};
+---
+
+<Layout
+  title="Studio. About Diplomacy and Daniel Brunelle."
+  description="Diplomacy is the studio of composer and sound designer Daniel Brunelle. Audio drama, game audio, and original production instruments. Chicago, IL."
+>
+  <main class="wrap">
+    <header class="studio-head">
+      <h1>The studio</h1>
+    </header>
+
+    <div class="studio-body">
+      <section>
+        <h2>What this place is</h2>
+        <p>
+          Diplomacy is an audio studio working in three rooms. Story: audio
+          drama for Audible, Marvel, DC, Star Trek, and Spotify. Play: game
+          audio across more than one hundred shipped titles. Build: the
+          studio designs its own production instruments. Alignment systems,
+          assembly automation, adaptive music engines.
+        </p>
+      </section>
+
+      <section>
+        <h2>Principal</h2>
+        <p>
+          Daniel Brunelle is the studio's composer and sound designer.
+          Classical training, rock and roll habits, and a long apprenticeship
+          in rooms where the deadline is real. Based in Chicago.
+        </p>
+      </section>
+
+      <section>
+        <h2>Contact</h2>
+        <p>
+          <a href="mailto:daniel@diplomacymusic.com">daniel@diplomacymusic.com</a>
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+</Layout>
+
+<style>
+  .studio-head {
+    padding-block: var(--space-4) var(--space-2);
+  }
+
+  .studio-body {
+    display: grid;
+    gap: var(--space-3);
+    padding-bottom: var(--space-4);
+  }
+
+  .studio-body h2 {
+    font-size: 1.1rem;
+    color: var(--ink-quiet);
+  }
+</style>

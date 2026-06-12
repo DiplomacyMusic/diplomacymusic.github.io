@@ -1,0 +1,91 @@
+---
+import fs from 'node:fs';
+
+// Each logo is a real brand SVG rendered through a mask, so the whole
+// wall sits in one quiet monochrome. Width comes from each file's own
+// proportions so nothing distorts.
+// h is an optical height multiplier: round marks need more height than
+// wordmarks to carry the same visual weight, and Sega sits in a square
+// canvas so it needs room to read
+const names = [
+  { id: 'marvel', name: 'Marvel', h: 1.45 },
+  { id: 'spotify', name: 'Spotify', h: 1 },
+  { id: 'audible', name: 'Audible', h: 1 },
+  { id: 'startrek', name: 'Star Trek', h: 1.1 },
+  { id: 'dc', name: 'DC', h: 1.35 },
+  { id: 'amazon', name: 'Amazon', h: 1 },
+  { id: 'sega', name: 'Sega', h: 1 },
+  { id: 'siriusxm', name: 'SiriusXM', h: 0.92 },
+  { id: 'broadwayvideo', name: 'Broadway Video', h: 1.6 },
+];
+
+const logos = names.map((logo) => {
+  const svg = fs.readFileSync(`public/brand/logos/${logo.id}.svg`, 'utf8');
+  let ratio = 3;
+  const viewBox = svg.match(/viewBox="([^"]+)"/);
+  if (viewBox) {
+    const parts = viewBox[1].trim().split(/[\s,]+/).map(Number);
+    if (parts.length === 4 && parts[3] > 0) ratio = parts[2] / parts[3];
+  } else {
+    const w = svg.match(/<svg[^>]*\swidth="([\d.]+)/);
+    const h = svg.match(/<svg[^>]*\sheight="([\d.]+)/);
+    if (w && h && Number(h[1]) > 0) ratio = Number(w[1]) / Number(h[1]);
+  }
+  return { ...logo, ratio };
+});
+---
+
+<section class="logo-wall wrap soft-veil" aria-label="Publishers and studios Diplomacy has worked with">
+  <p class="overline">In good company</p>
+  <ul>
+    {logos.map((logo) => (
+      <li>
+        <span
+          class="logo"
+          role="img"
+          aria-label={logo.name}
+          style={`--logo: url('/brand/logos/${logo.id}.svg'); --logo-h: calc(var(--logo-base) * ${logo.h}); width: calc(var(--logo-h) * ${logo.ratio.toFixed(3)});`}
+        />
+      </li>
+    ))}
+  </ul>
+</section>
+
+<style>
+  .logo-wall {
+    padding-block: var(--space-3) var(--space-4);
+  }
+
+  ul {
+    list-style: none;
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) clamp(1.6rem, 4vw, 3.2rem);
+  }
+
+  .logo {
+    --logo-base: 1.45rem;
+    display: block;
+    height: var(--logo-h);
+    background: var(--ink-quiet);
+    -webkit-mask: var(--logo) center / contain no-repeat;
+    mask: var(--logo) center / contain no-repeat;
+    transition: background var(--t-soft) var(--ease-drift);
+  }
+
+  li:hover .logo {
+    background: var(--ink);
+  }
+
+  @media (max-width: 640px) {
+    ul {
+      gap: var(--space-2) var(--space-3);
+    }
+    .logo {
+      --logo-base: 1.1rem;
+    }
+  }
+</style>

@@ -1,0 +1,67 @@
+<button class="sound-toggle" id="sound-toggle" aria-pressed="false">
+  Sound on?
+</button>
+
+<style>
+  .sound-toggle {
+    position: fixed;
+    right: 1.2rem;
+    bottom: 1.2rem;
+    z-index: 10;
+    font: inherit;
+    font-size: 0.82rem;
+    letter-spacing: var(--track-soft);
+    color: var(--deep);
+    background: var(--veil);
+    border: 1px solid var(--water);
+    border-radius: 999px;
+    padding: 0.45rem 1.1rem;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: color var(--t-soft) var(--ease-drift),
+      background var(--t-soft) var(--ease-drift);
+  }
+
+  .sound-toggle:hover {
+    background: var(--deep);
+    border-color: var(--deep);
+    color: var(--paper);
+  }
+
+  .sound-toggle[aria-pressed='true'] {
+    background: var(--deep);
+    border-color: var(--deep);
+    color: var(--paper);
+  }
+</style>
+
+<script>
+  import { engine } from '../scripts/audio-engine.js';
+
+  const button = document.getElementById('sound-toggle');
+
+  function render(on) {
+    button.setAttribute('aria-pressed', String(on));
+    button.textContent = on ? 'Sound off' : 'Sound on?';
+  }
+
+  button.addEventListener('click', () => {
+    const on = button.getAttribute('aria-pressed') !== 'true';
+    engine.setOn(on);
+    render(on);
+  });
+
+  // Sound is on unless this visitor turned it off before. The browser
+  // keeps audio asleep until their first gesture, and since nothing here
+  // sounds without interaction anyway, the first touch wakes everything.
+  if (engine.savedChoice() === 'off') {
+    render(false);
+  } else {
+    engine.setOn(true);
+    render(true);
+    const wake = () => engine.wake();
+    window.addEventListener('pointerdown', wake, { once: true, capture: true });
+    window.addEventListener('keydown', wake, { once: true });
+  }
+</script>

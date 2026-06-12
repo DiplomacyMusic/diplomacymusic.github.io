@@ -1,0 +1,138 @@
+---
+import Layout from '../layouts/Layout.astro';
+import credits from '../data/credits.json';
+
+// One card per group, single titles stand alone. Season switching
+// inside a group arrives with the full Series build.
+const seen = new Set();
+const cards = credits.filter((credit) => {
+  if (!credit.group) return true;
+  if (seen.has(credit.group)) return false;
+  seen.add(credit.group);
+  return true;
+});
+
+const listenLink = (credit) =>
+  credit.links.apple || credit.links.spotify || credit.links.official;
+---
+
+<Layout
+  title="Series. Diplomacy audio drama credits."
+  description="Audio drama from Diplomacy. Composer, sound design, mix, and post production supervision for Audible, Marvel, DC, Star Trek, and Spotify."
+>
+  <main class="wrap">
+    <header class="series-head">
+      <h1>Series</h1>
+      <p class="lede">
+        Every show opens where it lives, ready to play.
+        The <a href="/indexlist">Index</a> has the plain facts.
+      </p>
+    </header>
+
+    <div class="series-grid">
+      {cards.map((credit) => (
+        <a class="card" data-reveal href={listenLink(credit)} target="_blank" rel="noopener">
+          {credit.artwork && (
+            <span class="art">
+              <img src={credit.artwork} alt={`Cover art for ${credit.title}`} loading="lazy" width="600" height="600" />
+            </span>
+          )}
+          <h2>{credit.group ? credit.title.replace(/,?\s*Season \d+/, '') : credit.title}</h2>
+          <p class="card-meta">{credit.roles.join(', ')} · {credit.publisher}</p>
+          {credit.badges.length > 0 && <span class="badge">{credit.badges[0]}</span>}
+          <span class="listen overline">Listen</span>
+        </a>
+      ))}
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .series-head {
+    padding-block: var(--space-4) var(--space-2);
+  }
+
+  .lede {
+    color: var(--ink-quiet);
+  }
+
+  .series-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: var(--space-3);
+    padding-block: var(--space-3) var(--space-4);
+  }
+
+  .card {
+    display: block;
+    color: var(--ink);
+    transition: translate var(--t-slow) var(--ease-drift);
+  }
+
+  .art {
+    display: block;
+    overflow: hidden;
+    border-radius: 6px;
+    margin-bottom: var(--space-1);
+  }
+
+  .card img {
+    aspect-ratio: 1;
+    object-fit: cover;
+    transition:
+      scale 900ms var(--ease-drift),
+      filter 900ms var(--ease-drift);
+  }
+
+  .card h2 {
+    font-size: 1.1rem;
+    margin-bottom: 0.2rem;
+    transition: color var(--t-soft) var(--ease-drift);
+  }
+
+  .card-meta {
+    color: var(--ink-quiet);
+    font-size: 0.88rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .listen {
+    display: block;
+    margin-top: 0.35rem;
+    opacity: 0;
+    translate: 0 0.3rem;
+    transition:
+      opacity var(--t-soft) var(--ease-drift),
+      translate var(--t-soft) var(--ease-drift);
+  }
+
+  .card:hover,
+  .card:focus-visible {
+    translate: 0 -0.3rem;
+  }
+
+  .card:hover img,
+  .card:focus-visible img {
+    scale: 1.05;
+    filter: saturate(1.12) brightness(1.03);
+  }
+
+  .card:hover h2,
+  .card:focus-visible h2 {
+    color: var(--deep);
+  }
+
+  .card:hover .listen,
+  .card:focus-visible .listen {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card,
+    .card img,
+    .listen {
+      transition: none;
+    }
+  }
+</style>

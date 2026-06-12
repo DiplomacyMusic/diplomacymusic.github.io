@@ -1,0 +1,212 @@
+/* Diplomacy design system.
+   Warm 22nd century studio. Glacier light, not chrome.
+   Every color and rhythm lives here as a custom property. */
+
+:root {
+  /* color: the official Diplomacy palette
+     (07_Branding_Assets/Colors/Diplomacy Colors Hex Values.txt) */
+  --paper: #f2f1f0;        /* brand Light, the base of everything */
+  --ink: #302d26;          /* brand Dark, all primary text */
+  --ink-quiet: #67635b;    /* derived: brand Gray pulled toward Dark so small text stays readable */
+  --haze: #d9d7c2;         /* brand Sand, dividers and washes */
+  --water: #849396;        /* brand Blue, mid tone accent */
+  --deep: #4e433d;         /* brand Brown, links and strong accents */
+  --glow: #d9d7c2;         /* brand Sand again, highlights and warm light */
+  --stone: #979595;        /* brand Gray, borders and large quiet type */
+  --veil: rgba(242, 241, 240, 0.82);  /* nav scrim over the environment */
+
+  /* type */
+  --font-display: 'Outfit Variable', 'Avenir Next', 'Helvetica Neue', sans-serif;
+  --font-body: 'Outfit Variable', 'Avenir Next', 'Helvetica Neue', sans-serif;
+  --track-wide: 0.18em;    /* the airy letterspacing of the wordmark */
+  --track-soft: 0.04em;
+
+  /* rhythm */
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 2rem;
+  --space-4: 4rem;
+  --space-5: 8rem;
+  --measure: 38rem;        /* comfortable reading width */
+
+  /* motion: slow and certain, nothing snaps */
+  --ease-drift: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --t-slow: 600ms;
+  --t-soft: 300ms;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 350;
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 250;
+  letter-spacing: var(--track-soft);
+  line-height: 1.15;
+  margin: 0 0 var(--space-2);
+}
+
+h1 { font-size: clamp(2.2rem, 6vw, 4rem); }
+h2 { font-size: clamp(1.5rem, 3.5vw, 2.2rem); }
+h3 { font-size: 1.15rem; }
+
+p {
+  margin: 0 0 var(--space-2);
+  max-width: var(--measure);
+}
+
+a {
+  color: var(--deep);
+  text-decoration: none;
+  transition: color var(--t-soft) var(--ease-drift);
+}
+
+a:hover,
+a:focus-visible {
+  color: var(--ink);
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--deep);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+img {
+  max-width: 100%;
+  height: auto; /* keeps square art square when the column narrows */
+  display: block;
+}
+
+::selection {
+  background: var(--glow);
+  color: var(--ink);
+}
+
+/* shared page shell */
+.wrap {
+  width: min(100% - 3rem, 72rem);
+  margin-inline: auto;
+}
+
+.overline {
+  font-size: 0.78rem;
+  font-weight: 450;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+
+/* An edgeless pool of focus behind text that floats over the
+   environment: a paper dim plus a backdrop blur, both feathered to
+   nothing by the mask so there is never a visible boundary. */
+.soft-veil {
+  position: relative;
+}
+
+.soft-veil::before {
+  content: '';
+  position: absolute;
+  inset: -3rem -5rem;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 100% 100% at 50% 50%,
+    var(--veil) 0%,
+    rgba(242, 241, 240, 0.6) 50%,
+    transparent 78%
+  );
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  -webkit-mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 40%, transparent 74%);
+  mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 40%, transparent 74%);
+}
+
+/* the official marks, rendered through masks so they take any color */
+.brand-mask {
+  display: inline-block;
+  background: var(--ink);
+  -webkit-mask: var(--brand-asset) center / contain no-repeat;
+  mask: var(--brand-asset) center / contain no-repeat;
+}
+
+/* screen reader text that takes no visual space */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* scroll reveal: cards rise into place as you arrive at them.
+   Only when JS is running, so nothing can be lost without it. */
+html.js [data-reveal] {
+  opacity: 0;
+  translate: 0 1.6rem;
+  transition:
+    opacity 700ms var(--ease-drift),
+    translate 700ms var(--ease-drift);
+}
+
+html.js [data-reveal='left'] {
+  translate: -2.2rem 0;
+}
+
+html.js [data-reveal='right'] {
+  translate: 2.2rem 0;
+}
+
+html.js [data-reveal].is-seen {
+  opacity: 1;
+  translate: 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.js [data-reveal] {
+    opacity: 1;
+    translate: none;
+    transition: none;
+  }
+}
+
+/* a quiet fact, stated flat */
+.badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 450;
+  letter-spacing: var(--track-soft);
+  text-transform: uppercase;
+  color: var(--deep);
+  border: 1px solid var(--haze);
+  border-radius: 999px;
+  padding: 0.15rem 0.65rem;
+  white-space: nowrap;
+}

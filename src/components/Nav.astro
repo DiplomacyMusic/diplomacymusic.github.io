@@ -1,0 +1,173 @@
+---
+const links = [
+  { href: '/#featured', label: 'Featured Work' },
+  { href: '/#series', label: 'Series' },
+  { href: '/#games', label: 'Games' },
+  { href: '/#build', label: 'Studio' },
+];
+const current = Astro.url.pathname;
+---
+
+<header class="nav-bar">
+  <nav class="wrap nav-inner" aria-label="Main">
+    <a class="brand" href="/" aria-label="Diplomacy, home">
+      <img class="brand-mark" src="/brand/diplomacy-avatar.jpg" alt="" width="315" height="315" />
+      <span class="brand-name" aria-hidden="true">Diplomacy<br /><span
+          class="brand-word-line"><span id="brand-word">Music</span><span class="type-caret"></span></span></span>
+    </a>
+    <div class="nav-links">
+      {links.map((link) => (
+        <a href={link.href} aria-current={current === link.href ? 'page' : undefined}>
+          {link.label}
+        </a>
+      ))}
+      <a class="index-toggle" href="/indexlist">Index</a>
+    </div>
+  </nav>
+</header>
+
+<style>
+  .nav-bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--veil);
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding-block: 0.7rem;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    color: var(--ink);
+  }
+
+  .brand-mark {
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 2px;
+  }
+
+  .brand-name {
+    font-weight: 300;
+    font-size: 0.82rem;
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    line-height: 1.35;
+  }
+
+  .brand-word-line {
+    color: var(--ink-quiet);
+  }
+
+  .type-caret {
+    display: inline-block;
+    width: 1px;
+    height: 0.85em;
+    margin-left: 1px;
+    background: var(--ink-quiet);
+    vertical-align: baseline;
+    opacity: 0;
+  }
+
+  .brand-name.typing .type-caret {
+    opacity: 1;
+    animation: caret-blink 0.9s steps(1) infinite;
+  }
+
+  @keyframes caret-blink {
+    50% { opacity: 0; }
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.8rem, 2.5vw, 1.6rem);
+    font-size: 0.85rem;
+    letter-spacing: var(--track-soft);
+  }
+
+  .nav-links a {
+    color: var(--ink-quiet);
+  }
+
+  .nav-links a:hover,
+  .nav-links a:focus-visible,
+  .nav-links a[aria-current='page'] {
+    color: var(--ink);
+  }
+
+  /* Index is the one door that is always visible */
+  .index-toggle {
+    border: 1px solid var(--water);
+    border-radius: 999px;
+    padding: 0.25rem 0.9rem;
+    color: var(--deep);
+  }
+
+  .index-toggle:hover,
+  .index-toggle:focus-visible {
+    background: var(--deep);
+    border-color: var(--deep);
+    color: var(--paper);
+  }
+
+  @media (max-width: 640px) {
+    .nav-inner {
+      flex-wrap: wrap;
+      row-gap: 0.3rem;
+    }
+    .nav-links {
+      width: 100%;
+      overflow-x: auto;
+      padding-bottom: 0.2rem;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .nav-links::-webkit-scrollbar {
+      display: none;
+    }
+    .nav-links a {
+      white-space: nowrap;
+    }
+  }
+</style>
+
+<script>
+  // The second line introduces itself: Music, then Sound, then Studio,
+  // then back to Music for keeps. Typed by hand, like everything here.
+  const word = document.getElementById('brand-word');
+  const name = document.querySelector('.brand-name');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (word && name && !reduced) {
+    const SEQUENCE = ['Sound', 'Studio', 'Music'];
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    (async () => {
+      await wait(5000);
+      for (let i = 0; i < SEQUENCE.length; i++) {
+        name.classList.add('typing');
+        while (word.textContent.length) {
+          word.textContent = word.textContent.slice(0, -1);
+          await wait(70);
+        }
+        await wait(260);
+        const next = SEQUENCE[i];
+        for (let c = 1; c <= next.length; c++) {
+          word.textContent = next.slice(0, c);
+          await wait(115);
+        }
+        name.classList.remove('typing');
+        if (i < SEQUENCE.length - 1) await wait(5000);
+      }
+    })();
+  }
+</script>
