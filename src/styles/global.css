@@ -121,9 +121,8 @@ img {
   color: var(--ink-quiet);
 }
 
-/* An edgeless pool of focus behind text that floats over the
-   environment: a paper dim plus a backdrop blur, both feathered to
-   nothing by the mask so there is never a visible boundary. */
+/* A flat panel of paper behind text that floats over the environment.
+   Nearly opaque, never fully, and no gradients: flat for now. */
 .soft-veil {
   position: relative;
 }
@@ -131,19 +130,11 @@ img {
 .soft-veil::before {
   content: '';
   position: absolute;
-  inset: -3rem -5rem;
+  inset: -1.5rem -2rem;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(
-    ellipse 100% 100% at 50% 50%,
-    var(--veil) 0%,
-    rgba(242, 241, 240, 0.6) 50%,
-    transparent 78%
-  );
-  backdrop-filter: blur(7px);
-  -webkit-backdrop-filter: blur(7px);
-  -webkit-mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 40%, transparent 74%);
-  mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 40%, transparent 74%);
+  background: rgba(242, 241, 240, 0.88);
+  border-radius: 4px;
 }
 
 /* the official marks, rendered through masks so they take any color */

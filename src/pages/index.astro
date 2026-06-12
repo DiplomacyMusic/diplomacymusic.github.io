@@ -63,7 +63,7 @@ const listenLink = (credit) =>
 
   <section class="ribbon-series" id="series">
     <div class="wrap">
-      <header class="section-head soft-veil">
+      <header class="section-head">
         <p class="overline">Series</p>
         <h2>Stories, told in the dark.</h2>
         <p class="lede">Every show opens where it lives, ready to play.</p>
@@ -97,9 +97,8 @@ const listenLink = (credit) =>
         </p>
       </header>
       <div class="gm-grid">
-        {games.map((game, i) => (
-          <article class={game.license ? 'gm-card licensed' : 'gm-card'} data-reveal>
-            <span class="gm-index">{String(i + 1).padStart(3, '0')}</span>
+        {games.slice(0, 20).map((game) => (
+          <article class="gm-card" data-reveal>
             <span class="gm-art">
               {game.artwork ? (
                 <img src={game.artwork} alt={`Art for ${game.title}`} loading="lazy" width="600" height="400" />
@@ -112,6 +111,9 @@ const listenLink = (credit) =>
           </article>
         ))}
       </div>
+      <p class="gm-rest">
+        {games.slice(20).map((game) => game.title).join('  ·  ')}
+      </p>
     </div>
   </section>
 
@@ -280,9 +282,16 @@ const listenLink = (credit) =>
     max-width: 38rem;
   }
 
-  /* Series: cards approach from the wings, covers leaning forward */
+  /* Series: a near opaque page that dissolves at its foot, so the
+     shapes swallow the catalog just before the lights go down */
   .ribbon-series {
-    padding-block: var(--space-3);
+    padding-block: var(--space-3) var(--space-5);
+    background: linear-gradient(
+      to bottom,
+      rgba(242, 241, 240, 0.92) 0%,
+      rgba(242, 241, 240, 0.88) 62%,
+      rgba(242, 241, 240, 0) 100%
+    );
   }
 
   .sr-grid {
@@ -343,9 +352,7 @@ const listenLink = (credit) =>
   }
 
   .ribbon-games .section-head {
-    border-bottom: 1px solid rgba(242, 241, 240, 0.22);
     padding-bottom: var(--space-2);
-    margin-bottom: var(--space-3);
   }
 
   .odometer {
@@ -369,43 +376,6 @@ const listenLink = (credit) =>
     gap: var(--space-3);
   }
 
-  /* the licensed flagships take the wider bays */
-  .gm-card.licensed {
-    grid-column: span 2;
-  }
-
-  @media (max-width: 560px) {
-    .gm-card.licensed {
-      grid-column: span 1;
-    }
-  }
-
-  .gm-card {
-    position: relative;
-    border-top: 1px solid rgba(242, 241, 240, 0.25);
-    padding-top: 0.55rem;
-  }
-
-  /* a registration tick at every bay corner: the tiny white marks */
-  .gm-card::before {
-    content: '+';
-    position: absolute;
-    top: -0.62em;
-    left: -2px;
-    font-family: 'SF Mono', Menlo, monospace;
-    font-size: 0.8rem;
-    color: rgba(242, 241, 240, 0.65);
-  }
-
-  .gm-index {
-    font-family: 'SF Mono', Menlo, monospace;
-    font-size: 0.68rem;
-    letter-spacing: 0.08em;
-    color: var(--stone);
-    display: block;
-    margin-bottom: 0.45rem;
-  }
-
   .gm-art {
     display: block;
     margin-bottom: var(--space-1);
@@ -419,12 +389,16 @@ const listenLink = (credit) =>
     object-fit: contain;
   }
 
-  .gm-card:hover {
-    border-top-color: var(--paper);
-  }
-
-  .gm-card:hover .gm-index {
+  /* the rest of the catalog, names only, set big */
+  .gm-rest {
+    max-width: none;
+    margin-top: var(--space-4);
+    font-size: clamp(1.4rem, 3vw, 2.3rem);
+    font-weight: 250;
+    line-height: 1.55;
+    letter-spacing: var(--track-soft);
     color: var(--paper);
+    opacity: 0.85;
   }
 
   .gm-card h3 {
@@ -433,10 +407,8 @@ const listenLink = (credit) =>
   }
 
   .gm-meta {
-    font-family: 'SF Mono', Menlo, monospace;
     color: var(--stone);
-    font-size: 0.7rem;
-    letter-spacing: 0.03em;
+    font-size: 0.82rem;
   }
 
   /* Build: the collage carries it, the copy stays calm */
