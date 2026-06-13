@@ -425,10 +425,27 @@ const listenLink = (credit) =>
     color: var(--stone);
   }
 
-  /* Mobile optimizations for phones and narrow screens */
+  /* Mobile optimizations for phones and narrow screens.
+     The panels give the environment back its room: the hero copy
+     rides high so the lower third is open water, and clearings open
+     at two seams where the shapes can be seen and touched. */
   @media (max-width: 720px) {
     .hero {
       min-height: 100svh;
+      align-items: start;
+      padding-top: 4svh;
+    }
+
+    .hero-copy {
+      padding-block: 3rem 0;
+    }
+
+    .featured {
+      margin-bottom: 42svh;
+    }
+
+    .ribbon-games {
+      margin-bottom: 34svh;
     }
 
     .hero-wordmark {
