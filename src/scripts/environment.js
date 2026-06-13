@@ -96,7 +96,7 @@ export async function startEnvironment(container) {
         count: 10,
         spreadX: halfW * 2.2,
         spreadY: halfH * 1.7,
-        spreadZ: 7,
+        spreadZ: 10, // deep, so the dolly streaks near shapes past far ones
         bounds: { x: halfW + 1.5, y: halfH + 1, zNear: BOUNDS.zNear, zFar: BOUNDS.zFar },
         floor: -(halfH * 0.9),
       }
@@ -127,6 +127,7 @@ export async function startEnvironment(container) {
     note(pitch) {
       // the score only transcribes what it can hear
       if (!engine.isOn()) return;
+      if (portrait) return; // the score is hidden on phones for now
       if (!staffImpl) {
         staffImpl = GIANT_STAFF
           ? createStaffScore(container, { giant: true })
@@ -788,7 +789,30 @@ export async function startEnvironment(container) {
 
     // pointer tilts the view, scroll sinks it, perspective does the rest
     camera.position.x += (tiltX - camera.position.x) * 0.02;
-    camera.position.y += (-tiltY - scrollY * 0.004 - camera.position.y) * 0.05;
+    if (portrait) {
+      // a dolly down the page: at the top the family is far away, specks
+      // in the distance; through the play gap the camera rushes in close
+      // so they fill the frame and dance, then eases back a little.
+      const vh = window.innerHeight;
+      const apex = vh * 1.35; // scroll where the shapes are nearest
+      let closeness;
+      if (scrollY <= apex) {
+        const u = apex > 0 ? scrollY / apex : 1;
+        closeness = u * u * (3 - 2 * u); // smoothstep far to near
+      } else {
+        const u = Math.min(1, (scrollY - apex) / (vh * 0.9));
+        closeness = 1 - 0.55 * (u * u * (3 - 2 * u)); // ease back, stay near
+      }
+      // 25 keeps them as hazy specks at the top rather than lost in the
+      // fog (far plane 34); 12 brings them right up close for the play
+      const targetZ = 25 + (12 - 25) * closeness;
+      camera.position.z += (targetZ - camera.position.z) * 0.08;
+      // much stronger parallax, bounded so the bottom pile still composes
+      const sink = Math.min(scrollY, vh * 2.2) * 0.012;
+      camera.position.y += (-tiltY - sink - camera.position.y) * 0.06;
+    } else {
+      camera.position.y += (-tiltY - scrollY * 0.004 - camera.position.y) * 0.05;
+    }
     camera.lookAt(0, 0, 0);
 
     renderer.render(scene, camera);
