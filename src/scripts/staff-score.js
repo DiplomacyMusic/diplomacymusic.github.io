@@ -71,11 +71,11 @@ export function createStaffScore(mount = document.body, { giant = false } = {}) 
       'transition:opacity 4000ms ease',
     ].join(';');
   } else if (window.matchMedia('(max-width: 720px)').matches) {
-    // the phone home: bottom center, clear of the sound toggle corner
+    // the phone home: a tiny print, no wider than the sound button
     wrap.style.cssText = [
       'position:fixed', 'left:50%', 'bottom:4.6rem', 'z-index:9',
       'transform:translateX(-50%)',
-      'width:min(220px, 62vw)', 'pointer-events:none', 'opacity:0',
+      'width:6.5rem', 'pointer-events:none', 'opacity:0',
       'transition:opacity 4000ms ease',
     ].join(';');
   } else {

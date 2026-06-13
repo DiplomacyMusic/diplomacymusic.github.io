@@ -120,6 +120,11 @@ const current = Astro.url.pathname;
   }
 
   @media (max-width: 720px) {
+    /* on phones the header is solid paper; the shapes stay below it */
+    .nav-bar {
+      background: var(--paper);
+    }
+
     .brand-mark {
       width: 1.8rem;
       height: 1.8rem;

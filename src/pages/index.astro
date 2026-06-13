@@ -454,17 +454,30 @@ const listenLink = (credit) =>
       width: min(100%, 32rem);
     }
 
+    /* STORY, PLAY, and BUILD ride the tape: they leave the hero and
+       wait in the open water, written on and rewound by the scroll
+       position itself, one at a time, center stage */
     .pillars {
-      flex-direction: column;
-      gap: var(--space-2);
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      z-index: 5;
     }
 
     .pillars a {
+      grid-area: 1 / 1;
       min-width: auto;
       display: grid;
-      gap: 0.15rem;
+      gap: 0.3rem;
+      justify-items: center;
+      text-align: center;
+      font-size: 1.6rem;
       border-top: none;
       padding-top: 0;
+      opacity: 0;
+      pointer-events: none;
     }
 
     .featured-grid {
@@ -581,5 +594,47 @@ const listenLink = (credit) =>
     'requestIdleCallback' in window
       ? requestIdleCallback(begin, { timeout: 2000 })
       : setTimeout(begin, 300);
+  }
+
+  // On phones the three pillars are written onto the open water by
+  // the scroll head itself, like marks hard coded to tape position:
+  // one at a time on the way down, rewound on the way back up.
+  {
+    const mobile = window.matchMedia('(max-width: 720px)');
+    const pillars = Array.from(document.querySelectorAll('.pillars a'));
+    const hero = document.querySelector('.hero');
+    const featured = document.getElementById('featured');
+    if (pillars.length && hero && featured) {
+      let start = 0;
+      let span = 1;
+      const measure = () => {
+        start = hero.offsetTop + hero.offsetHeight - window.innerHeight * 0.55;
+        const end = featured.offsetTop - window.innerHeight * 0.7;
+        span = Math.max(1, end - start);
+      };
+      const write = () => {
+        if (!mobile.matches) {
+          for (const a of pillars) {
+            a.style.opacity = '';
+            a.style.pointerEvents = '';
+          }
+          return;
+        }
+        const head = (window.scrollY - start) / span;
+        pillars.forEach((a, i) => {
+          const center = (i + 0.5) / pillars.length;
+          const o = Math.max(0, 1 - Math.abs(head - center) * pillars.length * 2.2);
+          a.style.opacity = o.toFixed(3);
+          a.style.pointerEvents = o > 0.4 ? 'auto' : 'none';
+        });
+      };
+      measure();
+      write();
+      window.addEventListener('scroll', write, { passive: true });
+      window.addEventListener('resize', () => {
+        measure();
+        write();
+      });
+    }
   }
 </script>
