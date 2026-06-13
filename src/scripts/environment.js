@@ -54,6 +54,8 @@ const BOUNDS = { x: 13, y: 8, zNear: 4, zFar: -9 };
 const RESONANCE_RADIUS = 15;  // how far sympathy travels
 const STRIKE_COOLDOWN = 0.13; // seconds between strikes per shape
 const SCROLL_INERTIA = 0.004; // how hard scrolling drags the planets
+const SCROLL_INERTIA_TOUCH = 0.008; // on a phone the scroll is the current: it plays the room
+const SCROLL_CLAMP = 1600;          // px/s; the current saturates so flicks stay musical
 const FLOOR_Y = -6.5;         // where they land at the bottom of the page
 const FALL_PULL = 9;          // gravity once the bottom of the page arrives
 const TILT_PULL = 5;          // how hard a tilted phone pulls
@@ -606,8 +608,18 @@ export async function startEnvironment(container) {
       // a faint idle breath so rest never looks frozen
       force.y += Math.sin(t * data.bobSpeed + data.bobPhase) * 0.12 * data.mass;
 
-      // scrolling down leaves them behind, drifting toward the top
-      force.y += scrollVelocity * SCROLL_INERTIA * data.mass;
+      // scrolling down leaves them behind, drifting toward the top.
+      // On portrait the scroll is the strongest hand in the room, and
+      // its drag follows area rather than mass, the way water does:
+      // the small shapes fly first, the heavy ones lag, and the
+      // difference is what makes the family collide and ring from
+      // scrolling alone
+      if (portrait) {
+        const current = Math.max(-SCROLL_CLAMP, Math.min(SCROLL_CLAMP, scrollVelocity));
+        force.y += current * SCROLL_INERTIA_TOUCH * data.radius * data.radius;
+      } else {
+        force.y += scrollVelocity * SCROLL_INERTIA * data.mass;
+      }
 
       // a tilted phone is a tilted room
       force.x += tiltGravityX * TILT_PULL * data.mass;
@@ -624,11 +636,16 @@ export async function startEnvironment(container) {
         force.x += Math.sign(mesh.position.x || 1) * 0.8 * data.mass * pile;
       }
 
-      // soft walls
-      if (Math.abs(mesh.position.x) > field.bounds.x)
-        force.x -= Math.sign(mesh.position.x) * data.mass * 2;
-      if (Math.abs(mesh.position.y) > field.bounds.y)
-        force.y -= Math.sign(mesh.position.y) * data.mass * 2;
+      // soft walls. Portrait walls are springs: the scroll current is
+      // strong enough to fire shapes at them, and the bounce sends a
+      // runaway back through the family instead of losing it offstage
+      const springiness = portrait ? 10 : 0;
+      const overX = Math.abs(mesh.position.x) - field.bounds.x;
+      if (overX > 0)
+        force.x -= Math.sign(mesh.position.x) * data.mass * (2 + overX * springiness);
+      const overY = Math.abs(mesh.position.y) - field.bounds.y;
+      if (overY > 0)
+        force.y -= Math.sign(mesh.position.y) * data.mass * (2 + overY * springiness);
       if (mesh.position.z > field.bounds.zNear) force.z -= data.mass * 2;
       if (mesh.position.z < field.bounds.zFar) force.z += data.mass * 2;
 

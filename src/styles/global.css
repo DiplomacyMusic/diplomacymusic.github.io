@@ -204,6 +204,12 @@ html.js [data-reveal].is-seen {
 
 /* Mobile optimizations for narrow screens */
 @media (max-width: 720px) {
+  /* the page itself never moves side to side; only the card rows do */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
   .wrap {
     width: min(100% - 1.5rem, 72rem);
   }
