@@ -483,6 +483,8 @@ const listenLink = (credit) =>
     .featured-grid {
       display: flex;
       overflow-x: auto;
+      touch-action: pan-x;
+      overscroll-behavior-x: contain;
       scroll-snap-type: x mandatory;
       gap: var(--space-2);
       padding-bottom: var(--space-2);
@@ -502,6 +504,8 @@ const listenLink = (credit) =>
     .sr-grid {
       display: flex;
       overflow-x: auto;
+      touch-action: pan-x;
+      overscroll-behavior-x: contain;
       scroll-snap-type: x mandatory;
       gap: var(--space-2);
       padding-bottom: var(--space-3);
@@ -533,6 +537,8 @@ const listenLink = (credit) =>
     .gm-grid {
       display: flex;
       overflow-x: auto;
+      touch-action: pan-x;
+      overscroll-behavior-x: contain;
       scroll-snap-type: x mandatory;
       gap: var(--space-2);
       scrollbar-width: none;
