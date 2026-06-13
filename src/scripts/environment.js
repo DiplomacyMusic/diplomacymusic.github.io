@@ -60,9 +60,17 @@ const TILT_PULL = 5;          // how hard a tilted phone pulls
 const DRAG_RADIUS = 6.5;      // how close a dragged shape must come to wake another
 const HOLD_PULL_BOOST = 12;   // a held shape pulls like something far heavier
 const STIR = 0.12;            // dragging stirs the water, momentum passed by proximity
+const TAP_DRIFT = 0.25;       // world units a mouse may wander before a press is a drag
+const TAP_DRIFT_TOUCH = 0.7;  // fingers wobble more than mice do
+const LONG_PRESS_MS = 300;    // a finger that stays this long starts the slow swell
 
 export async function startEnvironment(container) {
   const THREE = await import('three');
+
+  // a phone is a different room: tall, narrow, touched with fingers
+  const portrait = container.clientWidth < container.clientHeight;
+  const coarse = window.matchMedia('(pointer: coarse)').matches;
+  const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0xf2f1f0, 10, 34);
@@ -73,10 +81,34 @@ export async function startEnvironment(container) {
     0.1,
     100
   );
-  camera.position.set(0, 0, 16);
+  // pulled back a step on portrait so the field reads whole
+  camera.position.set(0, 0, portrait ? 19 : 16);
+
+  // the desktop constants were tuned by eye for a wide frame; portrait
+  // derives its room from the camera frustum instead, so the shapes,
+  // the walls, and the floor all live where the screen actually is
+  const halfH = camera.position.z * Math.tan((camera.fov * Math.PI) / 360);
+  const halfW = halfH * camera.aspect;
+  const field = portrait
+    ? {
+        count: 10,
+        spreadX: halfW * 2.2,
+        spreadY: halfH * 1.7,
+        spreadZ: 7,
+        bounds: { x: halfW + 1.5, y: halfH + 1, zNear: BOUNDS.zNear, zFar: BOUNDS.zFar },
+        floor: -(halfH * 0.9),
+      }
+    : {
+        count: 14,
+        spreadX: 22,
+        spreadY: 11,
+        spreadZ: 10,
+        bounds: BOUNDS,
+        floor: FLOOR_Y,
+      };
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, coarse ? 1.25 : 1.5));
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.domElement.style.touchAction = 'pan-y'; // page scroll still works on touch
   container.appendChild(renderer.domElement);
@@ -126,7 +158,7 @@ export async function startEnvironment(container) {
   const baseRadii = [1, 1.08, 1.05, 1];
 
   const shapes = [];
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < field.count; i++) {
     const type = i % geometries.length;
     const material = new THREE.MeshStandardMaterial({
       color: palette[i % palette.length],
@@ -141,9 +173,11 @@ export async function startEnvironment(container) {
     const mesh = new THREE.Mesh(geometries[type], material);
 
     mesh.position.set(
-      (Math.random() - 0.5) * 22,
-      (Math.random() - 0.5) * 11,
-      (Math.random() - 0.5) * 10 - 2
+      (Math.random() - 0.5) * field.spreadX,
+      (Math.random() - 0.5) * field.spreadY,
+      // portrait sits the family a step deeper, so nothing parks on
+      // the lens of a narrow frame
+      (Math.random() - 0.5) * field.spreadZ - (portrait ? 3.5 : 2)
     );
     const scale = 0.5 + Math.random() * 1.3;
     mesh.scale.setScalar(scale);
@@ -283,6 +317,10 @@ export async function startEnvironment(container) {
   let holdPointSeen = false;
   let holdMoved = 0;
   let holdStartedAt = 0;
+  let heldPointerId = null;
+  let heldIsTouch = false;
+  let tapDrift = TAP_DRIFT;
+  let longPressTimer = 0;
   const throwVelocity = new THREE.Vector3();
 
   let tiltX = 0;
@@ -297,14 +335,34 @@ export async function startEnvironment(container) {
   }
 
   window.addEventListener('pointermove', (event) => {
-    tiltX = (event.clientX / window.innerWidth - 0.5) * 1.6;
-    tiltY = (event.clientY / window.innerHeight - 0.5) * 0.9;
+    // only a mouse steers the camera; a dragging finger should not
+    if (event.pointerType === 'mouse') {
+      tiltX = (event.clientX / window.innerWidth - 0.5) * 1.6;
+      tiltY = (event.clientY / window.innerHeight - 0.5) * 0.9;
+    }
+    // while a shape is held, only the grabbing finger speaks
+    if (heldPointerId !== null && event.pointerId !== heldPointerId) return;
     updatePointer(event);
   });
+
+  // The rule on touch: a finger that lands on a shape owns the gesture.
+  // Claiming it here, before scrolling can start, is the only reliable
+  // way to keep a vertical drag from scrolling the page instead.
+  window.addEventListener('touchstart', (event) => {
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    if (event.target.closest && event.target.closest('a, button')) return;
+    const rect = container.getBoundingClientRect();
+    if (touch.clientY < rect.top || touch.clientY > rect.bottom) return;
+    updatePointer(touch);
+    raycaster.setFromCamera(pointer, camera);
+    if (raycaster.intersectObjects(shapes, false)[0]) event.preventDefault();
+  }, { passive: false });
 
   // Listen on the window so shapes behind the hero text stay grabbable,
   // but never steal a press meant for a link or a button.
   window.addEventListener('pointerdown', (event) => {
+    if (held) return; // one hand at a time
     if (event.target.closest('a, button')) return;
     const rect = container.getBoundingClientRect();
     if (event.clientY < rect.top || event.clientY > rect.bottom) return;
@@ -313,11 +371,32 @@ export async function startEnvironment(container) {
     const hit = raycaster.intersectObjects(shapes, false)[0];
     if (!hit) return;
     held = hit.object;
+    heldPointerId = event.pointerId;
+    heldIsTouch = event.pointerType !== 'mouse';
+    tapDrift = heldIsTouch ? TAP_DRIFT_TOUCH : TAP_DRIFT;
     lastEnergyAt = performance.now() / 1000;
     holdMoved = 0;
     holdPointSeen = false;
     holdStartedAt = performance.now();
     throwVelocity.set(0, 0, 0);
+    // touch has no hover, so the slow swell lives on the long press:
+    // a finger that stays leans in, and release is the gentle off
+    if (heldIsTouch) {
+      clearTimeout(longPressTimer);
+      longPressTimer = setTimeout(() => {
+        if (!held || holdMoved > tapDrift || held.userData.swellVoice) return;
+        held.userData.swellVoice = engine.swellStart({
+          pitch: held.userData.pitch,
+          pan: panOf(held),
+        });
+        if (held.userData.swellVoice) {
+          staff.note(held.userData.pitch);
+          logLine(`swell(${SHAPE_NAMES[held.userData.type]}.${held.userData.index}, { note: '${noteOf(held.userData.pitch)}', held: true })`);
+          const [sx, sy] = screenOf(held);
+          score.squiggle(sx, sy, 1600);
+        }
+      }, LONG_PRESS_MS);
+    }
     holdPlane.setFromNormalAndCoplanarPoint(
       camera.getWorldDirection(new THREE.Vector3()),
       held.position
@@ -335,20 +414,28 @@ export async function startEnvironment(container) {
     container.style.cursor = 'grabbing';
   });
 
-  window.addEventListener('pointerup', () => {
+  function releaseHold(event) {
     if (!held) return;
+    if (heldPointerId !== null && event.pointerId !== heldPointerId) return;
+    clearTimeout(longPressTimer);
     lastEnergyAt = performance.now() / 1000;
     const heldFor = performance.now() - holdStartedAt;
-    if (holdMoved < 0.25 && heldFor < 350) {
+    // on touch a live swellVoice means the long press already spoke
+    const pressSwell = heldIsTouch && !!held.userData.swellVoice;
+    if (held.userData.swellVoice) {
+      engine.swellEnd(held.userData.swellVoice);
+      held.userData.swellVoice = null;
+    }
+    if (holdMoved < tapDrift && heldFor < 350 && !pressSwell) {
       // a tap, not a throw: the hard attack cuts through, and the
       // rest of the family answers with its soft one
       const tNow = performance.now() / 1000;
-      if (held.userData.swellVoice) {
-        engine.swellEnd(held.userData.swellVoice);
-        held.userData.swellVoice = null;
-      }
       strike(held, 0.75, tNow, false, true);
       familySwell(held, tNow);
+      held.userData.velocity.multiplyScalar(0);
+    } else if (pressSwell && holdMoved < tapDrift) {
+      // the long press was the swell; letting go lets it breathe out
+      logLine(`release(${SHAPE_NAMES[held.userData.type]}.${held.userData.index})`);
       held.userData.velocity.multiplyScalar(0);
     } else {
       held.userData.velocity.copy(throwVelocity).clampLength(0, 12);
@@ -364,9 +451,14 @@ export async function startEnvironment(container) {
     }
     document.body.style.userSelect = '';
     document.body.style.webkitUserSelect = '';
+    // no phantom hover where the finger lifted
+    if (heldIsTouch) pointer.set(-2, -2);
+    heldPointerId = null;
     held = null;
     container.style.cursor = hovered ? 'grab' : '';
-  });
+  }
+  window.addEventListener('pointerup', releaseHold);
+  window.addEventListener('pointercancel', releaseHold);
 
   // scroll moves the camera, and perspective does the parallax honestly.
   // It also drags the planets: scroll down and they lag toward the top
@@ -442,9 +534,10 @@ export async function startEnvironment(container) {
     const pileTarget = scrollProgress() > 0.85 ? 1 : 0;
     pile += (pileTarget - pile) * 0.04;
 
-    // hover feedback
+    // hover feedback, only where hover exists: on touch the slow
+    // swell belongs to the long press instead
     raycaster.setFromCamera(pointer, camera);
-    const hit = raycaster.intersectObjects(shapes, false)[0] || null;
+    const hit = canHover ? raycaster.intersectObjects(shapes, false)[0] || null : null;
     const hitMesh = hit ? hit.object : null;
     if (hitMesh) {
       hoverLostAt = 0;
@@ -494,7 +587,7 @@ export async function startEnvironment(container) {
         if (other === mesh) continue;
         between.subVectors(other.position, mesh.position);
         const d2 = between.lengthSq() + SOFTEN;
-        const dragging = other === held && holdMoved > 0.25;
+        const dragging = other === held && holdMoved > tapDrift;
         const boost = dragging ? HOLD_PULL_BOOST : 1;
         const pull = (GRAVITY * boost * data.mass * other.userData.mass) / d2;
         force.addScaledVector(between.normalize(), pull);
@@ -523,7 +616,7 @@ export async function startEnvironment(container) {
       // at the bottom of the page, real gravity, and a lean to the corners.
       // A shape that has touched down weighs three times what it did in
       // the air, so the pile sits like a pile, not like balloons.
-      const nearFloor = mesh.position.y - data.radius < FLOOR_Y + 1.5;
+      const nearFloor = mesh.position.y - data.radius < field.floor + 1.5;
       const groundedTarget = pile > 0.3 && nearFloor ? 1 : 0;
       data.grounded += (groundedTarget - data.grounded) * (groundedTarget ? 0.5 : 0.03);
       if (pile > 0.01) {
@@ -532,20 +625,20 @@ export async function startEnvironment(container) {
       }
 
       // soft walls
-      if (Math.abs(mesh.position.x) > BOUNDS.x)
+      if (Math.abs(mesh.position.x) > field.bounds.x)
         force.x -= Math.sign(mesh.position.x) * data.mass * 2;
-      if (Math.abs(mesh.position.y) > BOUNDS.y)
+      if (Math.abs(mesh.position.y) > field.bounds.y)
         force.y -= Math.sign(mesh.position.y) * data.mass * 2;
-      if (mesh.position.z > BOUNDS.zNear) force.z -= data.mass * 2;
-      if (mesh.position.z < BOUNDS.zFar) force.z += data.mass * 2;
+      if (mesh.position.z > field.bounds.zNear) force.z -= data.mass * 2;
+      if (mesh.position.z < field.bounds.zFar) force.z += data.mass * 2;
 
       data.velocity.addScaledVector(force, dt / data.mass);
       data.velocity.multiplyScalar(DAMPING ** (dt * 60));
       mesh.position.addScaledVector(data.velocity, dt);
 
       // the floor is real once the pile begins: land, settle, and sing
-      if (pile > 0.3 && mesh.position.y - data.radius < FLOOR_Y) {
-        mesh.position.y = FLOOR_Y + data.radius;
+      if (pile > 0.3 && mesh.position.y - data.radius < field.floor) {
+        mesh.position.y = field.floor + data.radius;
         if (data.velocity.y < 0) {
           const impact = -data.velocity.y;
           data.velocity.y *= -0.22;
@@ -578,7 +671,14 @@ export async function startEnvironment(container) {
 
         // a dragged shape wakes only what it passes close to: each
         // neighbor swells in as you approach and lets go as you leave
-        if (holdMoved > 0.25) {
+        if (holdMoved > tapDrift) {
+          // once a press becomes a drag, the long press swell steps
+          // aside; mouse hover swells keep their old behavior
+          if (heldIsTouch && held.userData.swellVoice) {
+            engine.swellEnd(held.userData.swellVoice);
+            held.userData.swellVoice = null;
+          }
+          clearTimeout(longPressTimer);
           for (const other of shapes) {
             if (other === held) continue;
             const od = other.userData;
@@ -662,7 +762,9 @@ export async function startEnvironment(container) {
       mesh.scale.setScalar(next);
       data.hoverGlow = data.hoverGlow || 0;
       const resonateGlow = t < (data.resonateUntil || 0) ? 0.85 : 0;
-      const wantsGlow = Math.max(hovered === mesh ? 0.4 : 0, resonateGlow);
+      // a long pressed shape glows like a hovered one while it swells
+      const pressGlow = held === mesh && data.swellVoice ? 0.55 : 0;
+      const wantsGlow = Math.max(hovered === mesh ? 0.4 : 0, pressGlow, resonateGlow);
       data.hoverGlow += (wantsGlow - data.hoverGlow) * (wantsGlow ? 0.06 : 0.025);
       mesh.material.emissiveIntensity = data.glow * 0.6 + data.hoverGlow;
     }

@@ -19,6 +19,10 @@
   <div class="field scorebed" id="build-scorebed"></div>
 </div>
 
+<div class="collage-code-mobile" id="build-code-mobile">
+  <pre><code id="build-code-mobile-inner"></code></pre>
+</div>
+
 <style>
   .collage {
     position: relative;
@@ -64,10 +68,43 @@
     inset: 0;
   }
 
+  .collage-code-mobile {
+    display: none;
+  }
+
   @media (max-width: 760px) {
+    .collage {
+      height: clamp(280px, 45vh, 420px);
+    }
+
+    .cables {
+      /* on portrait, center the viewBox horizontally and show the middle region */
+      /* let it bleed off left/right edges, focused on center jacks */
+    }
+
     .code {
-      right: 4%;
-      width: 70%;
+      display: none;
+    }
+
+    .collage-code-mobile {
+      display: block;
+      margin-block: var(--space-2) var(--space-3);
+      padding-inline: var(--space-2);
+      max-height: 120px;
+      overflow: hidden;
+      pointer-events: auto;
+    }
+
+    .collage-code-mobile pre {
+      margin: 0;
+      font-family: 'SF Mono', Menlo, monospace;
+      font-size: 0.7rem;
+      line-height: 1.7;
+      color: var(--ink-quiet);
+      white-space: pre-wrap;
+      /* newest lines stay visible at the bottom, older ones fade upward */
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 25%);
+      mask-image: linear-gradient(to bottom, transparent 0%, black 25%);
     }
   }
 </style>
@@ -133,12 +170,15 @@
 
   function startLog() {
     const codeNode = document.getElementById('build-code');
+    const codeNodeMobile = document.getElementById('build-code-mobile-inner');
     const buffer = [SEED];
     const queue = [];
     let typing = false;
     const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     const render = () => {
-      codeNode.textContent = buffer.join('\n');
+      const text = buffer.join('\n');
+      codeNode.textContent = text;
+      if (codeNodeMobile) codeNodeMobile.textContent = text;
     };
     render();
 

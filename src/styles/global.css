@@ -201,3 +201,14 @@ html.js [data-reveal].is-seen {
   padding: 0.15rem 0.65rem;
   white-space: nowrap;
 }
+
+/* Mobile optimizations for narrow screens */
+@media (max-width: 720px) {
+  .wrap {
+    width: min(100% - 1.5rem, 72rem);
+  }
+
+  .soft-veil::before {
+    inset: -0.75rem -1rem;
+  }
+}

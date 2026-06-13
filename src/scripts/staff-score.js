@@ -70,6 +70,14 @@ export function createStaffScore(mount = document.body, { giant = false } = {}) 
       `mask-image:${CUT}`,
       'transition:opacity 4000ms ease',
     ].join(';');
+  } else if (window.matchMedia('(max-width: 720px)').matches) {
+    // the phone home: bottom center, clear of the sound toggle corner
+    wrap.style.cssText = [
+      'position:fixed', 'left:50%', 'bottom:4.6rem', 'z-index:9',
+      'transform:translateX(-50%)',
+      'width:min(220px, 62vw)', 'pointer-events:none', 'opacity:0',
+      'transition:opacity 4000ms ease',
+    ].join(';');
   } else {
     wrap.style.cssText = [
       'position:fixed', 'right:1.1rem', 'bottom:4.4rem', 'z-index:9',
