@@ -14,6 +14,8 @@ interface Props {
 }
 
 const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const shareImage = new URL('/og.jpg', Astro.site).href;
 
 const links = [
   { href: '#work', label: 'Work' },
@@ -31,9 +33,18 @@ const links = [
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="sitemap" href="/sitemap.xml" />
+    <meta property="og:site_name" content="Diplomacy Music" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={shareImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Diplomacy wordmark over a still mountain lake" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#f2f1f0" />
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -97,9 +108,37 @@ const links = [
   }
 
   // the header tightens once the page is moving
-  const head = document.querySelector('.site-head');
-  const onScroll = () => head?.classList.toggle('is-moving', window.scrollY > 40);
+  const head = document.querySelector<HTMLElement>('.site-head');
+  const phone = window.matchMedia('(max-width: 720px)');
+  let lastY = window.scrollY;
+
+  // On a phone the header rides over the page, so the page keeps a space
+  // the height of the open header. Going down it tucks to one line; going
+  // back up, or near the top, it opens again.
+  const measure = () => {
+    if (!head) return;
+    const tucked = head.classList.contains('is-tucked');
+    if (tucked) head.classList.remove('is-tucked');
+    document.documentElement.style.setProperty('--head-full', `${head.offsetHeight}px`);
+    if (tucked) head.classList.add('is-tucked');
+  };
+
+  const onScroll = () => {
+    const y = window.scrollY;
+    head?.classList.toggle('is-moving', y > 40);
+    if (phone.matches && head) {
+      if (y < 80) head.classList.remove('is-tucked');
+      else if (y > lastY + 6) head.classList.add('is-tucked');
+      else if (y < lastY - 6) head.classList.remove('is-tucked');
+    } else {
+      head?.classList.remove('is-tucked');
+    }
+    if (Math.abs(y - lastY) > 6 || y < 80) lastY = y;
+  };
   window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', measure);
+  phone.addEventListener('change', measure);
+  measure();
   onScroll();
 
   // Reveal things as they enter the view. Marked html.js so the CSS only

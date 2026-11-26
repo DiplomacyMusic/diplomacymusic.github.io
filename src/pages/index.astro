@@ -1,4 +1,5 @@
 ---
+import fs from 'node:fs';
 import Site from '../layouts/Site.astro';
 import Company from '../components/Company.astro';
 import DemoPlayer from '../components/DemoPlayer.astro';
@@ -12,27 +13,10 @@ import site from '../data/site.json';
 const thumb = (path) =>
   path ? path.replace('/art/', '/art/thumb/').replace(/\.(jpg|png|webp)$/, '.webp') : null;
 
-// what each credit answers to in the filter row
-const tagsFor = (credit) => {
-  const tags = new Set();
-  for (const role of credit.roles) {
-    if (/Composer/.test(role)) tags.add('score');
-    if (/Sound Designer/.test(role)) tags.add('design');
-    if (/Mix/.test(role)) tags.add('mix');
-    if (/Supervisor/.test(role)) tags.add('supervision');
-  }
-  return [...tags];
-};
-
-const filters = [
-  { id: 'all', label: 'Everything' },
-  { id: 'score', label: 'Score' },
-  { id: 'design', label: 'Sound design' },
-  { id: 'mix', label: 'Mix' },
-  { id: 'supervision', label: 'Supervision' },
+// the series, named once each: seasons of one show fold into one name
+const seriesNames = [
+  ...new Map(credits.map((credit) => [credit.group || credit.id, credit.title.replace(/,?\s*Season \d+/, '')])).values(),
 ];
-
-const work = credits.map((credit) => ({ ...credit, tags: tagsFor(credit), thumb: thumb(credit.artwork) }));
 
 // recognition, counted straight from the credits so it can never drift
 const showKey = (credit) => credit.group || credit.id;
@@ -47,9 +31,23 @@ const showsWith = (badge) => {
 };
 const appleFiction = showsWith('Apple Fiction #1');
 const spotifyGlobal = showsWith('Spotify Global #1');
+// a platform's own app mark sits on the line with its figure, in the
+// figure's tone. A mark shows only once its file is in public/brand/logos.
+const platformMark = (file: string, name: string) =>
+  fs.existsSync(`public/brand/logos/${file}`) ? { src: `/brand/logos/${file}`, name } : undefined;
 const recognition = [
-  { figure: String(appleFiction.length), label: 'Apple Fiction No. 1', lines: appleFiction },
-  { figure: String(spotifyGlobal.length), label: 'Spotify Global No. 1', lines: spotifyGlobal },
+  {
+    figure: String(appleFiction.length),
+    label: 'Apple Fiction No.\u00a01',
+    lines: appleFiction,
+    mark: platformMark('apple-podcasts-icon.svg', 'Apple Podcasts'),
+  },
+  {
+    figure: String(spotifyGlobal.length),
+    label: 'Spotify Global No.\u00a01',
+    lines: spotifyGlobal,
+    mark: platformMark('spotify-icon.svg', 'Spotify'),
+  },
   {
     figure: 'Signal',
     label: 'Award winner',
@@ -109,7 +107,7 @@ const glints = Array.from({ length: 34 }, () => ({
   delay: (-rand() * 6).toFixed(1),
 }));
 
-const statement = 'A sound studio for stories, games, and the machines that give them voice.';
+const statement = 'A sound studio for stories, games, and immersive audio.';
 
 // Daniel's own words, from the old site. They write themselves out in the
 // contact band as the page scrolls.
@@ -160,49 +158,45 @@ const earlier = [
   },
 ];
 
-const creditData = Object.fromEntries(
-  work.map((credit) => [
-    credit.id,
-    {
-      title: credit.title,
-      publisher: credit.publisher,
-      producers: credit.producers,
-      roles: credit.roles,
-      genre: credit.genre,
-      stars: credit.stars,
-      badges: credit.badges,
-      awards: credit.awards,
-      links: credit.links,
-      thumb: credit.thumb,
-    },
-  ])
-);
-
 const structuredData = {
   '@context': 'https://schema.org',
   '@graph': [
     {
       '@type': 'Organization',
+      '@id': 'https://diplomacymusic.com/#diplomacy',
       name: 'Diplomacy',
-      url: 'https://www.diplomacymusic.com',
+      alternateName: 'Diplomacy Music',
+      url: 'https://diplomacymusic.com/',
+      logo: 'https://diplomacymusic.com/brand/diplomacy-avatar.jpg',
+      image: 'https://diplomacymusic.com/og.jpg',
       description: statement,
-      founder: { '@id': '#daniel-brunelle' },
+      email: site.email,
+      address: { '@type': 'PostalAddress', addressLocality: 'Chicago', addressRegion: 'IL', addressCountry: 'US' },
+      founder: { '@id': 'https://diplomacymusic.com/#daniel-brunelle' },
+      sameAs: site.socials.filter((s) => s.label === 'Facebook').map((s) => s.href),
     },
     {
       '@type': 'Person',
-      '@id': '#daniel-brunelle',
+      '@id': 'https://diplomacymusic.com/#daniel-brunelle',
       name: 'Daniel Brunelle',
       jobTitle: 'Composer and Sound Designer',
-      url: 'https://www.diplomacymusic.com/#studio',
-      worksFor: { '@type': 'Organization', name: 'Diplomacy' },
+      url: 'https://diplomacymusic.com/#studio',
+      worksFor: { '@id': 'https://diplomacymusic.com/#diplomacy' },
+      sameAs: site.socials.filter((s) => s.label !== 'Facebook').map((s) => s.href),
+    },
+    {
+      '@type': 'WebSite',
+      name: 'Diplomacy Music',
+      url: 'https://diplomacymusic.com/',
+      publisher: { '@id': 'https://diplomacymusic.com/#diplomacy' },
     },
   ],
 };
 ---
 
 <Site
-  title="Diplomacy. Music, sound, and studio."
-  description="Diplomacy is the sound studio of composer and sound designer Daniel Brunelle. Score, sound design, mix, and post production for audio drama and games. Chicago."
+  title="Diplomacy Music. Score and sound design for audio drama and games."
+  description="Diplomacy is the sound studio of composer and sound designer Daniel Brunelle. Score, sound design, and mix for audio drama, games, and immersive audio. Chicago."
 >
   <!-- The stage: the one lake video, fixed behind the top of the page. It
        drifts slower than the scroll and falls out of focus as the page
@@ -270,7 +264,12 @@ const structuredData = {
       <div class="band-inner facts" id="facts" data-depth="0.07">
         {recognition.map((fact, i) => (
           <div class="fact" style={`--i: ${i}`}>
-            <span class="fact-figure" data-count={/^\d+$/.test(fact.figure) ? fact.figure : undefined}>{fact.figure}</span>
+            <span class="fact-head">
+              <span class="fact-figure" data-count={/^\d+$/.test(fact.figure) ? fact.figure : undefined}>{fact.figure}</span>
+              {fact.mark && (
+                <span class="brand-mask fact-mark" role="img" aria-label={fact.mark.name} style={`--brand-asset: url('${fact.mark.src}')`}></span>
+              )}
+            </span>
             <span class="fact-label">{fact.label}</span>
             <span class="fact-detail">{fact.lines.map((line, j) => <span style={`--j: ${j}`}>{line}</span>)}</span>
           </div>
@@ -287,39 +286,12 @@ const structuredData = {
         <header class="section-head">
           <p class="overline" data-reveal>Audio drama</p>
           <h2 data-reveal>Stories, <span class="tone">told in the dark.</span></h2>
-          <p class="lede" data-reveal>
-            <span id="work-count">{work.length}</span> productions for Audible, Marvel, DC, Star Trek, Spotify, and Sega.
-            Open any cover for the credits.
-          </p>
+          <p class="lede" data-reveal>Productions for Audible, Marvel, DC, Star Trek, Spotify, and Sega.</p>
         </header>
 
-        <div class="filters" role="group" aria-label="Filter the work by discipline">
-          {filters.map((filter) => (
-            <button class="chip" type="button" data-filter={filter.id} aria-pressed={filter.id === 'all' ? 'true' : 'false'}>
-              {filter.label}
-            </button>
-          ))}
-        </div>
-
-        <div class="covers" id="covers" data-depth-cols="0.07,-0.05,0.1,-0.02">
-          {work.map((credit) => (
-            <button
-              class="cover"
-              type="button"
-              data-id={credit.id}
-              data-tags={credit.tags.join(' ')}
-              style={`view-transition-name: c-${credit.id}`}
-              data-reveal
-            >
-              <span class="cover-art">
-                <img src={credit.thumb} alt={`Cover art for ${credit.title}`} loading="lazy" width="640" height="640" />
-                {credit.badges.length > 0 && <span class="cover-badge">{credit.badges[0]}</span>}
-              </span>
-              <span class="cover-title">{credit.title}</span>
-              <span class="cover-role">{credit.roles.join(', ')}</span>
-            </button>
-          ))}
-        </div>
+        <ul class="names" data-reveal>
+          {seriesNames.map((name) => <li>{name}</li>)}
+        </ul>
       </div>
     </section>
 
@@ -530,22 +502,6 @@ const structuredData = {
     </div>
   </section>
 
-  <dialog class="credit-dialog" id="credit-dialog" aria-labelledby="credit-title">
-    <button class="dialog-close" type="button" aria-label="Close">Close</button>
-    <div class="credit-body">
-      <img id="credit-art" alt="" width="640" height="640" />
-      <div class="credit-text">
-        <p class="overline" id="credit-publisher"></p>
-        <h2 id="credit-title"></h2>
-        <p class="credit-roles" id="credit-roles"></p>
-        <p class="credit-line" id="credit-stars"></p>
-        <ul class="credit-awards" id="credit-awards"></ul>
-        <p class="credit-links" id="credit-links"></p>
-      </div>
-    </div>
-  </dialog>
-
-  <script type="application/json" id="credit-data" set:html={JSON.stringify(creditData)} />
   <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 </Site>
 
@@ -761,115 +717,6 @@ const structuredData = {
       arrive.observe(facts);
     }
   }
-
-  // ---- work: filter by discipline
-  const covers = [...document.querySelectorAll<HTMLElement>('.cover')];
-  const chips = [...document.querySelectorAll<HTMLElement>('.chip')];
-  const count = document.getElementById('work-count');
-
-  const applyFilter = (tag: string) => {
-    let shown = 0;
-    for (const cover of covers) {
-      const match = tag === 'all' || (cover.dataset.tags || '').split(' ').includes(tag);
-      cover.hidden = !match;
-      if (match) {
-        shown += 1;
-        cover.classList.add('is-seen');
-      }
-    }
-    if (count) count.textContent = String(shown);
-    chips.forEach((chip) => chip.setAttribute('aria-pressed', String(chip.dataset.filter === tag)));
-  };
-
-  chips.forEach((chip) =>
-    chip.addEventListener('click', () => {
-      const tag = chip.dataset.filter || 'all';
-      const doc = document as any;
-      if (doc.startViewTransition && !reduced) doc.startViewTransition(() => applyFilter(tag));
-      else applyFilter(tag);
-    })
-  );
-
-  // ---- work: a cover leans toward the pointer
-  if (!reduced && window.matchMedia('(hover: hover)').matches) {
-    for (const cover of covers) {
-      const art = cover.querySelector<HTMLElement>('.cover-art');
-      if (!art) continue;
-      cover.addEventListener('pointermove', (event) => {
-        const rect = art.getBoundingClientRect();
-        const x = (event.clientX - rect.left) / rect.width - 0.5;
-        const y = (event.clientY - rect.top) / rect.height - 0.5;
-        art.style.setProperty('--ry', `${(x * 9).toFixed(2)}deg`);
-        art.style.setProperty('--rx', `${(-y * 9).toFixed(2)}deg`);
-        art.style.setProperty('--gx', `${((x + 0.5) * 100).toFixed(1)}%`);
-        art.style.setProperty('--gy', `${((y + 0.5) * 100).toFixed(1)}%`);
-      });
-      cover.addEventListener('pointerleave', () => {
-        art.style.setProperty('--ry', '0deg');
-        art.style.setProperty('--rx', '0deg');
-      });
-    }
-  }
-
-  // ---- work: the credit sheet
-  const dialog = document.getElementById('credit-dialog') as HTMLDialogElement | null;
-  const data = JSON.parse(document.getElementById('credit-data')?.textContent || '{}');
-  const $ = (id: string) => document.getElementById(id)!;
-
-  const openCredit = (id: string) => {
-    const credit = data[id];
-    if (!credit || !dialog) return;
-    ($('credit-art') as HTMLImageElement).src = credit.thumb || '';
-    ($('credit-art') as HTMLImageElement).alt = `Cover art for ${credit.title}`;
-    $('credit-title').textContent = credit.title;
-    $('credit-publisher').textContent = [credit.publisher, ...(credit.producers || [])]
-      .filter((v, i, all) => v && all.indexOf(v) === i)
-      .join(' · ');
-    $('credit-roles').textContent = credit.roles.join(', ');
-    const lines = [];
-    if (credit.genre) lines.push(credit.genre);
-    if (credit.stars?.length) lines.push(`With ${credit.stars.join(', ')}`);
-    $('credit-stars').textContent = lines.join('. ');
-    $('credit-stars').hidden = lines.length === 0;
-
-    const awards = $('credit-awards');
-    awards.replaceChildren();
-    // a badge that an award line already spells out is not said twice
-    const badges = credit.badges.filter(
-      (badge: string) => !credit.awards.some((award: string) => award.startsWith(badge.split(' ')[0]))
-    );
-    for (const fact of [...badges, ...credit.awards]) {
-      const li = document.createElement('li');
-      li.textContent = fact;
-      awards.append(li);
-    }
-    awards.hidden = awards.children.length === 0;
-
-    const links = $('credit-links');
-    links.replaceChildren();
-    const named: [string, string | null][] = [
-      ['Apple Podcasts', credit.links.apple],
-      ['Spotify', credit.links.spotify],
-      ['Official page', credit.links.official],
-    ];
-    for (const [label, href] of named) {
-      if (!href) continue;
-      const a = document.createElement('a');
-      a.href = href;
-      a.target = '_blank';
-      a.rel = 'noopener';
-      a.textContent = label;
-      links.append(a);
-    }
-    links.hidden = links.children.length === 0;
-    dialog.showModal();
-  };
-
-  covers.forEach((cover) => cover.addEventListener('click', () => openCredit(cover.dataset.id || '')));
-  dialog?.querySelector('.dialog-close')?.addEventListener('click', () => dialog.close());
-  dialog?.addEventListener('click', (event) => {
-    if (event.target === dialog) dialog.close();
-  });
 
   // ---- games: the reels. A hand of titles shows at a time. Every column
   // spins at once, art streaming down from the top, then the columns brake
