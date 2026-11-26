@@ -62,6 +62,7 @@ export function shouldAnimate() {
 // the room is easier to whip up: less drag, livelier bounces, a longer
 // leash, and quieter touches allowed to ring.
 const GRAVITY = 1.5;          // pull between planets while someone is playing: they find each other
+const REPEL = 0.22;           // how hard unlike shapes push apart, as a share of the pull between like ones
 const IDLE_PULL = 0.2;        // the share of that pull left once the room is alone, so a
                               // huddle lets go and everything drifts back to its own place
 const SOFTEN = 2.5;           // close passes may slingshot a little
@@ -197,7 +198,12 @@ export async function startEnvironment(container, options = {}) {
   // light like early morning: one warm sun, one cool sky
   scene.add(new THREE.HemisphereLight(0xf2f1f0, 0x849396, 1.1));
   const sun = new THREE.DirectionalLight(0xd9d7c2, 1.4);
-  sun.position.set(6, 8, 10);
+  // In the lab the sun stands beyond the lake, ahead of the camera and a
+  // little to the right, so the first view is into the light: the water
+  // glints and the shapes are rimmed. (It is where the old sun, behind the
+  // camera, appeared once the room had been turned about 140 degrees.)
+  if (options.room === true && LAKE_WORLD) sun.position.set(1.8, 8, -11.5);
+  else sun.position.set(6, 8, 10);
   scene.add(sun);
 
   const glass = room && LAKE_WORLD;
@@ -1179,8 +1185,12 @@ export async function startEnvironment(container, options = {}) {
         between.subVectors(other.position, mesh.position);
         const d2 = between.lengthSq() + SOFTEN;
         const dragging = other === held && holdMoved > tapDrift;
-        const boost = dragging ? HOLD_PULL_BOOST : 1;
-        const pull = (GRAVITY * presence * boost * data.mass * other.userData.mass) / d2;
+        // Like draws like: a shape is pulled only toward its own kind, and
+        // pushed, weakly, away from every other kind. So the families
+        // gather into their own groups and drift apart from each other.
+        const kin = other.userData.type === data.type;
+        const boost = dragging && kin ? HOLD_PULL_BOOST : 1;
+        const pull = ((kin ? GRAVITY : -GRAVITY * REPEL) * presence * boost * data.mass * other.userData.mass) / d2;
         force.addScaledVector(between.normalize(), pull);
         if (dragging) {
           force.addScaledVector(
