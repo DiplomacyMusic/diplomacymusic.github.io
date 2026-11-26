@@ -10,6 +10,7 @@
 //     finishes loading, a soft synth understudy holds the part.
 
 import { SAMPLE_BANK } from './sample-bank.js';
+import { sharedContext } from './audio-context.js';
 
 const KEY = 'diplomacy-sound';
 const MAX_VOICES = 32;
@@ -27,15 +28,8 @@ const state = {
 };
 
 function buildGraph() {
-  // On iPhones and iPads a page's sound counts as incidental and is cut by
-  // the silent switch or the mute control unless the page says it is
-  // playing something meant to be heard. The lab is.
-  try {
-    if (navigator.audioSession) navigator.audioSession.type = 'playback';
-  } catch {
-    // older systems have no such setting; nothing to do
-  }
-  const context = new (window.AudioContext || window.webkitAudioContext)();
+  // shared with the studio theme, so the two can sound together
+  const context = sharedContext();
   const master = context.createGain();
   master.gain.value = 1;
   master.connect(context.destination);
