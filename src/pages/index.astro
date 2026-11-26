@@ -197,10 +197,6 @@ const pillars = [
 
 const earlier = [
   {
-    term: 'Film',
-    lines: ['Feature scores for Broken Bridge, The North Star, Greensburg (PBS), and Poverty in Chicago (PBS).'],
-  },
-  {
     term: 'Advertising',
     lines: [
       "Music for Kellogg's, McDonald's, Maytag, Whirlpool, Secret, Centrum, Mack Trucks, the Beef Council, and Exelon.",
@@ -217,6 +213,10 @@ const earlier = [
   {
     term: 'Sync',
     lines: ['Nintendo 3DS, Ubisoft Watch Dogs, TNT, Vice, Gatorade, Hugo Boss, MTV, Red Bull, Lacoste, Fox Sports Net.'],
+  },
+  {
+    term: 'Film',
+    lines: ['Feature scores for Broken Bridge, The North Star, Greensburg (PBS), and Poverty in Chicago (PBS).'],
   },
   {
     term: 'Interactive',
@@ -470,7 +470,7 @@ const structuredData = {
           <p class="lede" data-reveal>
             Dynamic music and audio experiences that go wherever the player goes.
           </p>
-          <p class="games-facts" data-reveal>Over one hundred shipped titles, built in Unity and FMOD.</p>
+          <p class="games-facts" data-reveal>Over one hundred titles, built in FMOD, shipped in Unity.</p>
         </header>
 
         <!-- Fifteen titles show at a time, and they arrive as reels: every column
@@ -566,9 +566,21 @@ const structuredData = {
             Classical training, rock and roll energy, and a veteran in rooms where the
             deadline is real. Based in Chicago.
           </p>
+          <p data-reveal>
+            Daniel Brunelle is a composer and sound designer, and the founder of Diplomacy.
+            He is Manager and Advanced Composer and Sound Designer at Light &amp; Wonder,
+            where he leads a team of composers and sound designers. In audio drama he works
+            as composer, sound designer, re-recording mixer, and post production supervisor
+            for Gimlet, Spotify, Audible, Realm, and Marvel.
+          </p>
+          <p data-reveal>
+            He began with the band Gemini Club, which signed with Red Bull and played
+            Lollapalooza in 2014. He composed for advertising at OneSun Entertainment, the
+            in-house music team of Chicago Recording Company, and at JIRA under Ira Antelis,
+            and produced and performed in MONAKR with Matthew Santos.
+          </p>
         </div>
         <dl class="ledger">
-          <p class="overline" data-reveal>Before, and alongside</p>
           {earlier.map((row) => (
             <div class="ledger-row" data-reveal>
               <dt>{row.term}</dt>
@@ -636,8 +648,12 @@ const structuredData = {
       <div class="room-controls">
         <button class="line-button" type="button" id="room-sound" aria-pressed="false">Sound on</button>
         <button class="line-button" type="button" id="room-floor" aria-pressed="false">Let them fall</button>
-        <a class="line-button" href="/lab/">The whole experiment</a>
       </div>
+    </div>
+    <!-- the room, as it happens: every strike, swell, throw, and landing
+         types a line here. It lies over the room and takes no touches. -->
+    <div class="room-log" aria-hidden="true">
+      <pre><code id="room-log"></code></pre>
     </div>
   </section>
 
@@ -664,6 +680,7 @@ const structuredData = {
   import { startMotion } from '../scripts/site-motion.js';
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   const saveData = (navigator as any).connection?.saveData === true;
 
   startMotion();
@@ -747,6 +764,43 @@ const structuredData = {
       requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
+  }
+
+  // ---- the live log over the room: lines typed out as they arrive
+  const logNode = document.getElementById('room-log');
+  if (logNode) {
+    const MAX_LOG = 14;
+    const buffer = ['// the room, as it happens'];
+    const queue: string[] = [];
+    let typing = false;
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const render = () => (logNode.textContent = buffer.join('\n'));
+    render();
+    const drain = async () => {
+      typing = true;
+      while (queue.length) {
+        const line = queue.shift() as string;
+        buffer.push('');
+        if (buffer.length > MAX_LOG) buffer.shift();
+        // The hand speeds up with the backlog: one letter at a time when
+        // the room is quiet, several at a time as lines pile up, and whole
+        // lines at once in a storm, so the page keeps pace with the room.
+        for (let at = 0; at < line.length; ) {
+          const waiting = queue.length;
+          const step = waiting > 5 ? line.length : 1 + waiting * 3;
+          at = Math.min(line.length, at + step);
+          buffer[buffer.length - 1] = line.slice(0, at);
+          render();
+          if (!reduced) await wait(waiting > 2 ? 4 : 11 - waiting * 3);
+        }
+      }
+      typing = false;
+    };
+    window.addEventListener('diplomacy:log', (event) => {
+      if (queue.length > 24) return; // a storm of events keeps only its leading edge
+      queue.push((event as CustomEvent<string>).detail);
+      if (!typing) drain();
+    });
   }
 
   // ---- the studio theme. Nothing loads until the button is pressed. The

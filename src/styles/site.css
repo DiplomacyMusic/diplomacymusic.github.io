@@ -2358,3 +2358,30 @@ html.js .contact-stage:not(.is-done) .loud-button {
   .track-corner { animation: none; }
 }
 
+/* ---------- the live log over the room ---------- */
+
+.room-log {
+  position: absolute;
+  right: clamp(1.25rem, 6vw, 6rem);
+  bottom: clamp(2rem, 6vw, 5rem);
+  z-index: 1;
+  width: min(36%, 26rem);
+  pointer-events: none;
+}
+
+.room-log pre {
+  margin: 0;
+  font-family: 'SF Mono', Menlo, monospace;
+  font-size: 0.78rem;
+  line-height: 1.9;
+  color: var(--ink-quiet);
+  white-space: pre-wrap;
+  /* the past fades upward */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 40%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 40%);
+}
+
+@media (max-width: 720px) {
+  .room-log { width: auto; left: 1.25rem; right: 1.25rem; bottom: 1.5rem; max-height: 9.5rem; overflow: hidden; display: flex; align-items: flex-end; }
+  .room-log pre { font-size: 0.68rem; line-height: 1.75; }
+}
