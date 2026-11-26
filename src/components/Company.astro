@@ -21,7 +21,11 @@ const names = [
   { id: 'nintendo3ds', name: 'Nintendo 3DS', weight: 0.8 },
   { id: 'ubisoft', name: 'Ubisoft', weight: 0.82 },
   { id: 'redbull', name: 'Red Bull', weight: 1 },
-  { id: 'fox', name: 'Fox', weight: 0.85 },
+  { id: 'kelloggs', name: "Kellogg's", weight: 1.15 },
+  { id: 'whirlpool', name: 'Whirlpool', weight: 1.2 },
+  { id: 'secret', name: 'Secret', weight: 1.15 },
+  { id: 'exelon', name: 'Exelon', weight: 1.05 },
+  { id: 'bbdo', name: 'BBDO', weight: 0.9 },
 ];
 
 const logos = names.map((logo) => {
@@ -81,3 +85,81 @@ const logos = names.map((logo) => {
     </script>
   </div>
 </div>
+
+<script>
+  // On a touch screen the line can also be pulled sideways with a finger.
+  // The rail only ever claims sideways movement (touch-action: pan-y in the
+  // styles), so an up or down swipe that starts on the logos still scrolls
+  // the page: the browser takes it and this code is told to let go.
+  // The pull is kept on the track's own `translate`, apart from the
+  // `transform` the scroll uses, and it wraps by one set of logos, so the
+  // line never runs out in either direction.
+  const rail = document.querySelector<HTMLElement>('.company-rail');
+  const track = rail?.querySelector<HTMLElement>('.company-track');
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (rail && track && !still) {
+    let offset = 0;
+    let lastX = 0;
+    let lastT = 0;
+    let speed = 0; // px per ms
+    let held: number | null = null;
+    let coast = 0;
+
+    const setWidth = () => {
+      // the sets are laid out one after another, so the distance between the
+      // same logo in two sets is the width of one set
+      const a = track.querySelector<HTMLElement>('li[data-round="0"][data-logo="0"]');
+      const b = track.querySelector<HTMLElement>('li[data-round="1"][data-logo="0"]');
+      if (!a || !b) return 0;
+      return Math.abs(b.getBoundingClientRect().left - a.getBoundingClientRect().left);
+    };
+
+    const place = () => {
+      const set = setWidth();
+      if (set > 0) {
+        if (offset > set / 2) offset -= set;
+        if (offset < -set / 2) offset += set;
+      }
+      track.style.translate = `${offset.toFixed(1)}px 0`;
+    };
+
+    const glide = () => {
+      speed *= 0.94;
+      if (Math.abs(speed) < 0.02) return;
+      offset += speed * 16;
+      place();
+      coast = requestAnimationFrame(glide);
+    };
+
+    rail.addEventListener('pointerdown', (event) => {
+      if (event.pointerType === 'mouse') return;
+      cancelAnimationFrame(coast);
+      held = event.pointerId;
+      lastX = event.clientX;
+      lastT = event.timeStamp;
+      speed = 0;
+    });
+
+    rail.addEventListener('pointermove', (event) => {
+      if (event.pointerId !== held) return;
+      const dx = event.clientX - lastX;
+      const dt = Math.max(1, event.timeStamp - lastT);
+      offset += dx;
+      speed = 0.7 * speed + 0.3 * (dx / dt);
+      lastX = event.clientX;
+      lastT = event.timeStamp;
+      place();
+    });
+
+    const release = (event: PointerEvent) => {
+      if (event.pointerId !== held) return;
+      held = null;
+      // let go by the finger: coast to a stop. Taken by the browser for a
+      // page scroll: just stop where it is.
+      if (event.type === 'pointerup') coast = requestAnimationFrame(glide);
+    };
+    rail.addEventListener('pointerup', release);
+    rail.addEventListener('pointercancel', release);
+  }
+</script>

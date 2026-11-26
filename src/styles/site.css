@@ -410,6 +410,8 @@ body {
   display: flex;
   justify-content: center;
   overflow: hidden;
+  /* a finger may pull the line sideways; up and down always belongs to the page */
+  touch-action: pan-y;
   margin-top: var(--space-2);
   padding-block: 1.6rem;
   -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
