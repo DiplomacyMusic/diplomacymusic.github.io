@@ -13,10 +13,27 @@ import site from '../data/site.json';
 const thumb = (path) =>
   path ? path.replace('/art/', '/art/thumb/').replace(/\.(jpg|png|webp)$/, '.webp') : null;
 
-// the series, named once each: seasons of one show fold into one name
-const seriesNames = [
-  ...new Map(credits.map((credit) => [credit.group || credit.id, credit.title.replace(/,?\s*Season \d+/, '')])).values(),
+// what each credit answers to in the filter row
+const tagsFor = (credit) => {
+  const tags = new Set();
+  for (const role of credit.roles) {
+    if (/Composer/.test(role)) tags.add('score');
+    if (/Sound Designer/.test(role)) tags.add('design');
+    if (/Mix/.test(role)) tags.add('mix');
+    if (/Supervisor/.test(role)) tags.add('supervision');
+  }
+  return [...tags];
+};
+
+const filters = [
+  { id: 'all', label: 'Everything' },
+  { id: 'score', label: 'Score' },
+  { id: 'design', label: 'Sound design' },
+  { id: 'mix', label: 'Mix' },
+  { id: 'supervision', label: 'Supervision' },
 ];
+
+const work = credits.map((credit) => ({ ...credit, tags: tagsFor(credit), thumb: thumb(credit.artwork) }));
 
 // recognition, counted straight from the credits so it can never drift
 const showKey = (credit) => credit.group || credit.id;
@@ -158,6 +175,24 @@ const earlier = [
   },
 ];
 
+const creditData = Object.fromEntries(
+  work.map((credit) => [
+    credit.id,
+    {
+      title: credit.title,
+      publisher: credit.publisher,
+      producers: credit.producers,
+      roles: credit.roles,
+      genre: credit.genre,
+      stars: credit.stars,
+      badges: credit.badges,
+      awards: credit.awards,
+      links: credit.links,
+      thumb: credit.thumb,
+    },
+  ])
+);
+
 const structuredData = {
   '@context': 'https://schema.org',
   '@graph': [
@@ -286,12 +321,41 @@ const structuredData = {
         <header class="section-head">
           <p class="overline" data-reveal>Audio drama</p>
           <h2 data-reveal>Stories, <span class="tone">told in the dark.</span></h2>
-          <p class="lede" data-reveal>Productions for Audible, Marvel, DC, Star Trek, Spotify, and Sega.</p>
+          <p class="lede" data-reveal>Productions for Audible, Marvel, DC, Star Trek, Spotify, and Sega, and like a hundred others.</p>
         </header>
 
-        <ul class="names" data-reveal>
-          {seriesNames.map((name) => <li>{name}</li>)}
-        </ul>
+        <div class="filters" role="group" aria-label="Filter the work by discipline">
+          {filters.map((filter) => (
+            <button class="chip" type="button" data-filter={filter.id} aria-pressed={filter.id === 'all' ? 'true' : 'false'}>
+              {filter.label}
+            </button>
+          ))}
+        </div>
+
+        <div class="covers" id="covers" data-depth-cols="0.07,-0.05,0.1,-0.02">
+          {work.map((credit, i) => (
+            <button
+              class={`cover${i >= Math.ceil(work.length / 2) ? ' cover-extra' : ''}`}
+              type="button"
+              data-id={credit.id}
+              data-tags={credit.tags.join(' ')}
+              style={`view-transition-name: c-${credit.id}`}
+              data-reveal
+            >
+              <span class="cover-art">
+                <img src={credit.thumb} alt={`Cover art for ${credit.title}`} loading="lazy" width="640" height="640" />
+                {credit.badges.length > 0 && <span class="cover-badge">{credit.badges[0]}</span>}
+              </span>
+              <span class="cover-title">{credit.title}</span>
+              <span class="cover-role">{credit.roles.join(', ')}</span>
+            </button>
+          ))}
+        </div>
+        <!-- on a phone the second half waits behind More titles -->
+        <div class="covers-more">
+          <button class="line-button" type="button" id="covers-toggle" aria-controls="covers" aria-expanded="false">More titles</button>
+          <a class="line-button" href={site.socials.find((s) => s.label === 'IMDb')?.href} target="_blank" rel="noopener">Full credits</a>
+        </div>
       </div>
     </section>
 
@@ -345,7 +409,6 @@ const structuredData = {
           ))}
         </div>
         <p class="games-more">
-          <span class="games-count">{titles.length} titles in all. Re-Spin for another <span id="games-per">{FIRST_GAMES}</span>.</span>
           <button class="spin-button" type="button" id="games-spin"><span>Re-Spin</span></button>
         </p>
       </div>
@@ -417,15 +480,8 @@ const structuredData = {
           <h2 data-reveal>Diplomacy <span class="tone">Studio</span></h2>
           <p data-reveal>
             Diplomacy is the studio of composer and sound designer Daniel Brunelle.
-            Classical training, rock and roll habits, and a long apprenticeship in rooms
-            where the deadline is real. Based in Chicago.
-          </p>
-          <p data-reveal>
-            The studio works in three rooms. Music: original score. Sound: design, mix,
-            and the supervision that carries a show from script to delivery. Tech:
-            custom software built from inside the creative process. Alignment systems,
-            assembly automation, adaptive music engines. Tools that let the people
-            in the room spend their time on the work.
+            Classical training, rock and roll energy, and a veteran in rooms where the
+            deadline is real. Based in Chicago.
           </p>
         </div>
         <dl class="ledger">
@@ -502,6 +558,22 @@ const structuredData = {
     </div>
   </section>
 
+  <dialog class="credit-dialog" id="credit-dialog" aria-labelledby="credit-title">
+    <button class="dialog-close" type="button" aria-label="Close">Close</button>
+    <div class="credit-body">
+      <img id="credit-art" alt="" width="640" height="640" />
+      <div class="credit-text">
+        <p class="overline" id="credit-publisher"></p>
+        <h2 id="credit-title"></h2>
+        <p class="credit-roles" id="credit-roles"></p>
+        <p class="credit-line" id="credit-stars"></p>
+        <ul class="credit-awards" id="credit-awards"></ul>
+        <p class="credit-links" id="credit-links"></p>
+      </div>
+    </div>
+  </dialog>
+
+  <script type="application/json" id="credit-data" set:html={JSON.stringify(creditData)} />
   <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 </Site>
 
@@ -718,6 +790,125 @@ const structuredData = {
     }
   }
 
+  // ---- work: filter by discipline
+  const covers = [...document.querySelectorAll<HTMLElement>('.cover')];
+  const chips = [...document.querySelectorAll<HTMLElement>('.chip')];
+  const count = document.getElementById('work-count');
+
+  const applyFilter = (tag: string) => {
+    let shown = 0;
+    for (const cover of covers) {
+      const match = tag === 'all' || (cover.dataset.tags || '').split(' ').includes(tag);
+      cover.hidden = !match;
+      if (match) {
+        shown += 1;
+        cover.classList.add('is-seen');
+      }
+    }
+    if (count) count.textContent = String(shown);
+    document.getElementById('covers')?.classList.toggle('is-filtered', tag !== 'all');
+    chips.forEach((chip) => chip.setAttribute('aria-pressed', String(chip.dataset.filter === tag)));
+  };
+
+  chips.forEach((chip) =>
+    chip.addEventListener('click', () => {
+      const tag = chip.dataset.filter || 'all';
+      const doc = document as any;
+      if (doc.startViewTransition && !reduced) doc.startViewTransition(() => applyFilter(tag));
+      else applyFilter(tag);
+    })
+  );
+
+  // ---- work: a cover leans toward the pointer
+  if (!reduced && window.matchMedia('(hover: hover)').matches) {
+    for (const cover of covers) {
+      const art = cover.querySelector<HTMLElement>('.cover-art');
+      if (!art) continue;
+      cover.addEventListener('pointermove', (event) => {
+        const rect = art.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / rect.width - 0.5;
+        const y = (event.clientY - rect.top) / rect.height - 0.5;
+        art.style.setProperty('--ry', `${(x * 9).toFixed(2)}deg`);
+        art.style.setProperty('--rx', `${(-y * 9).toFixed(2)}deg`);
+        art.style.setProperty('--gx', `${((x + 0.5) * 100).toFixed(1)}%`);
+        art.style.setProperty('--gy', `${((y + 0.5) * 100).toFixed(1)}%`);
+      });
+      cover.addEventListener('pointerleave', () => {
+        art.style.setProperty('--ry', '0deg');
+        art.style.setProperty('--rx', '0deg');
+      });
+    }
+  }
+
+  // ---- work: the credit sheet
+  const dialog = document.getElementById('credit-dialog') as HTMLDialogElement | null;
+  const data = JSON.parse(document.getElementById('credit-data')?.textContent || '{}');
+  const $ = (id: string) => document.getElementById(id)!;
+
+  const openCredit = (id: string) => {
+    const credit = data[id];
+    if (!credit || !dialog) return;
+    ($('credit-art') as HTMLImageElement).src = credit.thumb || '';
+    ($('credit-art') as HTMLImageElement).alt = `Cover art for ${credit.title}`;
+    $('credit-title').textContent = credit.title;
+    $('credit-publisher').textContent = [credit.publisher, ...(credit.producers || [])]
+      .filter((v, i, all) => v && all.indexOf(v) === i)
+      .join(' · ');
+    $('credit-roles').textContent = credit.roles.join(', ');
+    const lines = [];
+    if (credit.genre) lines.push(credit.genre);
+    if (credit.stars?.length) lines.push(`With ${credit.stars.join(', ')}`);
+    $('credit-stars').textContent = lines.join('. ');
+    $('credit-stars').hidden = lines.length === 0;
+
+    const awards = $('credit-awards');
+    awards.replaceChildren();
+    // a badge that an award line already spells out is not said twice
+    const badges = credit.badges.filter(
+      (badge: string) => !credit.awards.some((award: string) => award.startsWith(badge.split(' ')[0]))
+    );
+    for (const fact of [...badges, ...credit.awards]) {
+      const li = document.createElement('li');
+      li.textContent = fact;
+      awards.append(li);
+    }
+    awards.hidden = awards.children.length === 0;
+
+    const links = $('credit-links');
+    links.replaceChildren();
+    const named: [string, string | null][] = [
+      ['Apple Podcasts', credit.links.apple],
+      ['Spotify', credit.links.spotify],
+      ['Official page', credit.links.official],
+    ];
+    for (const [label, href] of named) {
+      if (!href) continue;
+      const a = document.createElement('a');
+      a.href = href;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = label;
+      links.append(a);
+    }
+    links.hidden = links.children.length === 0;
+    dialog.showModal();
+  };
+
+  covers.forEach((cover) => cover.addEventListener('click', () => openCredit(cover.dataset.id || '')));
+  dialog?.querySelector('.dialog-close')?.addEventListener('click', () => dialog.close());
+  dialog?.addEventListener('click', (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+
+  // ---- work: on a phone, the second half of the covers on request
+  const coversGrid = document.getElementById('covers');
+  const coversToggle = document.getElementById('covers-toggle');
+  coversToggle?.addEventListener('click', () => {
+    const open = coversGrid?.classList.toggle('is-open') ?? false;
+    coversToggle.setAttribute('aria-expanded', String(open));
+    coversToggle.textContent = open ? 'Fewer titles' : 'More titles';
+  });
+
   // ---- games: the reels. A hand of titles shows at a time. Every column
   // spins at once, art streaming down from the top, then the columns brake
   // and lock one after another from left to right. A soft light runs
@@ -730,7 +921,6 @@ const structuredData = {
     // five reels of three on wide screens, three reels of three on phones
     const narrow = window.matchMedia('(max-width: 720px)');
     const handSize = () => (narrow.matches ? 9 : 15);
-    const perLabel = document.getElementById('games-per');
     // Keep exactly one full hand on show. If the window changes size, the
     // grid trims down or tops back up, so there is never a short row.
     const fitHand = () => {
@@ -746,7 +936,6 @@ const structuredData = {
             cell.querySelector('img')?.setAttribute('loading', 'eager');
           });
       }
-      if (perLabel) perLabel.textContent = String(size);
     };
     fitHand();
     narrow.addEventListener('change', fitHand);
@@ -889,11 +1078,32 @@ const structuredData = {
           warmed = true;
           pool.forEach((src) => (new Image().src = src));
         }
-        if (rect.top < vh * 0.8 && rect.bottom > 0) {
+        const start = () => {
           window.removeEventListener('scroll', watch);
+          clearTimeout(settle);
           if (!spinning && !gamesGrid.classList.contains('is-spun')) spin([]);
+        };
+        if (!narrow.matches) {
+          if (rect.top < vh * 0.8 && rect.bottom > 0) start();
+          return;
         }
+        // On a phone a thumb flick carries the page a long way, and a spin
+        // that starts at the first sight of the grid is over before the
+        // grid is on screen. So the spin waits until most of the grid is
+        // in view and the scroll has slowed, or until the scroll comes to
+        // rest with the grid showing.
+        const seen = (Math.min(vh, rect.bottom) - Math.max(0, rect.top)) / rect.height;
+        const now = performance.now();
+        const speed = Math.abs(window.scrollY - lastY) / Math.max(1, now - lastT);
+        lastY = window.scrollY;
+        lastT = now;
+        if (seen >= 0.7 && speed < 0.9) return start();
+        clearTimeout(settle);
+        if (seen > 0.25) settle = window.setTimeout(start, 160);
       };
+      let settle = 0;
+      let lastY = window.scrollY;
+      let lastT = performance.now();
       window.addEventListener('scroll', watch, { passive: true });
       watch();
     }
