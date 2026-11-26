@@ -96,6 +96,7 @@ const SWIRL = 1.4;             // how hard a turning room drags the shapes round
 const SWIRL_MAX = 4;           // radians a second; past this the water stops keeping up
 const GRAB_SLACK = 26;          // px a finger may miss a shape by and still take hold of it
 const HANDS_SECONDS = 4;       // how long after a hand leaves the room still counts as playing
+const WORDS_BACK_SECONDS = 2;   // how long after a hand leaves before the words and the log return
 const ZOOM_NEAR = 0.7;         // a pinch may bring the camera this much closer
 const ZOOM_FAR = 1.3;          // or push it this much farther away, short of the fog
 const TAP_DRIFT = 0.25;       // world units a mouse may wander before a press is a drag
@@ -1057,7 +1058,7 @@ export async function startEnvironment(container, options = {}) {
     // or the room turned. The page fades its hint for as long, and a few
     // seconds more.
     if (held || orbitPointer !== null || gesture) lastHandsAt = t;
-    const playing = t - lastHandsAt < HANDS_SECONDS;
+    const playing = t - lastHandsAt < WORDS_BACK_SECONDS;
     if (playing !== wasPlaying) {
       wasPlaying = playing;
       container.classList.toggle('is-playing', playing);
@@ -1402,6 +1403,49 @@ export async function startEnvironment(container, options = {}) {
     }
 
     renderer.render(scene, camera);
+    if (room) shadeWords();
+  }
+
+  // Each word over the room reads the picture just drawn behind it and
+  // takes white over the dark water and shapes, ink over the pale sky,
+  // the way the volume line turns from white to ink. A few times a
+  // second is plenty: CSS eases between the two.
+  const shaded = room ? [...container.querySelectorAll('[data-shade]')] : [];
+  const gl = renderer.getContext();
+  let shadeTick = 0;
+  let shadeBytes = new Uint8Array(0);
+  const shadeRange = document.createRange();
+  function shadeWords() {
+    if (!shaded.length || ++shadeTick % 8) return;
+    const canvas = renderer.domElement;
+    const box = canvas.getBoundingClientRect();
+    if (!box.width) return;
+    const scale = canvas.width / box.width;
+    for (const el of shaded) {
+      // the words themselves, not the width of the block they sit in
+      shadeRange.selectNodeContents(el);
+      const r = shadeRange.getBoundingClientRect();
+      const x = Math.max(0, Math.floor((r.left - box.left) * scale));
+      const y = Math.max(0, Math.floor((box.bottom - r.bottom) * scale));
+      const w = Math.min(canvas.width - x, Math.ceil(r.width * scale));
+      const h = Math.min(canvas.height - y, Math.ceil(r.height * scale));
+      if (w <= 0 || h <= 0) continue;
+      if (shadeBytes.length < w * h * 4) shadeBytes = new Uint8Array(w * h * 4);
+      gl.readPixels(x, y, w, h, gl.RGBA, gl.UNSIGNED_BYTE, shadeBytes);
+      let sum = 0;
+      let n = 0;
+      for (let i = 0; i < w * h * 4; i += 4 * 7) {
+        sum += 0.2126 * shadeBytes[i] + 0.7152 * shadeBytes[i + 1] + 0.0722 * shadeBytes[i + 2];
+        n++;
+      }
+      const light = sum / n / 255;
+      // 0 is a dark ground (white words), 1 a pale one (ink words). Never
+      // a grey in between: the words turn only once the ground has clearly
+      // crossed where white and ink read equally well, and CSS eases the turn.
+      const was = el.style.getPropertyValue('--shade');
+      const shade = light > 0.54 ? '1' : light < 0.46 ? '0' : was || '0';
+      if (shade !== was) el.style.setProperty('--shade', shade);
+    }
   }
 
   // do not burn battery in a background tab, or while a room is off screen

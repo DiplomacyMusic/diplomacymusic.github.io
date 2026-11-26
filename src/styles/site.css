@@ -1829,12 +1829,38 @@ html.js .contact-stage:not(.is-done) .loud-button {
   font-size: 1.08rem;
 }
 
+/* Each word reads what the room has drawn behind it (environment.js sets
+   --shade): 0 over dark water or a dark shape, white; 1 over pale sky,
+   ink. The quiet words keep their quieter pair. */
+.room [data-shade] {
+  --shade-on-dark: var(--room-ink);
+  --shade-on-light: var(--ink);
+  color: color-mix(in srgb, var(--shade-on-dark) calc((1 - var(--shade, 0)) * 100%), var(--shade-on-light));
+}
+
+.room .overline[data-shade],
+.room .tone[data-shade],
+.room .room-hint[data-shade] {
+  --shade-on-dark: rgba(242, 241, 240, 0.86);
+  --shade-on-light: var(--ink-quiet);
+}
+
+/* the quiet lines' fixed ink, set further down for every lab line, would
+   otherwise outrank the shade */
+.room-copy p.room-hint[data-shade] {
+  color: color-mix(in srgb, var(--shade-on-dark) calc((1 - var(--shade, 0)) * 100%), var(--shade-on-light));
+}
+
+.room-copy h2 [data-shade] {
+  transition: color 700ms var(--ease-drift);
+}
+
 /* While shapes are being moved the room is only the shapes. The hint
    goes, the name and the line step far back, and the button dims. They
    return when the room has been left alone for a few seconds. */
 .room-copy > *,
 .room-floor {
-  transition: opacity 1400ms var(--ease-drift);
+  transition: opacity 1400ms var(--ease-drift), color 700ms var(--ease-drift);
 }
 
 .room.is-playing .room-copy > *,

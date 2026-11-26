@@ -642,12 +642,12 @@ const structuredData = {
   <!-- the lab: the explorable room, playable right here -->
   <section class="room" id="room" aria-label="The lab. A room of shapes you can play.">
     <div class="room-copy">
-      <p class="overline">The lab</p>
-      <h2>Sound <span class="tone">is listening.</span></h2>
-      <p class="room-hint">Touch a shape. Throw one.<br />Make your wave[form]</p>
+      <p class="overline" data-shade>The lab</p>
+      <h2><span data-shade>Sound</span> <span class="tone" data-shade>is listening.</span></h2>
+      <p class="room-hint" data-shade>Touch a shape. Throw one.<br />Make your wave[form]</p>
     </div>
     <!-- the one control, at the far end of the line that names the room -->
-    <button class="line-button room-floor" type="button" id="room-floor" aria-pressed="false">Let them fall</button>
+    <button class="line-button room-floor" type="button" id="room-floor" data-shade aria-pressed="false">Let them fall</button>
     <!-- the room, as it happens: every strike, swell, throw, and landing
          types a line here. It lies under the shapes and takes no touches. -->
     <div class="room-log" aria-hidden="true">
@@ -845,6 +845,16 @@ const structuredData = {
       (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
     const asked = new URLSearchParams(window.location.search).get('theme') === 'buffer';
     const decoded = !!Ctx && (!volumeSticks || appleTouch || asked);
+
+    // What a phone's lock screen and a laptop's media keys call the sound
+    // of this page. Without it they show only the site's address.
+    if ('mediaSession' in navigator && 'MediaMetadata' in window) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: 'Daniel Brunelle',
+        artist: 'Diplomacy',
+        artwork: [{ src: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+      });
+    }
 
     // The decoded theme plays through the page's one shared audio engine,
     // the same one the lab uses, so the two can be heard together. It is
