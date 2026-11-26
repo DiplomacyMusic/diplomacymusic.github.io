@@ -318,7 +318,8 @@ body {
   font-size: 1.08rem;
 }
 
-.covers-more {
+.covers-more,
+.reels-more {
   display: none;
 }
 
@@ -522,7 +523,8 @@ html:not(.js) .company-repeat {
    far out of focus, held still behind the page so the band slides over
    it. The brown wash dims it and keeps the cards readable. */
 .band.band-recognition {
-  background: linear-gradient(rgba(78, 67, 61, 0.76), rgba(48, 45, 38, 0.82));
+  /* a lighter wash than it had, so the video is felt behind the cards */
+  background: linear-gradient(rgba(78, 67, 61, 0.46), rgba(48, 45, 38, 0.56));
 }
 
 .band.deep .overline {
@@ -540,7 +542,7 @@ html:not(.js) .company-repeat {
   align-content: start;
   gap: 0.35rem;
   padding: 1.6rem 1.4rem 1.8rem;
-  background: rgba(34, 30, 27, 0.5);
+  background: rgba(34, 30, 27, 0.65);
   border: 1px solid rgba(242, 241, 240, 0.14);
   border-top-color: var(--glow);
   border-radius: 3px;
@@ -549,7 +551,7 @@ html:not(.js) .company-repeat {
 }
 
 .fact:hover {
-  background: rgba(34, 30, 27, 0.62);
+  background: rgba(34, 30, 27, 0.76);
 }
 
 /* The cards ease in with the page's ordinary reveal, one after another.
@@ -1451,7 +1453,11 @@ body.has-player .site-foot {
   overflow: hidden;
   display: grid;
   grid-template-columns: minmax(0, 0.54fr) minmax(0, 0.46fr);
-  grid-template-rows: minmax(0, 1fr) auto;
+  /* open space, the note, open space with the button centred in it, the
+     strip of links. The space under the note gets two shares to the one
+     above it, and never less than the button needs, so the button sits
+     midway between the signature and the strip with air on both sides */
+  grid-template-rows: minmax(0, 1fr) auto minmax(7.2rem, 2fr) auto;
   column-gap: clamp(1.5rem, 5vw, 4rem);
   /* the stage runs the full width so the backdrop can; the contents keep the page's measure */
   --pad-top: clamp(1.5rem, 5vh, 3.5rem);
@@ -1467,8 +1473,7 @@ html.js .contact-stage {
 .contact-copy {
   position: relative;
   z-index: 1;
-  grid-area: 1 / 1;
-  align-self: center;
+  grid-area: 2 / 1;
   min-width: 0;
 }
 
@@ -1496,7 +1501,9 @@ html.js .contact-stage {
 .contact-note p {
   max-width: 24ch;
   margin-bottom: 1rem;
-  font-size: clamp(1.5rem, 3.3vw, 2.6rem);
+  /* held to the height of the window as well as its width, so a short,
+     wide window still has room under the note for the button */
+  font-size: min(clamp(1.5rem, 3.3vw, 2.6rem), 4.4svh);
   font-weight: 400;
   line-height: 1.22;
   letter-spacing: -0.012em;
@@ -1547,7 +1554,7 @@ html.js .contact-stage:not(.is-typed) .contact-note footer {
 .contact-portrait {
   position: relative;
   z-index: 0;
-  grid-area: 1 / 1 / 3 / 3;
+  grid-area: 1 / 1 / 5 / 3;
   margin: calc(var(--pad-top) * -1) calc(var(--pad-x) * -1) calc(var(--pad-bottom) * -1);
   overflow: hidden;
   pointer-events: none;
@@ -1593,11 +1600,12 @@ html.js .contact-stage:not(.is-typed) .contact-note footer {
 
 /* The button arrives once the note is written: it wipes in from the left
    and settles. It is a button and looks like one: a pill of lake glass
-   with an arrow, and pressing it starts an email. */
+   with an arrow, and pressing it starts an email. It stands on its own,
+   clear of the strip of links, in the middle of the open space under the
+   signature. The wrapper steps aside so the button and the strip can each
+   take a row of the stage. */
 .contact-cta {
-  position: relative;
-  z-index: 1;
-  grid-area: 2 / 1 / 3 / 3;
+  display: contents;
 }
 
 .loud-button {
@@ -1605,6 +1613,10 @@ html.js .contact-stage:not(.is-typed) .contact-note footer {
   align-items: center;
   gap: 0.9em;
   max-width: 100%;
+  grid-area: 3 / 1 / 4 / 3;
+  align-self: center;
+  justify-self: start;
+  z-index: 1;
   padding: 0.72em 1.15em 0.72em 1.45em;
   font-size: clamp(1.35rem, 2.7vw, 2.3rem);
   font-weight: 500;
@@ -1700,6 +1712,8 @@ html.js .contact-stage:not(.is-done) .loud-button {
 
 .contact-actions {
   position: relative;
+  z-index: 1;
+  grid-area: 4 / 1 / 5 / 3;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1742,19 +1756,32 @@ html.js .contact-stage:not(.is-done) .loud-button {
 
 /* ---------- the lab: the explorable room ---------- */
 
+/* The room is the last thing on the page and takes nearly the whole screen:
+   everything under the header and above the one thin line of footer. */
 .room {
+  --foot-h: 2.6rem;
+  /* The room's colours, in one place because they will be tuned. The
+     gradient here is only what shows before the 3D world has drawn, or
+     where motion is turned off; the lake, the mountains, the forest, and
+     the sky are built in src/scripts/environment.js. */
+  --room-top: #7b919a;                          /* high sky */
+  --room-bottom: #cbcfc6;                       /* haze at the horizon */
+  --room-fog: #8c9ca0;                          /* what distant shapes fade into */
+  --room-ink: #f2f1f0;                          /* words, the button, the staff */
+  --room-ink-quiet: rgba(242, 241, 240, 0.82);  /* the label, the hint, the typed log */
   position: relative;
-  height: clamp(34rem, 100vh, 64rem);
+  height: max(30rem, calc(100vh - 3rem - var(--foot-h))); /* 3rem: the header, as the contact scene counts it */
   overflow: hidden;
-  background:
-    radial-gradient(ellipse 90% 60% at 70% 20%, var(--glow) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 70% at 20% 80%, var(--water) 0%, transparent 60%),
-    linear-gradient(175deg, var(--haze) 0%, var(--paper) 70%);
+  color: var(--room-ink);
+  background: linear-gradient(to bottom, var(--room-top) 0%, var(--room-bottom) 62%, #3f6f86 62%);
 }
 
+/* The canvas holds the whole 3D world now and is not see through, so the
+   typed log lies on top of it again, with the words and the button. */
 .room canvas {
   position: absolute;
   inset: 0;
+  z-index: 1;
   opacity: 0;
   transition: opacity 1200ms var(--ease-drift);
 }
@@ -1768,7 +1795,7 @@ html.js .contact-stage:not(.is-done) .loud-button {
   position: absolute;
   left: clamp(1.25rem, 6vw, 6rem);
   top: clamp(2.5rem, 7vw, 6rem);
-  z-index: 1;
+  z-index: 2;
   max-width: 24rem;
   pointer-events: none;
 }
@@ -1780,25 +1807,47 @@ html.js .contact-stage:not(.is-done) .loud-button {
   line-height: 1.08;
 }
 
+/* the words sit on pale, misty sky and bright water, so each carries a
+   soft shadow of the lake's own dark to stay readable */
+.room-copy,
+.room-floor,
+.room-log pre {
+  text-shadow: 0 1px 2px rgba(28, 40, 46, 0.35), 0 0 18px rgba(28, 40, 46, 0.4);
+}
+
 .room-copy p:not(.overline) {
-  color: var(--ink-quiet);
+  color: var(--room-ink-quiet);
   font-size: 1.08rem;
 }
 
-.room-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem 1.6rem;
-  margin-top: var(--space-3);
+/* While shapes are being moved the room is only the shapes. The hint
+   goes, the name and the line step far back, and the button dims. They
+   return when the room has been left alone for a few seconds. */
+.room-copy > *,
+.room-floor {
+  transition: opacity 1400ms var(--ease-drift);
 }
 
-.room-controls .line-button {
-  pointer-events: auto;
-  color: var(--ink);
+.room.is-playing .room-copy > *,
+.room.is-playing .room-floor {
+  transition-duration: 500ms;
+}
+
+.room.is-playing .room-hint { opacity: 0; }
+.room.is-playing .room-copy .overline,
+.room.is-playing .room-copy h2 { opacity: 0.14; }
+.room.is-playing .room-floor { opacity: 0.4; }
+
+/* the one control, at the far end of the line that names the room */
+.room-floor {
+  position: absolute;
+  right: clamp(1.25rem, 6vw, 6rem);
+  top: clamp(2.5rem, 7vw, 6rem);
+  z-index: 2;
+  color: var(--room-ink);
 }
 
 /* reduced motion: the room stays still, so the play controls step back */
-.room.is-still #room-sound,
 .room.is-still #room-floor {
   display: none;
 }
@@ -1810,21 +1859,24 @@ html.js .contact-stage:not(.is-done) .loud-button {
     linear-gradient(rgba(132, 147, 150, 0.35), rgba(132, 147, 150, 0.35)),
     var(--lake) center / cover no-repeat,
     #a9b5b7;
+  /* one thin line, so the room above it keeps the screen */
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
-  gap: 0.8rem 2rem;
-  padding: var(--space-4) 1.5rem;
+  gap: 2rem;
+  min-height: 2.6rem;
+  padding: 0 1.5rem;
   color: #fff;
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   letter-spacing: 0.24em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .site-foot-mark {
   --brand-asset: url('/brand/diplomacy-wordmark.png');
-  width: 9rem;
+  width: 7rem;
   aspect-ratio: 3182 / 418;
   background: #fff;
 }
@@ -2141,6 +2193,24 @@ html.js .contact-stage:not(.is-done) .loud-button {
 
   body { padding-top: var(--head-full, 6.35rem); }
 
+  /* The header floats over the page here, so the room takes the whole
+     screen above a footer thinner still. The small viewport height is
+     used so the room is never taller than what the browser is showing. */
+  .room {
+    --foot-h: 1.9rem;
+    height: max(26rem, calc(100svh - var(--foot-h)));
+  }
+  .room-copy { top: 4.4rem; }
+  .room-floor { top: 4.4rem; right: 1.25rem; }
+  .site-foot {
+    gap: 0.9rem;
+    min-height: 1.9rem;
+    padding: 0 1rem;
+    font-size: 0.54rem;
+    letter-spacing: 0.16em;
+  }
+  .site-foot-mark { width: 4.4rem; }
+
   .lockup {
     max-height: 3rem;
     transition: max-height var(--t-slow) var(--ease-drift), opacity var(--t-slow) var(--ease-drift);
@@ -2178,6 +2248,22 @@ html.js .contact-stage:not(.is-done) .loud-button {
     gap: 0.6rem 1.4rem;
     margin-top: var(--space-2);
   }
+
+  /* listen: half the reels, then More reels */
+  html.js .reels:not(.is-open) .reel-extra { display: none; }
+  html.js .reels-more {
+    display: flex;
+    margin-top: var(--space-2);
+  }
+
+  /* Contact on a phone: the note starts at the top, and the button sits
+     in the middle of all the open space left between the signature and
+     the strip. */
+  .contact-stage { grid-template-rows: auto minmax(4.2rem, 1fr) auto; }
+  .contact-copy { grid-area: 1 / 1; }
+  .contact-portrait { grid-area: 1 / 1 / 4 / 3; }
+  .loud-button { grid-area: 2 / 1 / 3 / 3; }
+  .contact-actions { grid-area: 3 / 1 / 4 / 3; }
 
   /* The contact scene on a phone. Real phones are shorter than they look
      on paper once the browser's own bars are up, so everything here is
@@ -2387,7 +2473,7 @@ html.js .contact-stage:not(.is-done) .loud-button {
   position: absolute;
   right: clamp(1.25rem, 6vw, 6rem);
   bottom: clamp(2rem, 6vw, 5rem);
-  z-index: 1;
+  z-index: 2; /* on top of the 3D world, which is not see through */
   width: min(36%, 26rem);
   pointer-events: none;
 }
@@ -2397,7 +2483,7 @@ html.js .contact-stage:not(.is-done) .loud-button {
   font-family: 'SF Mono', Menlo, monospace;
   font-size: 0.78rem;
   line-height: 1.9;
-  color: var(--ink-quiet);
+  color: var(--room-ink-quiet);
   white-space: pre-wrap;
   /* the past fades upward */
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 40%);

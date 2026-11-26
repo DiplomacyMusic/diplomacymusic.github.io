@@ -16,7 +16,7 @@
 // breathes away.
 
 const NS = 'http://www.w3.org/2000/svg';
-const INK = '#302d26';
+const PAPER_INK = '#302d26';
 const SLOTS = 6;
 const SLOT_W = 36;
 const X0 = 84;
@@ -56,7 +56,9 @@ function jitter(amount = 1.2) {
   return (Math.random() - 0.5) * amount;
 }
 
-export function createStaffScore(mount = document.body, { giant = false } = {}) {
+export function createStaffScore(mount = document.body, { giant = false, room = false, ink } = {}) {
+  // the room may ask for its own ink, for a staff on a dark wall
+  const INK = ink || PAPER_INK;
   const wrap = document.createElement('div');
   if (giant) {
     // the sandwich cut: visible only in a diagonal band, feathered away
@@ -68,6 +70,15 @@ export function createStaffScore(mount = document.body, { giant = false } = {}) 
       'filter:blur(2.5px)',
       `-webkit-mask-image:${CUT}`,
       `mask-image:${CUT}`,
+      'transition:opacity 4000ms ease',
+    ].join(';');
+  } else if (room) {
+    // in the lab on the main site: tucked under the one button, at the
+    // far end of the line that names the room, and kept faint
+    wrap.style.cssText = [
+      'position:absolute', 'right:clamp(1.25rem, 6vw, 6rem)',
+      'top:calc(clamp(2.5rem, 7vw, 6rem) + 2.6rem)', 'z-index:2',
+      'width:200px', 'pointer-events:none', 'opacity:0',
       'transition:opacity 4000ms ease',
     ].join(';');
   } else if (window.matchMedia('(max-width: 720px)').matches) {
@@ -109,7 +120,7 @@ export function createStaffScore(mount = document.body, { giant = false } = {}) 
   }
 
   // the page recedes after five quiet seconds
-  const WAKE_OPACITY = giant ? '0.09' : '0.85';
+  const WAKE_OPACITY = giant ? '0.09' : room ? '0.4' : '0.85';
   let idleTimer = null;
   function wake() {
     wrap.style.transition = 'opacity 900ms ease';

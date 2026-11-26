@@ -21,6 +21,8 @@ const links = [
   { href: '#work', label: 'Work' },
   { href: '#games', label: 'Games' },
   { href: '#listen', label: 'Listen' },
+  // Contact closes the row, though on the page the lab comes after it
+  { href: '#room', label: 'Lab' },
   { href: '#contact', label: 'Contact' },
 ];
 ---
@@ -109,6 +111,7 @@ const links = [
   // the header tightens once the page is moving
   const head = document.querySelector<HTMLElement>('.site-head');
   const phone = window.matchMedia('(max-width: 720px)');
+  const lab = document.getElementById('room');
   let lastY = window.scrollY;
 
   // On a phone the header rides over the page, so the page keeps a space
@@ -126,7 +129,11 @@ const links = [
     const y = window.scrollY;
     head?.classList.toggle('is-moving', y > 40);
     if (phone.matches && head) {
-      if (y < 80) head.classList.remove('is-tucked');
+      // in the lab the header stays down to its one line, whichever way the
+      // page is moving, so the room keeps the screen
+      const inLab = lab ? lab.getBoundingClientRect().top < window.innerHeight * 0.6 : false;
+      if (inLab) head.classList.add('is-tucked');
+      else if (y < 80) head.classList.remove('is-tucked');
       else if (y > lastY + 6) head.classList.add('is-tucked');
       else if (y < lastY - 6) head.classList.remove('is-tucked');
     } else {

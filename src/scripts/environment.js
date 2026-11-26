@@ -21,6 +21,13 @@ import { createStaffScore } from './staff-score.js';
 // bring the Xenakis fans and fermatas back.
 const GRAPHIC_SCORE = false;
 
+// A mock-up, to see whether it is worth pursuing: a low poly world around
+// the lab's shapes, the lake and mountains of the site's video with forest
+// along the shore, in flat facets like an old console game. It is part of
+// the same 3D space as the shapes, so turning the room turns it too.
+// Flip this off and the lab is the shapes alone again.
+const LAKE_WORLD = true;
+
 // The staff has two builds and Daniel keeps going back and forth,
 // reasonably. true: the gigantic blurred structure in the fog.
 // false: the small legible one docked above the sound toggle.
@@ -76,8 +83,11 @@ const WALL_BOUNCE = 0.6;       // how much speed a shape keeps off the edge of t
 const EDGE_KEEP = 0.4;         // a shape's centre stays this share of its radius inside the edge
 const ORBIT_TURN = 0.0045;     // radians of turn per pixel dragged across empty space
 const ORBIT_PITCH_MAX = 1.05;  // how far over the top or under the view may go
+const WORLD_PITCH_MIN = -0.28; // with the lake world, the camera stays above the water
 const SWIRL = 1.4;             // how hard a turning room drags the shapes round with it
 const SWIRL_MAX = 4;           // radians a second; past this the water stops keeping up
+const GRAB_SLACK = 26;          // px a finger may miss a shape by and still take hold of it
+const HANDS_SECONDS = 4;       // how long after a hand leaves the room still counts as playing
 const ZOOM_NEAR = 0.7;         // a pinch may bring the camera this much closer
 const ZOOM_FAR = 1.3;          // or push it this much farther away, short of the fog
 const TAP_DRIFT = 0.25;       // world units a mouse may wander before a press is a drag
@@ -98,7 +108,10 @@ export async function startEnvironment(container, options = {}) {
   const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0xf2f1f0, 10, 34);
+  // distant shapes fade into the room's own colour; a room says which
+  // (--room-fog in the styles), anywhere else it is the paper
+  const fogColor = getComputedStyle(container).getPropertyValue('--room-fog').trim();
+  scene.fog = new THREE.Fog(fogColor ? new THREE.Color(fogColor) : 0xf2f1f0, 10, 34);
 
   const camera = new THREE.PerspectiveCamera(
     42,
@@ -154,7 +167,12 @@ export async function startEnvironment(container, options = {}) {
       if (!staffImpl) {
         staffImpl = GIANT_STAFF
           ? createStaffScore(container, { giant: true })
-          : createStaffScore(document.body, { giant: false });
+          : room
+            ? createStaffScore(container, {
+                room: true,
+                ink: getComputedStyle(container).getPropertyValue('--room-ink').trim() || undefined,
+              })
+            : createStaffScore(document.body, { giant: false });
       }
       staffImpl.note(pitch);
     },
@@ -172,8 +190,164 @@ export async function startEnvironment(container, options = {}) {
   sun.position.set(6, 8, 10);
   scene.add(sun);
 
+  const glass = room && LAKE_WORLD;
+  if (glass) buildLakeWorld();
+
+  // The lake world. Everything is flat shaded and coloured face by face,
+  // and nothing here is touched by the scene's fog (which is tuned for the
+  // shapes, close in): distance is painted in instead, each face blended
+  // toward the colour of the horizon the farther it stands from the middle
+  // of the room. The water lies exactly where the floor arrives, so shapes
+  // that are let fall come down onto the lake.
+  function buildLakeWorld() {
+    // the same landscape on every visit
+    let seed = 20261126;
+    const rand = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+    const lakeY = field.floor - 0.05;
+    // Haze. The world is seen through a lot of soft air, the way the flat
+    // background it replaced was all soft light: every face is washed
+    // toward the colour of the horizon, a little even close in and most of
+    // the way by the far peaks. HAZE_NEAR and HAZE_REACH are the two
+    // numbers to turn if it should be clearer or mistier.
+    const HAZE = new THREE.Color(0xcbcfc6);
+    const HAZE_NEAR = 6;   // world units from the middle where the haze begins
+    const HAZE_REACH = 44; // and how much farther until it is at its thickest
+    const far = (color, radius, most = 0.84) =>
+      color.clone().lerp(HAZE, Math.max(0.12, Math.min(most, (radius - HAZE_NEAR) / HAZE_REACH)));
+    const flat = () =>
+      new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9, metalness: 0, fog: false });
+    const world = new THREE.Group();
+
+    // give every triangle one colour of its own, chosen by where it sits
+    const paint = (geometry, choose) => {
+      const faces = geometry.index ? geometry.toNonIndexed() : geometry;
+      const at = faces.getAttribute('position');
+      const colors = new Float32Array(at.count * 3);
+      const a = new THREE.Vector3();
+      const b = new THREE.Vector3();
+      const c = new THREE.Vector3();
+      for (let i = 0; i < at.count; i += 3) {
+        a.fromBufferAttribute(at, i);
+        b.fromBufferAttribute(at, i + 1);
+        c.fromBufferAttribute(at, i + 2);
+        const color = choose(a.add(b).add(c).multiplyScalar(1 / 3));
+        for (let k = 0; k < 3; k++) color.toArray(colors, (i + k) * 3);
+      }
+      faces.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      return faces;
+    };
+    const shade = (hex, spread) => {
+      const color = new THREE.Color(hex);
+      color.offsetHSL(0, 0, (rand() - 0.5) * spread);
+      return color;
+    };
+
+    // the sky: a dome, deep overhead and pale at the horizon
+    const dome = new THREE.SphereGeometry(72, 18, 12);
+    {
+      const at = dome.getAttribute('position');
+      const colors = new Float32Array(at.count * 3);
+      const zenith = new THREE.Color(0x7b919a); // a pale, misted blue overhead
+      const color = new THREE.Color();
+      for (let i = 0; i < at.count; i++) {
+        const up = Math.max(0, at.getY(i) / 72);
+        color.copy(HAZE).lerp(zenith, Math.pow(up, 0.8));
+        color.toArray(colors, i * 3);
+      }
+      dome.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    }
+    const sky = new THREE.Mesh(dome, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false }));
+    sky.position.y = lakeY;
+    world.add(sky);
+
+    // the lake: a disc of facets, each a slightly different water
+    const LAKE_RADIUS = 30;
+    const water = new THREE.RingGeometry(0.01, LAKE_RADIUS, 30, 7);
+    water.rotateX(-Math.PI / 2);
+    {
+      const at = water.getAttribute('position');
+      for (let i = 0; i < at.count; i++) {
+        const radius = Math.hypot(at.getX(i), at.getZ(i));
+        if (radius < LAKE_RADIUS - 0.5) at.setY(i, (rand() - 0.5) * 0.14);
+      }
+    }
+    const lake = new THREE.Mesh(
+      paint(water, (centre) => far(shade(0x3f6f86, 0.07), Math.hypot(centre.x, centre.z), 0.72)),
+      new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.35, metalness: 0.15, fog: false })
+    );
+    lake.position.y = lakeY;
+    world.add(lake);
+
+    // the shore and the land behind it
+    const ground = new THREE.RingGeometry(LAKE_RADIUS - 0.6, 71, 36, 4);
+    ground.rotateX(-Math.PI / 2);
+    const land = new THREE.Mesh(
+      paint(ground, (centre) => far(shade(0x4c5a4c, 0.06), Math.hypot(centre.x, centre.z))),
+      flat()
+    );
+    land.position.y = lakeY + 0.12;
+    world.add(land);
+
+    // the mountains: two rings of peaks, forest at the foot, rock above,
+    // snow on the tall ones. The far ring is bigger and paler.
+    const peak = (angle, radius, height) => {
+      const base = height * (0.7 + rand() * 0.45);
+      const cone = new THREE.ConeGeometry(base, height, 5 + Math.floor(rand() * 3), 3);
+      const at = cone.getAttribute('position');
+      for (let i = 0; i < at.count; i++) {
+        // knock the sides about, but leave the summit and the foot alone
+        const up = at.getY(i) / height + 0.5;
+        if (up > 0.05 && up < 0.95) {
+          at.setX(i, at.getX(i) * (0.82 + rand() * 0.36));
+          at.setZ(i, at.getZ(i) * (0.82 + rand() * 0.36));
+        }
+      }
+      const snowy = height > 15;
+      const mesh = new THREE.Mesh(
+        paint(cone, (centre) => {
+          const up = centre.y / height + 0.5;
+          const hex = up < 0.3 ? 0x41584a : up < (snowy ? 0.68 : 2) ? 0x6c7479 : 0xe9e7df;
+          return far(shade(hex, 0.07), radius);
+        }),
+        flat()
+      );
+      mesh.position.set(Math.cos(angle) * radius, lakeY + height / 2 - 0.4, Math.sin(angle) * radius);
+      mesh.rotation.y = rand() * Math.PI * 2;
+      world.add(mesh);
+    };
+    for (let i = 0; i < 15; i++) peak((i / 15) * Math.PI * 2 + rand() * 0.25, 42 + rand() * 7, 8 + rand() * 11);
+    for (let i = 0; i < 9; i++) peak((i / 9) * Math.PI * 2 + rand() * 0.4, 56 + rand() * 4, 17 + rand() * 9);
+
+    // the forest: one small tree, placed four hundred times along the shore
+    const TREES = 420;
+    const tree = new THREE.ConeGeometry(0.6, 2.4, 5, 1);
+    const forest = new THREE.InstancedMesh(tree, new THREE.MeshStandardMaterial({ flatShading: true, roughness: 0.95, fog: false }), TREES);
+    const place = new THREE.Object3D();
+    for (let i = 0; i < TREES; i++) {
+      const angle = rand() * Math.PI * 2;
+      const radius = LAKE_RADIUS + 0.6 + Math.pow(rand(), 1.6) * 13;
+      const size = 0.7 + rand() * 1.1;
+      place.position.set(Math.cos(angle) * radius, lakeY + 0.12 + 1.2 * size, Math.sin(angle) * radius);
+      place.scale.set(size, size, size);
+      place.rotation.y = rand() * Math.PI;
+      place.updateMatrix();
+      forest.setMatrixAt(i, place.matrix);
+      forest.setColorAt(i, far(shade(0x2f4a3f, 0.08), radius, 0.66));
+    }
+    forest.instanceMatrix.needsUpdate = true;
+    if (forest.instanceColor) forest.instanceColor.needsUpdate = true;
+    world.add(forest);
+
+    scene.add(world);
+  }
+
   // the planet population, in the official palette
-  const palette = [0x849396, 0x4e433d, 0xd9d7c2, 0x979595];
+  // the brand Blue is nudged a little toward the lake in the video, so
+  // the room carries some of that water; the other three are as they were
+  const palette = [0x7396a4, 0x4e433d, 0xd9d7c2, 0x979595];
   const geometries = [
     new THREE.IcosahedronGeometry(1, 0),   // crystal
     new THREE.TorusGeometry(0.8, 0.28, 32, 64), // ring metal
@@ -186,16 +360,34 @@ export async function startEnvironment(container, options = {}) {
   const shapes = [];
   for (let i = 0; i < field.count; i++) {
     const type = i % geometries.length;
-    const material = new THREE.MeshStandardMaterial({
-      color: palette[i % palette.length],
-      roughness: 0.55,
-      metalness: 0.05,
-      transparent: true,
-      opacity: 0.92,
-      flatShading: true,
-      emissive: 0xd9d7c2,
-      emissiveIntensity: 0,
-    });
+    // With the lake world behind them the shapes can be glass: one that is
+    // speaking lets the lake and the mountains through, bent by its facets,
+    // where it used to light up white. Without the world there is nothing
+    // behind a shape to bend, so there it keeps its old glow.
+    const material = glass
+      ? new THREE.MeshPhysicalMaterial({
+          color: palette[i % palette.length],
+          roughness: 0.55,
+          metalness: 0.05,
+          flatShading: true,
+          transmission: 0,
+          ior: 1.5,
+          thickness: 1.6,
+          attenuationColor: new THREE.Color(palette[i % palette.length]).lerp(new THREE.Color(0xffffff), 0.8),
+          attenuationDistance: 7,
+          emissive: 0xd9d7c2,
+          emissiveIntensity: 0,
+        })
+      : new THREE.MeshStandardMaterial({
+          color: palette[i % palette.length],
+          roughness: 0.55,
+          metalness: 0.05,
+          transparent: true,
+          opacity: 0.92,
+          flatShading: true,
+          emissive: 0xd9d7c2,
+          emissiveIntensity: 0,
+        });
     const mesh = new THREE.Mesh(geometries[type], material);
 
     mesh.position.set(
@@ -357,8 +549,10 @@ export async function startEnvironment(container, options = {}) {
   // swings around the middle of it; the shapes stay where they are, and
   // the edges of the room follow the view. A mouse can also tip the room
   // over; a finger's up and down still belongs to the page.
+  const pitchMin = room && LAKE_WORLD ? WORLD_PITCH_MIN : -ORBIT_PITCH_MAX;
   let orbitPointer = null;
-  let orbitTouch = false;
+  let orbitTouch = false; // a finger whose up and down still scrolls the page
+  let orbitMouse = false;
   let orbitX = 0;
   let orbitY = 0;
   let orbitMovedAt = 0;
@@ -385,6 +579,32 @@ export async function startEnvironment(container, options = {}) {
   // where the camera would sit if the room had never been turned
   const rig = camera.position.clone();
 
+  // Two guards against the page scrolling away in the middle of playing.
+  // A finger does not have to land exactly on a shape: a near miss takes
+  // hold of the nearest one. And while shapes are being moved, and for a
+  // few seconds after, the room keeps every touch that lands on it, so a
+  // miss turns the room instead of scrolling the page. Leave the room
+  // alone for those few seconds and the page scrolls as usual again.
+  let lastHandsAt = -10; // when a hand was last on a shape or on the room
+  const playingNow = () => performance.now() / 1000 - lastHandsAt < HANDS_SECONDS;
+  const slackPoint = new THREE.Vector2();
+  function pick(clientX, clientY, forgiving) {
+    const rect = container.getBoundingClientRect();
+    const tryAt = (x, y) => {
+      slackPoint.set(((x - rect.left) / rect.width) * 2 - 1, -((y - rect.top) / rect.height) * 2 + 1);
+      raycaster.setFromCamera(slackPoint, camera);
+      return raycaster.intersectObjects(shapes, false)[0] || null;
+    };
+    const direct = tryAt(clientX, clientY);
+    if (direct || !forgiving) return direct;
+    for (let step = 0; step < 8; step++) {
+      const angle = (step / 8) * Math.PI * 2;
+      const near = tryAt(clientX + Math.cos(angle) * GRAB_SLACK, clientY + Math.sin(angle) * GRAB_SLACK);
+      if (near) return near;
+    }
+    return null;
+  }
+
   function updatePointer(event) {
     const rect = container.getBoundingClientRect();
     pointer.set(
@@ -408,7 +628,7 @@ export async function startEnvironment(container, options = {}) {
       yawDrift = dx * ORBIT_TURN;
       orbitMovedAt = performance.now();
       if (!orbitTouch) {
-        pitchTarget = Math.max(-ORBIT_PITCH_MAX, Math.min(ORBIT_PITCH_MAX, pitchTarget + dy * ORBIT_TURN * 0.8));
+        pitchTarget = Math.max(pitchMin, Math.min(ORBIT_PITCH_MAX, pitchTarget + dy * ORBIT_TURN * 0.8));
       }
       // turning the room is being in the room
       lastEnergyAt = performance.now() / 1000;
@@ -436,7 +656,7 @@ export async function startEnvironment(container, options = {}) {
     if (event.cancelable) event.preventDefault();
     const now = twoFingers(event.touches);
     yawTarget += (now.x - gesture.x) * ORBIT_TURN;
-    pitchTarget = Math.max(-ORBIT_PITCH_MAX, Math.min(ORBIT_PITCH_MAX, pitchTarget + (now.y - gesture.y) * ORBIT_TURN * 0.8));
+    pitchTarget = Math.max(pitchMin, Math.min(ORBIT_PITCH_MAX, pitchTarget + (now.y - gesture.y) * ORBIT_TURN * 0.8));
     // the short way round, so a twist never jumps as the fingers cross over
     let twist = now.angle - gesture.angle;
     if (twist > Math.PI) twist -= Math.PI * 2;
@@ -476,8 +696,10 @@ export async function startEnvironment(container, options = {}) {
     const rect = container.getBoundingClientRect();
     if (touch.clientY < rect.top || touch.clientY > rect.bottom) return;
     updatePointer(touch);
-    raycaster.setFromCamera(pointer, camera);
-    if (raycaster.intersectObjects(shapes, false)[0]) event.preventDefault();
+    const onRoom = touch.target === renderer.domElement;
+    if (pick(touch.clientX, touch.clientY, true) || (onRoom && playingNow())) {
+      if (event.cancelable) event.preventDefault();
+    }
   }, { passive: false });
 
   // Listen on the window so shapes behind the hero text stay grabbable,
@@ -488,17 +710,19 @@ export async function startEnvironment(container, options = {}) {
     const rect = container.getBoundingClientRect();
     if (event.clientY < rect.top || event.clientY > rect.bottom) return;
     updatePointer(event);
-    raycaster.setFromCamera(pointer, camera);
-    const hit = raycaster.intersectObjects(shapes, false)[0];
+    const hit = pick(event.clientX, event.clientY, event.pointerType !== 'mouse');
     if (!hit) {
       // empty space: this drag turns the room
       if (event.target !== renderer.domElement || orbitPointer !== null) return;
       orbitPointer = event.pointerId;
-      orbitTouch = event.pointerType !== 'mouse';
+      // a finger's up and down belongs to the page, unless the room is
+      // keeping its touches because someone is in the middle of playing
+      orbitTouch = event.pointerType !== 'mouse' && !playingNow();
       orbitX = event.clientX;
       orbitY = event.clientY;
       yawDrift = 0;
-      if (!orbitTouch) {
+      orbitMouse = event.pointerType === 'mouse';
+      if (orbitMouse) {
         event.preventDefault();
         document.body.style.userSelect = 'none';
         document.body.style.webkitUserSelect = 'none';
@@ -537,7 +761,10 @@ export async function startEnvironment(container, options = {}) {
       camera.getWorldDirection(new THREE.Vector3()),
       held.position
     );
-    // hold the shape where it was grabbed, not by its center
+    // hold the shape where it was grabbed, not by its center. The ray is
+    // aimed again at the finger itself, since a near miss was found by
+    // looking a little to one side of it.
+    raycaster.setFromCamera(pointer, camera);
     if (raycaster.ray.intersectPlane(holdPlane, holdPoint)) {
       grabOffset.subVectors(held.position, holdPoint);
     } else {
@@ -557,7 +784,7 @@ export async function startEnvironment(container, options = {}) {
       if (event.type === 'pointerup' && performance.now() - orbitMovedAt < 80) yawTarget += yawDrift * 4;
       const degrees = (radians) => Math.round((radians * 180) / Math.PI);
       logLine(`turn(room, { yaw: ${degrees(yawTarget)}, pitch: ${degrees(pitchTarget)} })`);
-      if (!orbitTouch) {
+      if (orbitMouse) {
         document.body.style.userSelect = '';
         document.body.style.webkitUserSelect = '';
         container.style.cursor = hovered ? 'grab' : '';
@@ -665,14 +892,47 @@ export async function startEnvironment(container, options = {}) {
   // The room is exactly as big as the screen. A shape is held inside what
   // the camera can see, wherever the camera has been turned to: its centre
   // may not pass the edge of the view, so no shape is ever wholly out of
-  // sight. The edges are hard and a little bouncy, and they make no sound,
-  // except the bottom one once the floor has arrived.
+  // sight. The edges are hard and a little bouncy. Hitting one of the four
+  // edges of the screen rings the shape; the bottom one becomes the floor
+  // once the floor has arrived. The near and far limits stay silent.
   const camRight = new THREE.Vector3();
   const camUp = new THREE.Vector3();
   const camBack = new THREE.Vector3();
   const fromCam = new THREE.Vector3();
   const edge = new THREE.Vector3();
   const tanHalf = Math.tan((camera.fov * Math.PI) / 360);
+
+  // A shape lying on the floor is pushed into it by gravity on every
+  // frame, and that push alone can look like a small landing. So a touch
+  // down only counts as a landing when the shape has been off the floor
+  // for a moment, and when it arrives faster than gravity could have
+  // made it in a single frame.
+  function restingSpeed(dt) {
+    return FALL_PULL * 3 * pile * dt * 1.5;
+  }
+  function touchDown(mesh, impact, t, dt) {
+    const data = mesh.userData;
+    const fresh = t - (data.floorAt === undefined ? -10 : data.floorAt) > 0.25;
+    data.floorAt = t;
+    if (!fresh || impact <= RING_SPEED + restingSpeed(dt)) return;
+    if (t - lastEnergyAt >= LISTEN_SECONDS) return;
+    logLine(`land(${SHAPE_NAMES[data.type]}.${data.index}, impact = ${impact.toFixed(1)})`);
+    clusterStrike(mesh, Math.min(0.45, impact * 0.08), t);
+  }
+
+  // A shape that runs into an edge of the screen speaks, the same as when
+  // it runs into another shape, and its family answers. One that is only
+  // leaning on the edge, or being swept along by it as the room turns,
+  // stays quiet: it has to arrive, and it has to have been clear of the
+  // edges a moment before.
+  function edgeHit(mesh, impact, t) {
+    const data = mesh.userData;
+    const fresh = t - (data.edgeAt === undefined ? -10 : data.edgeAt) > 0.25;
+    data.edgeAt = t;
+    if (!fresh || impact <= RING_SPEED) return;
+    if (t - lastEnergyAt >= LISTEN_SECONDS) return;
+    strike(mesh, Math.min(0.9, 0.1 + (impact - RING_SPEED) * 0.28), t);
+  }
 
   // take away the speed a shape has toward an edge, and give some back
   function turnBack(data, normal, bounce) {
@@ -681,7 +941,7 @@ export async function startEnvironment(container, options = {}) {
     return outward;
   }
 
-  function keepInView(mesh, t) {
+  function keepInView(mesh, t, dt) {
     const data = mesh.userData;
     // The room keeps one size. Its edges are the edges of the view as it
     // is before any pinch, so coming in close looks at part of the room
@@ -712,7 +972,7 @@ export async function startEnvironment(container, options = {}) {
     if (Math.abs(x) > halfX) {
       const side = Math.sign(x);
       mesh.position.addScaledVector(camRight, side * halfX - x);
-      turnBack(data, edge.copy(camRight).multiplyScalar(side), WALL_BOUNCE);
+      edgeHit(mesh, turnBack(data, edge.copy(camRight).multiplyScalar(side), WALL_BOUNCE), t);
     }
     if (Math.abs(y) > halfY) {
       const side = Math.sign(y);
@@ -720,17 +980,17 @@ export async function startEnvironment(container, options = {}) {
       // once the floor has arrived, the bottom of the screen is floor too
       const landing = side < 0 && pile > 0.3;
       const impact = turnBack(data, edge.copy(camUp).multiplyScalar(side), landing ? 0.22 : WALL_BOUNCE);
-      if (landing && impact > RING_SPEED && t - lastEnergyAt < LISTEN_SECONDS) {
-        logLine(`land(${SHAPE_NAMES[data.type]}.${data.index}, impact = ${impact.toFixed(1)})`);
-        clusterStrike(mesh, Math.min(0.32, impact * 0.05), t);
-      }
+      if (landing) touchDown(mesh, impact, t, dt);
+      else edgeHit(mesh, impact, t);
     }
   }
 
   let lastFrameAt = performance.now();
   let lastScrollY = window.scrollY;
   let pile = 0; // eases toward 1 when the bottom of the page arrives
+  let pileAsked = 0; // the last answer to "is the floor wanted", to catch the change
   let presence = IDLE_PULL; // eases toward 1 while someone is playing
+  let wasPlaying = false;
 
   function frame() {
     const now = performance.now();
@@ -750,6 +1010,26 @@ export async function startEnvironment(container, options = {}) {
       ? (options.pile && options.pile() ? 1 : 0)
       : scrollProgress() > 0.85 ? 1 : 0;
     pile += (pileTarget - pile) * 0.04;
+    // Asking for the floor, or sending it away, is being in the room: the
+    // fall that follows is heard, landings and all. Without this a press
+    // of the button alone left the whole fall silent.
+    if (pileTarget !== pileAsked) {
+      pileAsked = pileTarget;
+      lastEnergyAt = t;
+      logLine(pileTarget ? 'fall(room)' : 'float(room)');
+    }
+    // while the shapes are still coming down, keep listening
+    if (pileTarget && pile < 0.98) lastEnergyAt = t;
+
+    // Tell the page while shapes are being moved by hand: held, thrown,
+    // or the room turned. The page fades its hint for as long, and a few
+    // seconds more.
+    if (held || orbitPointer !== null || gesture) lastHandsAt = t;
+    const playing = t - lastHandsAt < HANDS_SECONDS;
+    if (playing !== wasPlaying) {
+      wasPlaying = playing;
+      container.classList.toggle('is-playing', playing);
+    }
 
     // the pull between the shapes is full while someone is playing and
     // eases off once they stop
@@ -929,21 +1209,19 @@ export async function startEnvironment(container, options = {}) {
       data.velocity.addScaledVector(force, dt / data.mass);
       data.velocity.multiplyScalar(DAMPING ** (dt * 60));
       mesh.position.addScaledVector(data.velocity, dt);
-      keepInView(mesh, t);
+      keepInView(mesh, t, dt);
 
       // the floor is real once the pile begins: land, settle, and sing
       if (pile > 0.3 && mesh.position.y - data.radius < field.floor) {
         mesh.position.y = field.floor + data.radius;
+        let impact = 0;
         if (data.velocity.y < 0) {
-          const impact = -data.velocity.y;
+          impact = -data.velocity.y;
           data.velocity.y *= -0.22;
           data.velocity.x *= 0.9;
           data.velocity.z *= 0.9;
-          if (impact > RING_SPEED && t - lastEnergyAt < LISTEN_SECONDS) {
-            logLine(`land(${SHAPE_NAMES[data.type]}.${data.index}, impact = ${impact.toFixed(1)})`);
-            clusterStrike(mesh, Math.min(0.32, impact * 0.05), t);
-          }
         }
+        touchDown(mesh, impact, t, dt);
       }
 
       mesh.rotation.x += data.spin * dt;
@@ -1030,7 +1308,7 @@ export async function startEnvironment(container, options = {}) {
           // idle drift grazes stay silent: a collision speaks only when
           // it is a real impact, and only while the visitor is present
           const speed = Math.abs(closing);
-          if (speed > RING_SPEED && t - lastEnergyAt < LISTEN_SECONDS) {
+          if (speed > RING_SPEED + restingSpeed(dt) && t - lastEnergyAt < LISTEN_SECONDS) {
             const hitGain = Math.min(0.9, 0.1 + (speed - RING_SPEED) * 0.28);
             if (pile > 0.5) {
               // tumbling at the bottom speaks in soft clusters, not strikes
@@ -1061,7 +1339,24 @@ export async function startEnvironment(container, options = {}) {
       const pressGlow = held === mesh && data.swellVoice ? 0.55 : 0;
       const wantsGlow = Math.max(hovered === mesh ? 0.4 : 0, pressGlow, resonateGlow);
       data.hoverGlow += (wantsGlow - data.hoverGlow) * (wantsGlow ? 0.06 : 0.025);
-      mesh.material.emissiveIntensity = data.glow * 0.6 + data.hoverGlow;
+      if (glass) {
+        // how much it is speaking, from a strike, a hover, a hold, or an answer
+        const active = Math.min(1, data.glow * 0.9 + data.hoverGlow * 1.1);
+        // Glass takes the colour of what is behind it times its own colour,
+        // so a dark shape would only turn into dark glass. As a shape wakes
+        // its colour clears toward a pale tint of itself, and what shows
+        // through is the lake and the mountains, bent, not a shadow.
+        if (!data.restColor) {
+          data.restColor = mesh.material.color.clone();
+          data.clearColor = mesh.material.color.clone().lerp(new THREE.Color(0xffffff), 0.8);
+        }
+        mesh.material.color.copy(data.restColor).lerp(data.clearColor, active);
+        mesh.material.transmission = active;
+        mesh.material.roughness = 0.55 - 0.47 * active; // clear glass when fully awake
+        mesh.material.emissiveIntensity = active * 0.05; // the faintest light of its own
+      } else {
+        mesh.material.emissiveIntensity = data.glow * 0.6 + data.hoverGlow;
+      }
     }
 
     renderer.render(scene, camera);
