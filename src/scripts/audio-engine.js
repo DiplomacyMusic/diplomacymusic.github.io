@@ -27,7 +27,15 @@ const state = {
 };
 
 function buildGraph() {
-  const context = new AudioContext();
+  // On iPhones and iPads a page's sound counts as incidental and is cut by
+  // the silent switch or the mute control unless the page says it is
+  // playing something meant to be heard. The lab is.
+  try {
+    if (navigator.audioSession) navigator.audioSession.type = 'playback';
+  } catch {
+    // older systems have no such setting; nothing to do
+  }
+  const context = new (window.AudioContext || window.webkitAudioContext)();
   const master = context.createGain();
   master.gain.value = 1;
   master.connect(context.destination);
@@ -115,7 +123,23 @@ export const engine = {
   // Browsers keep audio asleep until the visitor's first gesture.
   // Sound is on by default, so the first touch anywhere wakes it.
   wake() {
-    if (state.on && state.context) state.context.resume();
+    if (state.on && state.context) state.context.resume().catch(() => {});
+  },
+
+  // Lower the whole room to silence, softly, or bring it back, without
+  // touching whether sound is on. For when the visitor leaves the room:
+  // ringing tails and echoes fade out instead of following them up the page.
+  hush(quiet) {
+    if (!state.context || !state.on) return;
+    const now = state.context.currentTime;
+    state.master.gain.cancelScheduledValues(now);
+    state.master.gain.setValueAtTime(state.master.gain.value, now);
+    state.master.gain.linearRampToValueAtTime(quiet ? 0 : 1, now + (quiet ? 0.9 : 0.3));
+  },
+
+  // true once sound can actually come out
+  awake() {
+    return !!state.context && state.context.state === 'running';
   },
 
   savedChoice() {

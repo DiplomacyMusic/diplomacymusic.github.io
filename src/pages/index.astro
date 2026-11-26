@@ -1392,7 +1392,29 @@ const structuredData = {
       // The room always sounds. The browser keeps audio asleep until the
       // visitor's first touch inside the room, and that touch wakes it.
       engine.setOn(true);
-      room.addEventListener('pointerdown', () => engine.wake(), { once: true, capture: true });
+      // Which touch counts as the one that may start sound differs between
+      // browsers: some take the press, iPhones and iPads want the release.
+      // So every kind of touch in the room tries, until one has worked.
+      const wakers = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
+      const tryWake = () => {
+        engine.wake();
+        if (engine.awake()) wakers.forEach((type) => room.removeEventListener(type, tryWake, true));
+      };
+      wakers.forEach((type) => room.addEventListener(type, tryWake, true));
+
+      // Leave the lab and its sound goes with a soft fade: scrolled away,
+      // or the tab or app put behind something else. Come back and it is
+      // there again.
+      let labSeen = true;
+      const hushIfAway = () => engine.hush(!labSeen || document.hidden);
+      new IntersectionObserver(
+        (entries) => {
+          labSeen = entries[entries.length - 1].intersectionRatio > 0.2;
+          hushIfAway();
+        },
+        { threshold: [0, 0.2, 0.4] }
+      ).observe(room);
+      document.addEventListener('visibilitychange', hushIfAway);
 
       floorButton?.addEventListener('click', () => {
         falling = !falling;

@@ -111,7 +111,10 @@ export async function startEnvironment(container, options = {}) {
   // distant shapes fade into the room's own colour; a room says which
   // (--room-fog in the styles), anywhere else it is the paper
   const fogColor = getComputedStyle(container).getPropertyValue('--room-fog').trim();
-  scene.fog = new THREE.Fog(fogColor ? new THREE.Color(fogColor) : 0xf2f1f0, 10, 34);
+  // With the lake world behind them the shapes keep nearly all of their
+  // own colour at any depth, so they stand sharp against the fogged land.
+  const crisp = options.room === true && LAKE_WORLD;
+  scene.fog = new THREE.Fog(fogColor ? new THREE.Color(fogColor) : 0xf2f1f0, crisp ? 16 : 10, crisp ? 70 : 34);
 
   const camera = new THREE.PerspectiveCamera(
     42,
@@ -210,13 +213,15 @@ export async function startEnvironment(container, options = {}) {
     // Haze. The world is seen through a lot of soft air, the way the flat
     // background it replaced was all soft light: every face is washed
     // toward the colour of the horizon, a little even close in and most of
-    // the way by the far peaks. HAZE_NEAR and HAZE_REACH are the two
+    // the way by the far peaks. HAZE_LEAST and HAZE_REACH are the two
     // numbers to turn if it should be clearer or mistier.
     const HAZE = new THREE.Color(0xcbcfc6);
-    const HAZE_NEAR = 6;   // world units from the middle where the haze begins
-    const HAZE_REACH = 44; // and how much farther until it is at its thickest
-    const far = (color, radius, most = 0.84) =>
-      color.clone().lerp(HAZE, Math.max(0.12, Math.min(most, (radius - HAZE_NEAR) / HAZE_REACH)));
+    const HAZE_LEAST = 0.3; // even the water at your feet is this far gone into the fog
+    const HAZE_REACH = 62;  // world units from the middle at which nothing is left but fog
+    // The world is kept deep in fog on purpose: it is the soft ground the
+    // shapes are seen against, and they stay crisp in front of it.
+    const far = (color, radius, most = 0.93) =>
+      color.clone().lerp(HAZE, Math.min(most, HAZE_LEAST + (1 - HAZE_LEAST) * Math.min(1, radius / HAZE_REACH)));
     const flat = () =>
       new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9, metalness: 0, fog: false });
     const world = new THREE.Group();
@@ -335,7 +340,7 @@ export async function startEnvironment(container, options = {}) {
       place.rotation.y = rand() * Math.PI;
       place.updateMatrix();
       forest.setMatrixAt(i, place.matrix);
-      forest.setColorAt(i, far(shade(0x2f4a3f, 0.08), radius, 0.66));
+      forest.setColorAt(i, far(shade(0x2f4a3f, 0.08), radius, 0.8));
     }
     forest.instanceMatrix.needsUpdate = true;
     if (forest.instanceColor) forest.instanceColor.needsUpdate = true;
