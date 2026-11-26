@@ -1781,7 +1781,8 @@ html.js .contact-stage:not(.is-done) .loud-button {
   --room-ink: #f2f1f0;                          /* words, the button, the staff */
   --room-ink-quiet: rgba(242, 241, 240, 0.82);  /* the typed log, which lies over the dark water */
   position: relative;
-  height: max(30rem, calc(100vh - 3rem - var(--foot-h))); /* 3rem: the header, as the contact scene counts it */
+  /* the whole screen under the header; the footer's one line lies over the foot of it */
+  height: max(30rem, calc(100vh - 3rem)); /* 3rem: the header, as the contact scene counts it */
   overflow: hidden;
   color: var(--room-ink);
   background: linear-gradient(to bottom, var(--room-top) 0%, var(--room-bottom) 62%, #3f6f86 62%);
@@ -1862,11 +1863,13 @@ html.js .contact-stage:not(.is-done) .loud-button {
 /* ---------- footer ---------- */
 
 .site-foot {
-  background:
-    linear-gradient(rgba(132, 147, 150, 0.35), rgba(132, 147, 150, 0.35)),
-    var(--lake) center / cover no-repeat,
-    #a9b5b7;
-  /* one thin line, so the room above it keeps the screen */
+  /* No strip of its own: the footer's one line lies over the foot of the
+     lab, straight on the 3D scene, and lets every touch through to it. */
+  position: relative;
+  z-index: 3;
+  margin-top: -2.6rem;
+  pointer-events: none;
+  /* one thin line */
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -2204,17 +2207,18 @@ html.js .contact-stage:not(.is-done) .loud-button {
      screen above a footer thinner still. */
   .room {
     --foot-h: 1.9rem;
-    height: max(26rem, calc(100svh - var(--foot-h)));
+    height: max(26rem, 100svh);
     /* where the browser can say how tall the screen is right now, bars up
        or down, the room is exactly that: no sliver of the contact band
        above it, and the footer always in view */
-    height: max(26rem, calc(100dvh - var(--foot-h)));
+    height: max(26rem, 100dvh);
   }
   .room-copy { top: 4.4rem; }
   .room-floor { top: 4.4rem; right: 1.25rem; }
   .site-foot {
     gap: 0.9rem;
     min-height: 1.9rem;
+    margin-top: -1.9rem;
     padding: 0 1rem;
     font-size: 0.54rem;
     letter-spacing: 0.16em;
@@ -2512,6 +2516,6 @@ html.js .contact-stage:not(.is-done) .loud-button {
   .room.is-playing .room-copy h2,
   .room.is-playing .room-log { opacity: 0; transition-duration: 500ms; }
   /* on a phone the log covers the middle of the play space, so it is only a trace: a fifth of what it was */
-  .room-log { width: auto; left: 1.25rem; right: 1.25rem; bottom: 1.5rem; max-height: 9.5rem; overflow: hidden; display: flex; align-items: flex-end; opacity: 0.2; }
+  .room-log { width: auto; left: 1.25rem; right: 1.25rem; bottom: 2.7rem; max-height: 9.5rem; overflow: hidden; display: flex; align-items: flex-end; opacity: 0.2; }
   .room-log pre { font-size: 0.68rem; line-height: 1.75; }
 }

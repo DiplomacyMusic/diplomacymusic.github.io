@@ -385,8 +385,8 @@ export async function startEnvironment(container, options = {}) {
           transmission: 0,
           ior: 1.5,
           thickness: 1.6,
-          attenuationColor: new THREE.Color(palette[i % palette.length]).lerp(new THREE.Color(0xffffff), 0.3),
-          attenuationDistance: 2.2,
+          attenuationColor: new THREE.Color(palette[i % palette.length]).lerp(new THREE.Color(0xffffff), 0.55),
+          attenuationDistance: 4.5,
           emissive: 0xd9d7c2,
           emissiveIntensity: 0,
         })
@@ -1380,7 +1380,7 @@ export async function startEnvironment(container, options = {}) {
         if (!data.restColor) {
           data.restColor = mesh.material.color.clone();
           // not all the way to clear: the glass keeps a good deal of its own colour
-          data.clearColor = mesh.material.color.clone().lerp(new THREE.Color(0xffffff), 0.45);
+          data.clearColor = mesh.material.color.clone().lerp(new THREE.Color(0xffffff), 0.62);
         }
         mesh.material.color.copy(data.restColor).lerp(data.clearColor, active);
         mesh.material.transmission = active;
