@@ -16,6 +16,12 @@ const names = [
   { id: 'sega', name: 'Sega', weight: 0.95 },
   { id: 'siriusxm', name: 'SiriusXM', weight: 1.05 },
   { id: 'broadwayvideo', name: 'Broadway Video', weight: 1 },
+  { id: 'mcdonalds', name: "McDonald's", weight: 0.8 },
+  { id: 'maytag', name: 'Maytag', weight: 1 },
+  { id: 'nintendo3ds', name: 'Nintendo 3DS', weight: 0.8 },
+  { id: 'ubisoft', name: 'Ubisoft', weight: 0.82 },
+  { id: 'redbull', name: 'Red Bull', weight: 1 },
+  { id: 'fox', name: 'Fox', weight: 0.85 },
 ];
 
 const logos = names.map((logo) => {
@@ -44,8 +50,8 @@ const logos = names.map((logo) => {
   <div class="company-rail" data-reveal>
     <ul class="company-track" data-depth="1.7" data-axis="x">
       {[0, 1, 2].map((round) =>
-        logos.map((logo) => (
-          <li class={round === 1 ? undefined : 'company-repeat'} aria-hidden={round === 1 ? undefined : 'true'}>
+        logos.map((logo, i) => (
+          <li class={round === 1 ? undefined : 'company-repeat'} aria-hidden={round === 1 ? undefined : 'true'} data-round={round} data-logo={i}>
             <span
               class="company-logo"
               role={round === 1 ? 'img' : undefined}
@@ -56,5 +62,22 @@ const logos = names.map((logo) => {
         ))
       )}
     </ul>
+    <!-- a new order on every visit, the same in each repeat of the set, so
+         a different handful of marks sits in the middle of the line each
+         time. It runs in place, before the line is first drawn. -->
+    <script is:inline>
+      (() => {
+        const items = document.currentScript.previousElementSibling.children;
+        const count = items.length / 3;
+        const order = Array.from({ length: count }, (_, i) => i);
+        for (let i = count - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [order[i], order[j]] = [order[j], order[i]];
+        }
+        for (const item of items) {
+          item.style.order = String(Number(item.dataset.round) * count + order[Number(item.dataset.logo)]);
+        }
+      })();
+    </script>
   </div>
 </div>
