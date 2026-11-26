@@ -216,11 +216,11 @@ export async function startEnvironment(container, options = {}) {
     // the way by the far peaks. HAZE_LEAST and HAZE_REACH are the two
     // numbers to turn if it should be clearer or mistier.
     const HAZE = new THREE.Color(0xcbcfc6);
-    const HAZE_LEAST = 0.3; // even the water at your feet is this far gone into the fog
-    const HAZE_REACH = 62;  // world units from the middle at which nothing is left but fog
+    const HAZE_LEAST = 0.5; // even the water at your feet is this far gone into the fog
+    const HAZE_REACH = 50;  // world units from the middle at which nothing is left but fog
     // The world is kept deep in fog on purpose: it is the soft ground the
     // shapes are seen against, and they stay crisp in front of it.
-    const far = (color, radius, most = 0.93) =>
+    const far = (color, radius, most = 0.95) =>
       color.clone().lerp(HAZE, Math.min(most, HAZE_LEAST + (1 - HAZE_LEAST) * Math.min(1, radius / HAZE_REACH)));
     const flat = () =>
       new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9, metalness: 0, fog: false });
@@ -280,7 +280,7 @@ export async function startEnvironment(container, options = {}) {
       }
     }
     const lake = new THREE.Mesh(
-      paint(water, (centre) => far(shade(0x3f6f86, 0.07), Math.hypot(centre.x, centre.z), 0.72)),
+      paint(water, (centre) => far(shade(0x3f6f86, 0.07), Math.hypot(centre.x, centre.z), 0.86)),
       new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.35, metalness: 0.15, fog: false })
     );
     lake.position.y = lakeY;
@@ -340,7 +340,7 @@ export async function startEnvironment(container, options = {}) {
       place.rotation.y = rand() * Math.PI;
       place.updateMatrix();
       forest.setMatrixAt(i, place.matrix);
-      forest.setColorAt(i, far(shade(0x2f4a3f, 0.08), radius, 0.8));
+      forest.setColorAt(i, far(shade(0x2f4a3f, 0.08), radius, 0.9));
     }
     forest.instanceMatrix.needsUpdate = true;
     if (forest.instanceColor) forest.instanceColor.needsUpdate = true;

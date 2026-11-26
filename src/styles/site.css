@@ -635,7 +635,9 @@ html.js .fact[data-reveal] {
   color: var(--glow);
 }
 
-/* more awards named under the lines, side by side, in the label's own weight */
+/* more awards named under the lines, side by side: each name in the
+   label's own weight, its wins and nominations in the same plain type as
+   the show titles above */
 .fact-also {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -647,6 +649,12 @@ html.js .fact[data-reveal] {
   display: grid;
   align-content: start;
   gap: 0.25rem;
+}
+
+.fact-also-part {
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: rgba(242, 241, 240, 0.78);
 }
 
 /* ---------- work ---------- */
