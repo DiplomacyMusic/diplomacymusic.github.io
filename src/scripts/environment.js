@@ -21,11 +21,11 @@ import { createStaffScore } from './staff-score.js';
 // bring the Xenakis fans and fermatas back.
 const GRAPHIC_SCORE = false;
 
-// A mock-up, to see whether it is worth pursuing: a low poly world around
-// the lab's shapes, the lake and mountains of the site's video with forest
-// along the shore, in flat facets like an old console game. It is part of
-// the same 3D space as the shapes, so turning the room turns it too.
-// Flip this off and the lab is the shapes alone again.
+// The lake world: a low poly world around the lab's shapes, the lake and
+// mountains of the site's video with forest along the shore, in flat
+// facets like an old console game. It is part of the same 3D space as the
+// shapes, so turning the room turns it too. It started as a mock-up and
+// stayed. Flip this off and the lab is the shapes alone again.
 const LAKE_WORLD = true;
 
 // The staff has two builds and Daniel keeps going back and forth,
