@@ -36,6 +36,13 @@ const GIANT_STAFF = false;
 // every interaction is broadcast as a log line; the Build section
 // types them out as they happen, a real transcript of the room
 const SHAPE_NAMES = ['icosa', 'torus', 'capsule', 'octa'];
+// The rungs of the ladder each family owns, low to high. On the D flat
+// ladder (Db3 Ab3 C4 Eb4 Ab4 Bb4 Eb5 G5 Bb5+Eb6 F6+Bb6):
+//   icosa   C4, Eb4, G5        a C minor triad
+//   torus   Db3, Ab3, Ab4      open fifths on D flat, the low ground
+//   capsule Bb4, Eb5           a bare fourth
+//   octa    Bb5+Eb6, F6+Bb6    the high shimmer
+const FAMILY_RUNGS = [[2, 3, 7], [0, 1, 4], [5, 6], [8, 9]];
 function logLine(text) {
   window.dispatchEvent(new CustomEvent('diplomacy:log', { detail: text }));
 }
@@ -216,11 +223,11 @@ export async function startEnvironment(container, options = {}) {
     // the way by the far peaks. HAZE_LEAST and HAZE_REACH are the two
     // numbers to turn if it should be clearer or mistier.
     const HAZE = new THREE.Color(0xcbcfc6);
-    const HAZE_LEAST = 0.5; // even the water at your feet is this far gone into the fog
-    const HAZE_REACH = 50;  // world units from the middle at which nothing is left but fog
+    const HAZE_LEAST = 0.3; // even the water at your feet is this far gone into the fog
+    const HAZE_REACH = 62;  // world units from the middle at which nothing is left but fog
     // The world is kept deep in fog on purpose: it is the soft ground the
     // shapes are seen against, and they stay crisp in front of it.
-    const far = (color, radius, most = 0.95) =>
+    const far = (color, radius, most = 0.93) =>
       color.clone().lerp(HAZE, Math.min(most, HAZE_LEAST + (1 - HAZE_LEAST) * Math.min(1, radius / HAZE_REACH)));
     const flat = () =>
       new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9, metalness: 0, fog: false });
@@ -280,7 +287,7 @@ export async function startEnvironment(container, options = {}) {
       }
     }
     const lake = new THREE.Mesh(
-      paint(water, (centre) => far(shade(0x3f6f86, 0.07), Math.hypot(centre.x, centre.z), 0.86)),
+      paint(water, (centre) => far(shade(0x3f6f86, 0.07), Math.hypot(centre.x, centre.z), 0.72)),
       new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.35, metalness: 0.15, fog: false })
     );
     lake.position.y = lakeY;
@@ -340,7 +347,7 @@ export async function startEnvironment(container, options = {}) {
       place.rotation.y = rand() * Math.PI;
       place.updateMatrix();
       forest.setMatrixAt(i, place.matrix);
-      forest.setColorAt(i, far(shade(0x2f4a3f, 0.08), radius, 0.9));
+      forest.setColorAt(i, far(shade(0x2f4a3f, 0.08), radius, 0.8));
     }
     forest.instanceMatrix.needsUpdate = true;
     if (forest.instanceColor) forest.instanceColor.needsUpdate = true;
@@ -378,8 +385,8 @@ export async function startEnvironment(container, options = {}) {
           transmission: 0,
           ior: 1.5,
           thickness: 1.6,
-          attenuationColor: new THREE.Color(palette[i % palette.length]).lerp(new THREE.Color(0xffffff), 0.8),
-          attenuationDistance: 7,
+          attenuationColor: new THREE.Color(palette[i % palette.length]).lerp(new THREE.Color(0xffffff), 0.3),
+          attenuationDistance: 2.2,
           emissive: 0xd9d7c2,
           emissiveIntensity: 0,
         })
@@ -408,8 +415,14 @@ export async function startEnvironment(container, options = {}) {
 
     // mass follows volume, and pitch follows mass: big planets speak low
     const mass = scale ** 3;
+    // Each kind of shape is a family with a tonality of its own: a few
+    // rungs of the ladder that no other family uses. Within a family the
+    // big ones still speak low. So a family answering one of its own makes
+    // one clear chord, and two families meeting are two chords, not a wash.
+    const family = FAMILY_RUNGS[type];
+    const within = Math.round((family.length - 1) * (1 - (scale - 0.5) / 1.3));
     const noteSpread = PITCH_COUNT - 1;
-    const noteIndex = Math.round(noteSpread * (1 - (scale - 0.5) / 1.3));
+    const noteIndex = family[Math.max(0, Math.min(family.length - 1, within))];
 
     mesh.userData = {
       type,
@@ -485,9 +498,12 @@ export async function startEnvironment(container, options = {}) {
     if (time - data.lastStrike < STRIKE_COOLDOWN) return;
     data.lastStrike = time;
 
+    // the neighbours are the shape's own family's notes, not the ladder's
+    const rungs = FAMILY_RUNGS[data.type];
+    const home = Math.max(0, rungs.indexOf(data.pitch));
     const steps = [0, 1, -1, 2];
     steps.forEach((step, voice) => {
-      const index = Math.max(0, Math.min(PITCH_COUNT - 1, data.pitch + step));
+      const index = rungs[((home + step) % rungs.length + rungs.length) % rungs.length];
       engine.strike({
         pitch: index,
         gain: voice === 0 ? gain : gain * (0.55 - voice * 0.1),
@@ -1265,7 +1281,8 @@ export async function startEnvironment(container, options = {}) {
           for (const other of shapes) {
             if (other === held) continue;
             const od = other.userData;
-            const near = held.position.distanceTo(other.position) < DRAG_RADIUS;
+            // a dragged shape wakes only its own kind
+            const near = od.type === held.userData.type && held.position.distanceTo(other.position) < DRAG_RADIUS;
             if (near) {
               if (!od.dragVoice) {
                 od.dragVoice = engine.swellStart({
@@ -1325,8 +1342,12 @@ export async function startEnvironment(container, options = {}) {
               clusterStrike(A, hitGain * 0.45, t);
               clusterStrike(B, hitGain * 0.45, t);
             } else {
-              strike(A, hitGain, t);
-              strike(B, hitGain, t);
+              // Both ring, but only the one that was moving faster calls
+              // its family to answer, so a single hit is one chord and its
+              // echo, not two families speaking over each other.
+              const aLeads = A.userData.velocity.lengthSq() >= B.userData.velocity.lengthSq();
+              strike(A, hitGain, t, aLeads);
+              strike(B, hitGain, t, !aLeads);
             }
           }
         }
@@ -1358,7 +1379,8 @@ export async function startEnvironment(container, options = {}) {
         // through is the lake and the mountains, bent, not a shadow.
         if (!data.restColor) {
           data.restColor = mesh.material.color.clone();
-          data.clearColor = mesh.material.color.clone().lerp(new THREE.Color(0xffffff), 0.8);
+          // not all the way to clear: the glass keeps a good deal of its own colour
+          data.clearColor = mesh.material.color.clone().lerp(new THREE.Color(0xffffff), 0.45);
         }
         mesh.material.color.copy(data.restColor).lerp(data.clearColor, active);
         mesh.material.transmission = active;
