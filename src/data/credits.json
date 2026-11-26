@@ -14,7 +14,16 @@
     "badges": [],
     "awards": [],
     "stars": [
-      "Maya Hawke"
+      "Maya Hawke",
+      "KJ Apa",
+      "Milly Alcock",
+      "Ego Nwodim",
+      "Alexandra Shipp",
+      "Gavin Casalegno",
+      "Heidi Gardner"
+    ],
+    "highlights": [
+      "Created by Claire Friedman of Saturday Night Live"
     ],
     "note": null,
     "links": {
@@ -40,7 +49,17 @@
     "genre": "Cartoon",
     "badges": [],
     "awards": [],
-    "stars": [],
+    "stars": [
+      "Matthew Mercer",
+      "Roger Craig Smith",
+      "Colleen O'Shaughnessey",
+      "Keith Silverstein",
+      "Mike Pollock",
+      "Fred Tatasciore"
+    ],
+    "highlights": [
+      "Directed by Ian Jones-Quartey, with a theme song by Rebecca Sugar"
+    ],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/sonic-the-hedgehog-presents-the-chaotix-casefiles/id1860961470?uo=4",
@@ -66,8 +85,19 @@
     "badges": [
       "Apple Fiction #1"
     ],
-    "awards": [],
-    "stars": [],
+    "awards": [
+      "Scribe Award Winner: Best Audio Drama"
+    ],
+    "stars": [
+      "Naveen Andrews",
+      "George Takei",
+      "Tim Russ",
+      "Wrenn Schmidt",
+      "Sonya Cassidy"
+    ],
+    "highlights": [
+      "Story by Nicholas Meyer, writer and director of Star Trek II: The Wrath of Khan"
+    ],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/star-trek-khan/id1829173222?uo=4",
@@ -93,6 +123,7 @@
     "badges": [],
     "awards": [],
     "stars": [],
+    "highlights": [],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/happily-never-after-dan-and-nancy/id1743266064?uo=4",
@@ -117,7 +148,13 @@
     "genre": "Romantic Comedy",
     "badges": [],
     "awards": [],
-    "stars": [],
+    "stars": [
+      "Julia Rehwald",
+      "Nicholas Podany"
+    ],
+    "highlights": [
+      "From the creators of Wolf 359"
+    ],
     "note": null,
     "links": {
       "apple": null,
@@ -141,14 +178,30 @@
     ],
     "genre": "Comedy Thriller",
     "badges": [
-      "Ambie Winner"
+      "Ambie Winner",
+      "Signal Winner"
     ],
     "awards": [
       "Ambies: Best Performance in Audio Fiction, Winner",
       "Ambie nominations: Best Comedy Podcast, Best Original Score and Music Supervision, Best Scriptwriting Fiction",
-      "Signal nominations: Best Original Score and Music, Comedy, Scripted Fiction, LGBTQ+"
+      "iHeartPodcast Awards Winner: Best Fiction",
+      "Signal Awards Gold: Scripted (Fiction)",
+      "Signal Awards Silver: Best Original Score / Music, Best Sound Design, Comedy",
+      "Signal Awards Bronze: LGBTQ+"
     ],
-    "stars": [],
+    "stars": [
+      "Maulik Pancholy",
+      "Murray Bartlett",
+      "Poorna Jagannathan",
+      "Karan Soni",
+      "Margo Martindale",
+      "Richard Kind",
+      "Anna Camp",
+      "Padma Lakshmi"
+    ],
+    "highlights": [
+      "Named one of Audible's Best Mysteries and Thrillers of 2025"
+    ],
     "note": null,
     "links": {
       "apple": null,
@@ -172,13 +225,30 @@
     "genre": "Action",
     "badges": [
       "Apple Fiction #1",
-      "Signal Winner"
+      "Signal Winner",
+      "Webby Winner",
+      "Ambie Winner"
     ],
     "awards": [
-      "Signal Award Winner: Most Innovative Audio Experience, Best Original Score and Music, Best Scripted Fiction, Best Editing",
-      "Ambie nominations: Best Original Score and Music Supervision, Best Production and Sound Design"
+      "Webby Winner: Scripted (Fiction)",
+      "Webby nominations: Best Series",
+      "Signal Awards Gold: Scripted (Fiction), Best Original Score / Music, Most Innovative Audio Experience, Best Editing (Listener's Choice), Individual Episode Scripted (Fiction)",
+      "Signal Awards Silver: Best Sound Design (Listener's Choice)",
+      "Signal Awards Bronze: Individual Episode Best Editing",
+      "Ambies: Best Original Score and Music Supervision, Winner",
+      "Ambie nominations: Best Production and Sound Design"
     ],
-    "stars": [],
+    "stars": [
+      "Jason Spisak",
+      "Kevin Smith",
+      "Troy Baker",
+      "Will Friedle",
+      "Simon Vance",
+      "Mike Starr"
+    ],
+    "highlights": [
+      "A 43 episode weekly run"
+    ],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/dc-high-volume-batman/id1802737962?uo=4",
@@ -204,6 +274,7 @@
     ],
     "awards": [],
     "stars": [],
+    "highlights": [],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/big-ideas-lab/id1766302914?uo=4",
@@ -228,7 +299,11 @@
     "genre": "Action Comedy",
     "badges": [],
     "awards": [],
-    "stars": [],
+    "stars": [
+      "Anna Chlumsky",
+      "Jasmine Cephas Jones"
+    ],
+    "highlights": [],
     "note": null,
     "links": {
       "apple": null,
@@ -255,7 +330,15 @@
     "awards": [],
     "stars": [
       "Julianne Moore",
-      "Oscar Isaac"
+      "Oscar Isaac",
+      "Arian Moayed",
+      "Zoë Winters",
+      "Kelly AuCoin"
+    ],
+    "highlights": [
+      "No. 1 podcast on Spotify in the US, UK, Canada, Ireland, India, Brazil, Mexico, and Argentina",
+      "Over 100 million streams worldwide",
+      "Spotify's biggest global fiction franchise"
     ],
     "note": null,
     "links": {
@@ -281,6 +364,9 @@
     "badges": [],
     "awards": [],
     "stars": [],
+    "highlights": [
+      "Based on the bestselling memoir by Dr. Catherine Gildiner"
+    ],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/good-morning-monster/id1708505387?uo=4",
@@ -307,7 +393,16 @@
     ],
     "awards": [],
     "stars": [
-      "Christina Ricci"
+      "Christina Ricci",
+      "Billy Magnussen",
+      "Justin Hartley",
+      "Stephen Root",
+      "Amy Sedaris",
+      "Elias Koteas",
+      "Andre Royo"
+    ],
+    "highlights": [
+      "No. 1 podcast on Spotify in the US on release"
     ],
     "note": null,
     "links": {
@@ -335,7 +430,15 @@
     ],
     "awards": [],
     "stars": [
-      "Tracy Letts"
+      "Tracy Letts",
+      "Christina Hendricks",
+      "Taran Killam",
+      "Arian Moayed",
+      "Milly Shapiro"
+    ],
+    "highlights": [
+      "From Jordan Peele's Monkeypaw Productions",
+      "No. 1 podcast on Spotify in the US for over two weeks"
     ],
     "note": null,
     "links": {
@@ -362,7 +465,15 @@
     "awards": [],
     "stars": [
       "Julianne Moore",
-      "Oscar Isaac"
+      "Oscar Isaac",
+      "Arian Moayed",
+      "Zoë Winters",
+      "Kelly AuCoin"
+    ],
+    "highlights": [
+      "No. 1 podcast on Spotify in the US, UK, Canada, Ireland, India, Brazil, Mexico, and Argentina",
+      "Over 100 million streams worldwide",
+      "Spotify's biggest global fiction franchise"
     ],
     "note": null,
     "links": {
@@ -393,6 +504,9 @@
     "stars": [
       "Robert Patrick"
     ],
+    "highlights": [
+      "Part of Marvel's six series Wastelanders audio universe"
+    ],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/marvels-wastelanders-wolverine/id1625915759?uo=4",
@@ -413,8 +527,20 @@
     "producers": [],
     "genre": "Romantic Comedy",
     "badges": [],
-    "awards": [],
-    "stars": [],
+    "awards": [
+      "Ambie nominations: Podcast of the Year, Best Original Score and Music Supervision"
+    ],
+    "stars": [
+      "Jesse Tyler Ferguson",
+      "Rosie O'Donnell",
+      "Sherry Cola",
+      "Vella Lovell",
+      "Javier Muñoz",
+      "Blake Lee"
+    ],
+    "highlights": [
+      "Featured at the 2022 Tribeca Festival"
+    ],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/gay-pride-prejudice/id1688736369?uo=4",
@@ -439,10 +565,19 @@
     "badges": [
       "Apple Fiction #1"
     ],
-    "awards": [],
+    "awards": [
+      "Ambie nominations: Best Fiction Podcast"
+    ],
     "stars": [
       "Sarah Hyland",
-      "Harvey Guillen"
+      "Harvey Guillén",
+      "Adam Pally",
+      "Lukas Gage",
+      "Josie Totah",
+      "Kate Flannery"
+    ],
+    "highlights": [
+      "Later licensed to BBC Sounds"
     ],
     "note": null,
     "links": {
@@ -469,10 +604,15 @@
     "badges": [
       "Apple Fiction #1"
     ],
-    "awards": [],
+    "awards": [
+      "Webby Honoree: Scripted (Fiction) Limited Series and Specials"
+    ],
     "stars": [
       "Susan Sarandon",
       "Michael Imperioli"
+    ],
+    "highlights": [
+      "Part of Marvel's six series Wastelanders audio universe"
     ],
     "note": null,
     "links": {
@@ -495,7 +635,15 @@
     "genre": "Sci-Fi",
     "badges": [],
     "awards": [],
-    "stars": [],
+    "stars": [
+      "Betty Gilpin",
+      "Finn Wittrock",
+      "Ashley Park",
+      "Charlie Barnett",
+      "Maria Dizzia",
+      "Kara Young"
+    ],
+    "highlights": [],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/red-frontier/id1690676876?uo=4",
@@ -518,7 +666,12 @@
     "genre": "Romantic Comedy",
     "badges": [],
     "awards": [],
-    "stars": [],
+    "stars": [
+      "Skyler Samuels",
+      "Elliot Knight",
+      "Jack Turner"
+    ],
+    "highlights": [],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/showmance/id1565850616?uo=4",
@@ -541,8 +694,14 @@
     "badges": [],
     "awards": [],
     "stars": [
-      "Carrie Coon"
+      "Carrie Coon",
+      "Pedro Pascal",
+      "Alan Cumming",
+      "Lucas Hedges",
+      "Rupert Friend",
+      "Tavi Gevinson"
     ],
+    "highlights": [],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/motherhacker/id1487213874?uo=4",
@@ -566,6 +725,7 @@
     "badges": [],
     "awards": [],
     "stars": [],
+    "highlights": [],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/vote-for-love/id1511796352?uo=4",
@@ -586,8 +746,22 @@
     "producers": [],
     "genre": "Fantasy",
     "badges": [],
-    "awards": [],
-    "stars": [],
+    "awards": [
+      "Ambie nominations: Best Fiction Podcast, Best Original Score and Music Supervision, Best Performer in Audio Fiction"
+    ],
+    "stars": [
+      "Noah Galvin",
+      "Ari'el Stachel",
+      "Cynthia Erivo",
+      "Christine Baranski",
+      "Samira Wiley",
+      "Matthew Rhys",
+      "Shohreh Aghdashloo"
+    ],
+    "highlights": [
+      "Topped Spotify's Kids and Family charts across three seasons",
+      "In development as an animated special at HBO Max"
+    ],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/the-two-princes/id1464586861?uo=4",
@@ -611,6 +785,7 @@
     "badges": [],
     "awards": [],
     "stars": [],
+    "highlights": [],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/honeymoon-for-one/id1563469910?uo=4",
@@ -634,7 +809,14 @@
       "Adapted into an Amazon Prime series"
     ],
     "awards": [],
-    "stars": [],
+    "stars": [
+      "Daphne Rubin-Vega",
+      "Bobby Cannavale",
+      "Margaret Cho",
+      "Vanessa Williams",
+      "Michael Urie"
+    ],
+    "highlights": [],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/the-horror-of-dolores-roach/id1437288075?uo=4",
@@ -656,7 +838,19 @@
     "genre": "Fantasy",
     "badges": [],
     "awards": [],
-    "stars": [],
+    "stars": [
+      "Noah Galvin",
+      "Ari'el Stachel",
+      "Cynthia Erivo",
+      "Christine Baranski",
+      "Samira Wiley",
+      "Matthew Rhys",
+      "Shohreh Aghdashloo"
+    ],
+    "highlights": [
+      "Topped Spotify's Kids and Family charts across three seasons",
+      "In development as an animated special at HBO Max"
+    ],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/the-two-princes/id1464586861?uo=4",
@@ -679,8 +873,14 @@
     "badges": [],
     "awards": [],
     "stars": [
-      "Carrie Coon"
+      "Carrie Coon",
+      "Pedro Pascal",
+      "Alan Cumming",
+      "Lucas Hedges",
+      "Rupert Friend",
+      "Tavi Gevinson"
     ],
+    "highlights": [],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/motherhacker/id1487213874?uo=4",
@@ -701,8 +901,22 @@
     "producers": [],
     "genre": "Fantasy",
     "badges": [],
-    "awards": [],
-    "stars": [],
+    "awards": [
+      "Webby nominations: Kids and Family"
+    ],
+    "stars": [
+      "Noah Galvin",
+      "Ari'el Stachel",
+      "Cynthia Erivo",
+      "Christine Baranski",
+      "Samira Wiley",
+      "Matthew Rhys",
+      "Shohreh Aghdashloo"
+    ],
+    "highlights": [
+      "Topped Spotify's Kids and Family charts across three seasons",
+      "In development as an animated special at HBO Max"
+    ],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/the-two-princes/id1464586861?uo=4",
@@ -725,7 +939,13 @@
     "badges": [],
     "awards": [],
     "stars": [
-      "Kristen Wiig"
+      "Kristen Wiig",
+      "Alia Shawkat",
+      "Ethan Hawke",
+      "Christopher Abbott"
+    ],
+    "highlights": [
+      "Directed by Sebastián Silva"
     ],
     "note": null,
     "links": {
@@ -749,6 +969,7 @@
     "badges": [],
     "awards": [],
     "stars": [],
+    "highlights": [],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/pick-me-up/id1436207907?uo=4",
@@ -771,6 +992,10 @@
     "badges": [],
     "awards": [],
     "stars": [],
+    "highlights": [
+      "213 episodes from 2017 to 2022",
+      "Hosted by Flora Lichtman"
+    ],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/every-little-thing/id1225760210?uo=4",
@@ -793,6 +1018,7 @@
     "badges": [],
     "awards": [],
     "stars": [],
+    "highlights": [],
     "note": null,
     "links": {
       "apple": "https://podcasts.apple.com/us/podcast/the-secret-to-victory/id1252154385?uo=4",

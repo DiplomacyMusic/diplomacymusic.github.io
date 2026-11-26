@@ -405,6 +405,31 @@ body {
   padding-block: 0 var(--space-3);
 }
 
+/* the lead row: a few marks standing still, a size up from the line below */
+.company-lead {
+  --logo-unit: 3.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem clamp(2.5rem, 7vw, 6rem);
+  list-style: none;
+  /* no top margin: with nothing above it, a margin would fall out of the
+     band and open a gap onto the lake behind */
+  margin: 0;
+  padding: 0;
+}
+
+.company-phone-only {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .company-lead { --logo-unit: 2.5rem; gap: 1.2rem 2rem; }
+  .company-wide-only { display: none; }
+  .company-phone-only { display: block; }
+}
+
 /* one line of marks, riding the scroll sideways, fading out at both edges */
 .company-rail {
   display: flex;
@@ -563,7 +588,7 @@ html.js .facts:not(.is-dealt) .fact {
   display: flex;
   align-items: center;
   gap: 0.28em;
-  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  font-size: clamp(2.2rem, 4.1vw, 3rem);
 }
 
 .fact-mark {
@@ -576,7 +601,8 @@ html.js .facts:not(.is-dealt) .fact {
 }
 
 .fact-figure {
-  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  /* sized so the longest word, Grammy, fits a card; every figure shares it */
+  font-size: clamp(2.2rem, 4.1vw, 3rem);
   font-weight: 500;
   letter-spacing: -0.015em;
   line-height: 1;
@@ -599,9 +625,30 @@ html.js .facts:not(.is-dealt) .fact {
   color: rgba(242, 241, 240, 0.78);
 }
 
-.fact-detail span {
+.fact-detail > span {
   border-top: 1px solid rgba(242, 241, 240, 0.12);
   padding-block: 0.45rem;
+}
+
+/* a star before a category that was won */
+.fact-star {
+  margin-right: 0.45em;
+  font-size: 0.82em;
+  color: var(--glow);
+}
+
+/* more awards named under the lines, side by side, in the label's own weight */
+.fact-also {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 0.9rem;
+}
+
+.fact-also-item {
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
 }
 
 /* ---------- work ---------- */
@@ -796,11 +843,18 @@ html.js .facts:not(.is-dealt) .fact {
   padding-block: 0.6rem 1.6rem;
 }
 
-/* before the reels spin, each cell is an empty window */
-html.js .games:not(.is-spun) .game.is-on .game-art > *,
-html.js .games:not(.is-spun) .game.is-on h3,
-html.js .games:not(.is-spun) .game.is-on p {
-  visibility: hidden;
+/* the reels rest on their art until the first spin; nothing is hidden */
+
+/* on a phone, the lock ring is a layer over the cell that only fades */
+.reel-ring {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: 2px;
+  box-shadow: 0 0 0 2px rgba(233, 201, 141, 0.95), 0 0 26px 2px rgba(233, 201, 141, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
 }
 
 /* fifteen titles show at a time; the Spin button deals the rest. With no
@@ -2143,4 +2197,16 @@ html.js .contact-stage:not(.is-done) .loud-button {
 /* a very short phone screen: the mark steps out so the note has room */
 @media (max-width: 720px) and (max-height: 620px) {
   .contact-mark { display: none; }
+}
+
+/* four across needs room for the longest word; below that, two and two */
+@media (max-width: 960px) {
+  .facts { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* phones: every figure steps down together so the longest word fits its card */
+@media (max-width: 720px) {
+  .fact { padding-inline: 0.8rem; }
+  .fact-head,
+  .fact-figure { font-size: min(1.9rem, 8.2vw); }
 }

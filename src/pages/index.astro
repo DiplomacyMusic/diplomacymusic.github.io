@@ -33,18 +33,34 @@ const filters = [
   { id: 'supervision', label: 'Supervision' },
 ];
 
-const work = credits.map((credit) => ({ ...credit, tags: tagsFor(credit), thumb: thumb(credit.artwork) }));
+// Eight shows lead the grid, in this order. The rest follow in the order of
+// the credits file, newest first.
+const leadWork = [
+  'dc-batman',
+  'patel-motel',
+  'quiet-part-loud',
+  'wastelanders-black-widow',
+  'case-63-s1',
+  'summer-oath',
+  'star-trek-khan',
+  'hit-singles',
+];
+const leadRank = (credit) => (leadWork.includes(credit.id) ? leadWork.indexOf(credit.id) : leadWork.length);
+const work = credits
+  .map((credit, i) => ({ ...credit, tags: tagsFor(credit), thumb: thumb(credit.artwork), i }))
+  .sort((x, y) => leadRank(x) - leadRank(y) || x.i - y.i);
 
 // recognition, counted straight from the credits so it can never drift
+// Every season is its own credit and counts on its own. Seasons of one
+// show sit together, in order.
 const showKey = (credit) => credit.group || credit.id;
 const showsWith = (badge) => {
-  const seen = new Map();
-  for (const credit of credits) {
-    if (credit.badges.includes(badge) && !seen.has(showKey(credit))) {
-      seen.set(showKey(credit), credit.title.replace(/,?\s*Season \d+/, ''));
-    }
-  }
-  return [...seen.values()];
+  const hits = credits.filter((credit) => credit.badges.includes(badge));
+  const firstSeen = (credit) => hits.findIndex((other) => showKey(other) === showKey(credit));
+  return hits
+    .map((credit, i) => ({ credit, i }))
+    .sort((x, y) => firstSeen(x.credit) - firstSeen(y.credit) || x.credit.title.localeCompare(y.credit.title) || x.i - y.i)
+    .map(({ credit }) => credit.title);
 };
 const appleFiction = showsWith('Apple Fiction #1');
 const spotifyGlobal = showsWith('Spotify Global #1');
@@ -52,7 +68,49 @@ const spotifyGlobal = showsWith('Spotify Global #1');
 // figure's tone. A mark shows only once its file is in public/brand/logos.
 const platformMark = (file: string, name: string) =>
   fs.existsSync(`public/brand/logos/${file}`) ? { src: `/brand/logos/${file}`, name } : undefined;
+// Signal and Ambie wins and nominations, counted from the award lines in
+// the credits: "Signal Award Winner: a, b", "Ambies: a, Winner", or
+// "Ambie nominations: a, b".
+const tally = (name: string, extraNoms = 0) => {
+  let wins = 0;
+  let noms = extraNoms;
+  for (const credit of credits) {
+    for (const award of credit.awards || []) {
+      const [head, rest = ''] = award.split(':');
+      if (!head.includes(name)) continue;
+      const items = rest.split(',').map((item) => item.trim()).filter(Boolean);
+      // a Signal Gold is a win; Silver and Bronze count as nominations
+      if (/nomination|silver|bronze/i.test(head)) noms += items.length;
+      else if (/winner|gold/i.test(head)) wins += items.length;
+      else if (items.at(-1) === 'Winner') wins += items.length - 1;
+    }
+  }
+  const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  const parts = [count(wins, 'win', 'wins'), noms ? count(noms, 'nom', 'noms') : ''].filter(Boolean);
+  return { parts, label: parts.join(' \u00b7 ') };
+};
 const recognition = [
+  {
+    figure: 'Grammy',
+    label: 'Award winner',
+    lines: ['The Poet Who Sat by the Door', 'J. Ivy', 'Best Spoken Word Poetry Album', 'Producer, \u201cVibrations II\u201d'],
+  },
+  {
+    figure: 'Signal',
+    label: tally('Signal').label,
+    // a star marks a category that was won
+    lines: [
+      'DC High Volume: Batman',
+      { text: 'Most Innovative Audio Experience', star: true },
+      { text: 'Best Scripted Fiction', star: true },
+    ],
+    // the Ambies and the Webbys ride along here, side by side
+    also: [
+      { name: 'Ambies', parts: tally('Ambie').parts },
+      // one more nomination than the credits hold: Finding Dolores, 2019, in the ledger below
+      { name: 'Webby', parts: tally('Webby', 1).parts },
+    ],
+  },
   {
     figure: String(appleFiction.length),
     label: 'Apple Fiction No.\u00a01',
@@ -65,27 +123,18 @@ const recognition = [
     lines: spotifyGlobal,
     mark: platformMark('spotify-icon.svg', 'Spotify'),
   },
+  // The Ambie card is parked, not gone: take `parked` away to bring it back.
   {
-    figure: 'Signal',
-    label: 'Award winner',
-    lines: [
-      'DC High Volume: Batman',
-      'Best Original Score and Music',
-      'Most Innovative Audio Experience',
-      'Best Scripted Fiction',
-      'Best Editing',
-    ],
-  },
-  {
+    parked: true,
     figure: 'Ambie',
-    label: 'Award winner',
+    label: tally('Ambie').label,
     lines: [
       'Murder at the Patel Motel',
       'Winner, Best Performance in Audio Fiction',
       'Nominated, Best Original Score and Music Supervision',
     ],
   },
-];
+].filter((card) => !card.parked);
 
 const titles = games.map((game) => ({ ...game, thumb: thumb(game.artwork) }));
 const licenses = [...new Set(games.map((game) => game.license).filter(Boolean))];
@@ -171,7 +220,7 @@ const earlier = [
   },
   {
     term: 'Interactive',
-    lines: ['Finding Dolores, a voice guided interactive podcast. Webby nominee, 2018.'],
+    lines: ['Finding Dolores, a voice guided interactive podcast. Webby nominee, 2019.'],
   },
 ];
 
@@ -185,6 +234,7 @@ const creditData = Object.fromEntries(
       roles: credit.roles,
       genre: credit.genre,
       stars: credit.stars,
+      highlights: credit.highlights || [],
       badges: credit.badges,
       awards: credit.awards,
       links: credit.links,
@@ -306,7 +356,23 @@ const structuredData = {
               )}
             </span>
             <span class="fact-label">{fact.label}</span>
-            <span class="fact-detail">{fact.lines.map((line, j) => <span style={`--j: ${j}`}>{line}</span>)}</span>
+            <span class="fact-detail">
+              {fact.lines.map((line, j) => (
+                <span style={`--j: ${j}`}>
+                  {typeof line === 'string' ? line : <>{line.star && <span class="fact-star" aria-label="Winner">{'\u2605'}</span>}{line.text}</>}
+                </span>
+              ))}
+            </span>
+            {fact.also && (
+              <span class="fact-also">
+                {fact.also.map((award) => (
+                  <span class="fact-also-item">
+                    <span class="fact-label">{award.name}</span>
+                    {award.parts.map((part) => <span class="fact-label">{part}</span>)}
+                  </span>
+                ))}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -398,7 +464,7 @@ const structuredData = {
             <article class={`game${i < FIRST_GAMES ? ' is-on' : ''}`}>
               <span class={`game-art${game.thumb ? '' : ' game-art-name'}`}>
                 {game.thumb ? (
-                  <img src={game.thumb} alt={`Art for ${game.title}`} loading="lazy" width="720" height="450" />
+                  <img src={game.thumb} alt={`Art for ${game.title}`} loading={i < FIRST_GAMES ? 'eager' : 'lazy'} width="720" height="450" />
                 ) : (
                   <span aria-hidden="true">{game.title}</span>
                 )}
@@ -758,7 +824,9 @@ const structuredData = {
         }
         const label = card.querySelector('.fact-label');
         if (label) play(label, RISE, 550, at + 420, DRIFT);
-        card.querySelectorAll('.fact-detail span').forEach((line, j) => play(line, RISE, 550, at + 520 + j * 80, DRIFT));
+        card.querySelectorAll('.fact-detail > span').forEach((line, j) => play(line, RISE, 550, at + 520 + j * 80, DRIFT));
+        const also = card.querySelector('.fact-also');
+        if (also) play(also, RISE, 550, at + 900, DRIFT);
       });
 
       scrollPushed(
@@ -867,7 +935,7 @@ const structuredData = {
     const badges = credit.badges.filter(
       (badge: string) => !credit.awards.some((award: string) => award.startsWith(badge.split(' ')[0]))
     );
-    for (const fact of [...badges, ...credit.awards]) {
+    for (const fact of [...badges, ...credit.awards, ...(credit.highlights || [])]) {
       const li = document.createElement('li');
       li.textContent = fact;
       awards.append(li);
@@ -954,6 +1022,7 @@ const structuredData = {
       const tails: HTMLElement[] = [];
       let length = 0;
       const lastStop = 820 + (lefts.length - 1) * 300;
+      const phone = narrow.matches;
 
       cells.forEach((cell, n) => {
         const art = cell.querySelector<HTMLElement>('.game-art');
@@ -977,28 +1046,47 @@ const structuredData = {
         art.append(tail);
         tails.push(tail);
 
-        // fast and steady, then the brake, a small overshoot, and the lock
+        // fast and steady, then the brake, a small overshoot, and the lock.
+        // A phone drops the motion blur: redrawing a blurred strip every
+        // frame is what made the lock ring and the pop arrive late there.
+        const blur = (px: number) => (phone ? {} : { filter: `blur(${px}px)` });
         const frames: Keyframe[] = [
-          { translate: `0 ${-count * height}px`, filter: 'blur(0px)', easing: 'ease-in' },
-          { translate: `0 ${-(count - 1.2) * height}px`, filter: 'blur(3px)', offset: 0.1, easing: 'linear' },
-          { translate: `0 ${-1.7 * height}px`, filter: 'blur(2.5px)', offset: 0.58, easing: 'cubic-bezier(0.12, 0.72, 0.3, 1)' },
-          { translate: `0 ${0.09 * height}px`, filter: 'blur(0px)', offset: 0.88, easing: 'ease-in-out' },
-          { translate: '0 0', filter: 'blur(0px)' },
+          { translate: `0 ${-count * height}px`, ...blur(0), easing: 'ease-in' },
+          { translate: `0 ${-(count - 1.2) * height}px`, ...blur(3), offset: 0.1, easing: 'linear' },
+          { translate: `0 ${-1.7 * height}px`, ...blur(2.5), offset: 0.58, easing: 'cubic-bezier(0.12, 0.72, 0.3, 1)' },
+          { translate: `0 ${0.09 * height}px`, ...blur(0), offset: 0.88, easing: 'ease-in-out' },
+          { translate: '0 0', ...blur(0) },
         ];
         for (const part of [face, tail]) {
           anims.push(part.animate(frames, { duration, fill: 'backwards' }));
         }
-        // the lock: a quick ring of light on the cell, and the title appears
-        anims.push(
-          art.animate(
-            [
-              { boxShadow: '0 0 0 0 rgba(233, 201, 141, 0)' },
-              { boxShadow: '0 0 0 2px rgba(233, 201, 141, 0.95), 0 0 26px 2px rgba(233, 201, 141, 0.45)', offset: 0.18 },
-              { boxShadow: '0 0 0 0 rgba(233, 201, 141, 0)' },
-            ],
-            { duration: 620, delay: duration * 0.86 }
-          )
-        );
+        // the lock: a quick ring of light on the cell, and the title appears.
+        // On a phone the ring is a layer of its own that only fades, which
+        // the phone can run without redrawing the cell.
+        if (phone) {
+          const ring = document.createElement('span');
+          ring.className = 'reel-ring';
+          cell.append(ring);
+          tails.push(ring);
+          anims.push(
+            ring.animate([{ opacity: 0 }, { opacity: 1, offset: 0.18 }, { opacity: 0 }], {
+              duration: 620,
+              delay: duration * 0.86,
+              fill: 'both',
+            })
+          );
+        } else {
+          anims.push(
+            art.animate(
+              [
+                { boxShadow: '0 0 0 0 rgba(233, 201, 141, 0)' },
+                { boxShadow: '0 0 0 2px rgba(233, 201, 141, 0.95), 0 0 26px 2px rgba(233, 201, 141, 0.45)', offset: 0.18 },
+                { boxShadow: '0 0 0 0 rgba(233, 201, 141, 0)' },
+              ],
+              { duration: 620, delay: duration * 0.86 }
+            )
+          );
+        }
         cell.querySelectorAll('h3, p').forEach((line) => {
           anims.push(
             line.animate(
@@ -1081,7 +1169,11 @@ const structuredData = {
         const start = () => {
           window.removeEventListener('scroll', watch);
           clearTimeout(settle);
-          if (!spinning && !gamesGrid.classList.contains('is-spun')) spin([]);
+          // the reels rest on their art until now; the first spin rolls that
+          // art away and lands back on the same hand
+          if (!spinning && !gamesGrid.classList.contains('is-spun')) {
+            spin(allGames.filter((cell) => cell.classList.contains('is-on')).map(artOf));
+          }
         };
         if (!narrow.matches) {
           if (rect.top < vh * 0.8 && rect.bottom > 0) start();
