@@ -28,24 +28,28 @@ const names = [
   { id: 'gatorade', name: 'Gatorade', weight: 1.05, front: true },
   { id: 'lyft', name: 'Lyft', weight: 0.85, front: true },
   { id: 'batman', name: 'Batman', weight: 1 },
+  // two marks cut from pictures, so they are images with their own proportions
+  { id: 'hobbit', name: 'The Hobbit', weight: 1.1, file: 'hobbit.png', ratio: 900 / 289 },
+  { id: 'monkeypaw', name: 'Monkeypaw Productions', weight: 1.15, file: 'monkeypaw.png', ratio: 1120 / 352 },
   { id: 'jamesbond', name: 'James Bond 007', weight: 1 },
   { id: 'nintendo', name: 'Nintendo', weight: 1 },
   { id: 'ubisoft', name: 'Ubisoft', weight: 0.82 },
   { id: 'redbull', name: 'Red Bull', weight: 1 },
   { id: 'mcdonalds', name: "McDonald's", weight: 0.8 },
   { id: 'kelloggs', name: "Kellogg's", weight: 1.15 },
-  { id: 'whirlpool', name: 'Whirlpool', weight: 1.2 },
   { id: 'secret', name: 'Secret', weight: 1.15 },
   { id: 'exelon', name: 'Exelon', weight: 1.05 },
   { id: 'bbdo', name: 'BBDO', weight: 0.9 },
   { id: 'dc', name: 'DC', weight: 0.82, only: 'phone' },
   { id: 'maytag', name: 'Maytag', weight: 1, back: true },
   { id: 'siriusxm', name: 'SiriusXM', weight: 1.05, back: true },
+  { id: 'whirlpool', name: 'Whirlpool', weight: 1.2, back: true },
 ];
 
 const measure = (logo) => {
-
-  const svg = fs.readFileSync(`public/brand/logos/${logo.id}.svg`, 'utf8');
+  const file = logo.file || `${logo.id}.svg`;
+  if (logo.ratio) return { ...logo, file, width: Math.sqrt(logo.ratio) * logo.weight };
+  const svg = fs.readFileSync(`public/brand/logos/${file}`, 'utf8');
   let ratio = 3;
   const viewBox = svg.match(/viewBox="([^"]+)"/);
   if (viewBox) {
@@ -58,7 +62,7 @@ const measure = (logo) => {
   }
   // equal area: width grows with the square root of the proportions
   const width = Math.sqrt(ratio) * logo.weight;
-  return { ...logo, ratio, width };
+  return { ...logo, file, ratio, width };
 };
 const lead = leadNames.map(measure);
 const logos = names.map(measure);
@@ -74,7 +78,7 @@ const only = (logo) => (logo.only ? `company-${logo.only}-only` : '');
           class="company-logo"
           role="img"
           aria-label={logo.name}
-          style={`--logo: url('/brand/logos/${logo.id}.svg'); width: calc(var(--logo-unit) * ${logo.width.toFixed(3)}); aspect-ratio: ${logo.ratio.toFixed(3)};`}
+          style={`--logo: url('/brand/logos/${logo.file}'); width: calc(var(--logo-unit) * ${logo.width.toFixed(3)}); aspect-ratio: ${logo.ratio.toFixed(3)};`}
         />
       </li>
     ))}
@@ -83,7 +87,7 @@ const only = (logo) => (logo.only ? `company-${logo.only}-only` : '');
        set repeats so the line is always full; only the first set is read
        out, the repeats are decoration -->
   <div class="company-rail" data-reveal>
-    <ul class="company-track" data-depth="1.7" data-axis="x">
+    <ul class="company-track" data-depth="1.7" data-axis="x" data-rush="10">
       {[0, 1, 2].map((round) =>
         logos.map((logo, i) => (
           <li
@@ -98,7 +102,7 @@ const only = (logo) => (logo.only ? `company-${logo.only}-only` : '');
               class="company-logo"
               role={round === 1 ? 'img' : undefined}
               aria-label={round === 1 ? logo.name : undefined}
-              style={`--logo: url('/brand/logos/${logo.id}.svg'); width: calc(var(--logo-unit) * ${logo.width.toFixed(3)}); aspect-ratio: ${logo.ratio.toFixed(3)};`}
+              style={`--logo: url('/brand/logos/${logo.file}'); width: calc(var(--logo-unit) * ${logo.width.toFixed(3)}); aspect-ratio: ${logo.ratio.toFixed(3)};`}
             />
           </li>
         ))

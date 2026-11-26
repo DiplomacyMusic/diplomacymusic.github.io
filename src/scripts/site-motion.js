@@ -8,6 +8,8 @@
 //   data-depth="0.3"            vertical travel, nearer than the page
 //   data-depth="-0.2"           farther than the page
 //   data-axis="x"               travel sideways instead
+//   data-rush="6"               sideways travel speeds up the farther it is from
+//                               the middle of the screen: slow at rest, racing as it leaves
 //   data-spin="12"              degrees of turn across one screen of scroll
 //   data-pointer="0.5"          also leans toward the pointer
 //   data-depth-cols="a,b,c,d"   on a grid: each column gets its own depth
@@ -30,6 +32,7 @@ export function startMotion() {
       depth: parseFloat(el.dataset.depth || '0'),
       axis: el.dataset.axis || 'y',
       spin: parseFloat(el.dataset.spin || '0'),
+      rush: parseFloat(el.dataset.rush || '0'),
       pointer: parseFloat(el.dataset.pointer || '0'),
       tx: 0,
       ty: 0,
@@ -111,7 +114,18 @@ export function startMotion() {
 
       let tx = 0;
       let ty = 0;
-      if (item.axis === 'x') tx = delta * depth * reach;
+      if (item.axis === 'x') {
+        // with rush, the pull grows with the cube of the distance from centre.
+        // It is held inside the line's own length, so the line can race but
+        // never run off its rail (and never drop out of this loop).
+        tx = delta * (1 + item.rush * delta * delta) * depth * reach;
+        if (item.rush) {
+          const rail = item.el.parentElement;
+          // a third of the line each way: the rest is slack for a finger pulling it
+          const room = Math.max(0, item.el.offsetWidth / 3 - (rail ? rail.clientWidth : 0) / 2 - 40);
+          tx = clamp(tx, -room, room);
+        }
+      }
       else ty = delta * depth * reach;
       if (item.pointer) {
         tx += px * item.pointer * 28;

@@ -308,10 +308,27 @@ const structuredData = {
       <h1 class="visually-hidden">Diplomacy. {statement}</h1>
       <span class="brand-mask hero-wordmark" role="img" aria-label="Diplomacy"></span>
       <p class="hero-tag">Sound is listening</p>
+      <!-- the studio's theme: a glass button under the line. It rides with the
+           wordmark, so it keeps the wordmark's place and pace -->
+      <button class="track-button hero-play" id="track-play" type="button" aria-label="Play the studio theme" aria-pressed="false">
+        <span class="track-glyph" aria-hidden="true"></span>
+      </button>
     </div>
 
     <a class="hero-cue" href="#statement" aria-label="Scroll to the work"><span></span></a>
   </section>
+
+  <!-- The volume line comes on once the theme plays. It drifts up slower than
+       the page until it sits level with the studio's line, and from there it
+       travels with that line. The small button in the corner takes over when
+       the hero's own button has left the screen. -->
+  <label class="track-volume" id="track-volume" hidden>
+    <span class="visually-hidden">Volume</span>
+    <input type="range" id="track-level" min="0" max="1" step="0.01" value="0.6" />
+  </label>
+  <button class="track-button track-corner" id="track-corner" type="button" aria-label="Pause the studio theme" aria-pressed="true" hidden>
+    <span class="track-glyph" aria-hidden="true"></span>
+  </button>
 
   <main class="sheet">
     <!-- statement -->
@@ -730,6 +747,74 @@ const structuredData = {
       requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
+  }
+
+  // ---- the studio theme. Nothing loads until the button is pressed. The
+  // hero button and the corner button are one control in two places. The
+  // volume line is placed by the scroll: slower than the page while it is
+  // over the hero, then level with the studio's line and moving with it.
+  const trackPlay = document.getElementById('track-play') as HTMLButtonElement | null;
+  const trackCorner = document.getElementById('track-corner') as HTMLButtonElement | null;
+  const trackVolume = document.getElementById('track-volume');
+  const trackLevel = document.getElementById('track-level') as HTMLInputElement | null;
+  const pitchLine = document.querySelector<HTMLElement>('.statement');
+  if (trackPlay && trackCorner && trackVolume && trackLevel && hero && pitchLine) {
+    let track: HTMLAudioElement | null = null;
+    let started = false;
+    let heroButtonSeen = true;
+
+    const show = (playing: boolean) => {
+      for (const button of [trackPlay, trackCorner]) {
+        button.classList.toggle('is-playing', playing);
+        button.setAttribute('aria-pressed', String(playing));
+        button.setAttribute('aria-label', playing ? 'Pause the studio theme' : 'Play the studio theme');
+      }
+      trackVolume.hidden = !started;
+      requestAnimationFrame(() => trackVolume.classList.toggle('is-on', started));
+      trackCorner.hidden = !(started && !heroButtonSeen);
+      placeVolume();
+    };
+
+    const toggle = () => {
+      if (!track) {
+        track = new Audio('/audio/site-theme.m4a');
+        track.loop = true;
+        track.volume = Number(trackLevel.value);
+        track.addEventListener('play', () => show(true));
+        track.addEventListener('pause', () => show(false));
+      }
+      started = true;
+      if (track.paused) track.play().catch(() => show(false));
+      else track.pause();
+    };
+    trackPlay.addEventListener('click', toggle);
+    trackCorner.addEventListener('click', toggle);
+    trackLevel.addEventListener('input', () => {
+      if (track) track.volume = Number(trackLevel.value);
+    });
+
+    // the corner button stands in only while the hero's button is off screen
+    new IntersectionObserver((entries) => {
+      heroButtonSeen = entries[0].isIntersecting;
+      trackCorner.hidden = !(started && !heroButtonSeen);
+    }).observe(trackPlay);
+
+    function placeVolume() {
+      if (trackVolume!.hidden) return;
+      const vh = window.innerHeight;
+      const y = window.scrollY;
+      const heroBox = hero!.getBoundingClientRect();
+      const line = pitchLine!.getBoundingClientRect();
+      const start = heroBox.top + y + heroBox.height * 0.6; // where it rests, on the page at the top
+      const lineAt = line.top + y + line.height / 2; // the studio's line, on the page
+      const lockView = vh * 0.35; // where on the screen the two meet
+      const lockScroll = Math.max(1, lineAt - lockView);
+      const at = y < lockScroll ? start + (lockView - start) * (y / lockScroll) : lineAt - y;
+      trackVolume!.style.transform = `translate3d(0, ${at.toFixed(1)}px, 0)`;
+      trackVolume!.classList.toggle('is-away', at < -120);
+    }
+    window.addEventListener('scroll', placeVolume, { passive: true });
+    window.addEventListener('resize', placeVolume);
   }
 
   // A set of animations runs on its own clock, but the scroll can push that
