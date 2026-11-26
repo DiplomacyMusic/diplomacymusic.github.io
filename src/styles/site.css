@@ -1760,6 +1760,9 @@ html.js .contact-stage:not(.is-done) .loud-button {
    everything under the header and above the one thin line of footer. */
 .room {
   --foot-h: 2.6rem;
+  /* every other section leaves room for the header when it is linked to;
+     the room fills the screen, so it takes that room back */
+  scroll-margin-top: -5rem;
   /* The room's colours, in one place because they will be tuned. The
      gradient here is only what shows before the 3D world has drawn, or
      where motion is turned off; the lake, the mountains, the forest, and
@@ -2190,11 +2193,14 @@ html.js .contact-stage:not(.is-done) .loud-button {
   body { padding-top: var(--head-full, 6.35rem); }
 
   /* The header floats over the page here, so the room takes the whole
-     screen above a footer thinner still. The small viewport height is
-     used so the room is never taller than what the browser is showing. */
+     screen above a footer thinner still. */
   .room {
     --foot-h: 1.9rem;
     height: max(26rem, calc(100svh - var(--foot-h)));
+    /* where the browser can say how tall the screen is right now, bars up
+       or down, the room is exactly that: no sliver of the contact band
+       above it, and the footer always in view */
+    height: max(26rem, calc(100dvh - var(--foot-h)));
   }
   .room-copy { top: 4.4rem; }
   .room-floor { top: 4.4rem; right: 1.25rem; }
@@ -2487,6 +2493,7 @@ html.js .contact-stage:not(.is-done) .loud-button {
 }
 
 @media (max-width: 720px) {
-  .room-log { width: auto; left: 1.25rem; right: 1.25rem; bottom: 1.5rem; max-height: 9.5rem; overflow: hidden; display: flex; align-items: flex-end; }
+  /* on a phone the log covers the middle of the play space, so it is only a trace: a fifth of what it was */
+  .room-log { width: auto; left: 1.25rem; right: 1.25rem; bottom: 1.5rem; max-height: 9.5rem; overflow: hidden; display: flex; align-items: flex-end; opacity: 0.2; }
   .room-log pre { font-size: 0.68rem; line-height: 1.75; }
 }

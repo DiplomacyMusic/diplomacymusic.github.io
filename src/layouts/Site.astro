@@ -108,6 +108,35 @@ const links = [
     })();
   }
 
+  // The lab is the foot of the page, and it is built to fill the screen
+  // with the thin footer under it. So a link to the lab goes all the way
+  // down, to the very end of the page, not just to where the lab begins:
+  // otherwise the room for the header that every other link needs leaves
+  // the end of the contact band showing and the footer cut off.
+  document.querySelectorAll<HTMLAnchorElement>('a[href="#room"]').forEach((link) => {
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      const toEnd = () =>
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduced ? 'auto' : 'smooth' });
+      const atEnd = () => window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+      toEnd();
+      history.replaceState(null, '', '#room');
+      // On a phone the page gets a little taller on the way down, as the
+      // browser's bars slide away. So once the scroll has come to rest,
+      // look again, and go the rest of the way if there is any.
+      let lastY = -1;
+      let checks = 0;
+      const settle = window.setInterval(() => {
+        const y = Math.round(window.scrollY);
+        const resting = y === lastY;
+        lastY = y;
+        checks += 1;
+        if (resting && !atEnd()) toEnd();
+        if ((resting && atEnd()) || checks > 24) window.clearInterval(settle);
+      }, 200);
+    });
+  });
+
   // the header tightens once the page is moving
   const head = document.querySelector<HTMLElement>('.site-head');
   const phone = window.matchMedia('(max-width: 720px)');

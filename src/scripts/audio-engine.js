@@ -6,7 +6,7 @@
 //   - every voice passes through the master fader, so off means off
 //   - nothing sounds on its own: no bed, no drone, strikes only
 //   - the voices are Daniel's recorded FirstObjects notes (a spread
-//     G flat major 13 sharp 11 ladder with round robins). Until the bank
+//     D flat major 13 sharp 11 ladder with round robins). Until the bank
 //     finishes loading, a soft synth understudy holds the part.
 
 import { SAMPLE_BANK } from './sample-bank.js';

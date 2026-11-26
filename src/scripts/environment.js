@@ -7,7 +7,7 @@
 // and the collisions play the room.
 //
 // Pitch comes from mass, so the big planets speak low. The voices are
-// the FirstObjects recordings, a G flat major 13 sharp 11 ladder, so anything
+// the FirstObjects recordings, a D flat major 13 sharp 11 ladder, so anything
 // touching anything lands inside one chord.
 //
 // Loads lazily, degrades gracefully, never runs for reduced motion.
@@ -876,11 +876,16 @@ export async function startEnvironment(container, options = {}) {
     }
   }
 
-  window.addEventListener('resize', () => {
+  // The drawing follows the room's own size, not only the window's: on a
+  // phone the room grows and shrinks as the browser's bars come and go.
+  const fit = () => {
+    if (!container.clientWidth || !container.clientHeight) return;
     camera.aspect = container.clientWidth / container.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(container.clientWidth, container.clientHeight);
-  });
+  };
+  window.addEventListener('resize', fit);
+  if ('ResizeObserver' in window) new ResizeObserver(fit).observe(container);
 
   // -------------------------------------------------------------------------
   // the loop
