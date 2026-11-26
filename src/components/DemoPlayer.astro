@@ -1,0 +1,124 @@
+---
+// The audio demo player. It reads src/data/demos.json and renders nothing
+// when that list is empty. To add a demo: put the file in
+// public/audio/demos/ (tools/prep_audio.sh makes web ready copies) and
+// add one entry to demos.json:
+//
+//   { "title": "Main theme", "project": "Show name", "role": "Score",
+//     "file": "/audio/demos/main-theme.m4a" }
+import demos from '../data/demos.json';
+---
+
+<div class="demos" id="demos">
+  <ol class="demo-list">
+    {demos.map((demo, i) => (
+      <li>
+        <button class="demo" type="button" data-index={i} data-src={demo.file} aria-pressed="false">
+          <span class="demo-num">{String(i + 1).padStart(2, '0')}</span>
+          <span class="demo-title">{demo.title}</span>
+          <span class="demo-meta">{[demo.project, demo.role].filter(Boolean).join(' · ')}</span>
+          <span class="demo-state" aria-hidden="true"></span>
+        </button>
+      </li>
+    ))}
+  </ol>
+
+  <div class="demo-bar" id="demo-bar" hidden>
+    <button class="demo-toggle" type="button" id="demo-toggle" aria-label="Pause"></button>
+    <div class="demo-now">
+      <span class="demo-now-title" id="demo-now-title"></span>
+      <span class="demo-now-meta" id="demo-now-meta"></span>
+    </div>
+    <input class="demo-seek" id="demo-seek" type="range" min="0" max="1000" value="0" aria-label="Position" />
+    <span class="demo-clock" id="demo-clock">0:00</span>
+    <button class="demo-next" type="button" id="demo-next" aria-label="Next demo">Next</button>
+    <button class="demo-close" type="button" id="demo-close" aria-label="Stop and close the player">Close</button>
+  </div>
+
+  <audio id="demo-audio" preload="none"></audio>
+</div>
+
+<script>
+  const rows = [...document.querySelectorAll<HTMLButtonElement>('.demo')];
+  const audio = document.getElementById('demo-audio') as HTMLAudioElement | null;
+  const bar = document.getElementById('demo-bar');
+  const toggle = document.getElementById('demo-toggle');
+  const seek = document.getElementById('demo-seek') as HTMLInputElement | null;
+  const clock = document.getElementById('demo-clock');
+  const nowTitle = document.getElementById('demo-now-title');
+  const nowMeta = document.getElementById('demo-now-meta');
+
+  if (audio && bar && toggle && seek && clock && rows.length) {
+    let current = -1;
+    let seeking = false;
+
+    const stamp = (seconds: number) => {
+      if (!Number.isFinite(seconds)) return '0:00';
+      const whole = Math.floor(seconds);
+      return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
+    };
+
+    const paint = () => {
+      const playing = !audio.paused;
+      rows.forEach((row, i) => {
+        row.setAttribute('aria-pressed', String(i === current && playing));
+        row.classList.toggle('is-current', i === current);
+      });
+      toggle.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+      toggle.classList.toggle('is-playing', playing);
+    };
+
+    const load = (index: number) => {
+      current = (index + rows.length) % rows.length;
+      const row = rows[current];
+      audio.src = row.dataset.src || '';
+      if (nowTitle) nowTitle.textContent = row.querySelector('.demo-title')?.textContent || '';
+      if (nowMeta) nowMeta.textContent = row.querySelector('.demo-meta')?.textContent || '';
+      bar.hidden = false;
+      document.body.classList.add('has-player');
+      audio.play().catch(() => {});
+    };
+
+    rows.forEach((row, i) =>
+      row.addEventListener('click', () => {
+        if (i === current) {
+          if (audio.paused) audio.play().catch(() => {});
+          else audio.pause();
+        } else {
+          load(i);
+        }
+      })
+    );
+
+    toggle.addEventListener('click', () => {
+      if (audio.paused) audio.play().catch(() => {});
+      else audio.pause();
+    });
+    document.getElementById('demo-next')?.addEventListener('click', () => load(current + 1));
+    document.getElementById('demo-close')?.addEventListener('click', () => {
+      audio.pause();
+      bar.hidden = true;
+      document.body.classList.remove('has-player');
+      current = -1;
+      paint();
+    });
+
+    audio.addEventListener('play', paint);
+    audio.addEventListener('pause', paint);
+    audio.addEventListener('ended', () => load(current + 1));
+    audio.addEventListener('timeupdate', () => {
+      if (!seeking && audio.duration) seek.value = String((audio.currentTime / audio.duration) * 1000);
+      clock.textContent = `${stamp(audio.currentTime)} / ${stamp(audio.duration)}`;
+      seek.style.setProperty('--played', `${(audio.currentTime / (audio.duration || 1)) * 100}%`);
+    });
+
+    seek.addEventListener('input', () => {
+      seeking = true;
+      seek.style.setProperty('--played', `${Number(seek.value) / 10}%`);
+    });
+    seek.addEventListener('change', () => {
+      if (audio.duration) audio.currentTime = (Number(seek.value) / 1000) * audio.duration;
+      seeking = false;
+    });
+  }
+</script>

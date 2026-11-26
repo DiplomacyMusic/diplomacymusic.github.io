@@ -66,8 +66,13 @@ const TAP_DRIFT = 0.25;       // world units a mouse may wander before a press i
 const TAP_DRIFT_TOUCH = 0.7;  // fingers wobble more than mice do
 const LONG_PRESS_MS = 300;    // a finger that stays this long starts the slow swell
 
-export async function startEnvironment(container) {
+// options.room: the environment lives inside one section instead of
+// behind a whole page. The camera stops following the page scroll, the
+// floor arrives when options.pile() says so, and the loop rests while
+// the section is off screen. With no options, nothing changes.
+export async function startEnvironment(container, options = {}) {
   const THREE = await import('three');
+  const room = options.room === true;
 
   // a phone is a different room: tall, narrow, touched with fingers
   const portrait = container.clientWidth < container.clientHeight;
@@ -534,7 +539,9 @@ export async function startEnvironment(container) {
     if (Math.abs(tiltGravityX) + Math.abs(tiltGravityY) > 0.08) lastEnergyAt = t;
 
     // the floor fades in near the bottom of the page, fades out on the way up
-    const pileTarget = scrollProgress() > 0.85 ? 1 : 0;
+    const pileTarget = room
+      ? (options.pile && options.pile() ? 1 : 0)
+      : scrollProgress() > 0.85 ? 1 : 0;
     pile += (pileTarget - pile) * 0.04;
 
     // hover feedback, only where hover exists: on touch the slow
@@ -796,7 +803,9 @@ export async function startEnvironment(container) {
       const vh = window.innerHeight;
       const apex = vh * 1.35; // scroll where the shapes are nearest
       let closeness;
-      if (scrollY <= apex) {
+      if (room) {
+        closeness = 0.6; // a room holds one distance: near enough to play
+      } else if (scrollY <= apex) {
         const u = apex > 0 ? scrollY / apex : 1;
         closeness = u * u * (3 - 2 * u); // smoothstep far to near
       } else {
@@ -808,22 +817,30 @@ export async function startEnvironment(container) {
       const targetZ = 25 + (12 - 25) * closeness;
       camera.position.z += (targetZ - camera.position.z) * 0.08;
       // much stronger parallax, bounded so the bottom pile still composes
-      const sink = Math.min(scrollY, vh * 2.2) * 0.012;
+      const sink = room ? 0 : Math.min(scrollY, vh * 2.2) * 0.012;
       camera.position.y += (-tiltY - sink - camera.position.y) * 0.06;
     } else {
-      camera.position.y += (-tiltY - scrollY * 0.004 - camera.position.y) * 0.05;
+      camera.position.y += (-tiltY - (room ? 0 : scrollY * 0.004) - camera.position.y) * 0.05;
     }
     camera.lookAt(0, 0, 0);
 
     renderer.render(scene, camera);
   }
 
-  renderer.setAnimationLoop(frame);
-
-  // do not burn battery in a background tab
-  document.addEventListener('visibilitychange', () => {
-    renderer.setAnimationLoop(document.hidden ? null : frame);
-  });
+  // do not burn battery in a background tab, or while a room is off screen
+  let inView = true;
+  const run = () => {
+    lastFrameAt = performance.now();
+    renderer.setAnimationLoop(document.hidden || !inView ? null : frame);
+  };
+  run();
+  document.addEventListener('visibilitychange', run);
+  if (room && 'IntersectionObserver' in window) {
+    new IntersectionObserver((entries) => {
+      inView = entries[entries.length - 1].isIntersecting;
+      run();
+    }).observe(container);
+  }
 
   container.classList.add('is-live');
 }

@@ -1,0 +1,1961 @@
+/* The main site. One sheet of paper standing in front of a lake.
+   Tokens come from global.css. Everything that moves is driven by
+   src/scripts/site-motion.js and goes still under reduced motion. */
+
+html {
+  background: var(--paper);
+  scroll-padding-top: 5rem;
+}
+
+html,
+body {
+  overflow-x: clip;
+}
+
+/* The main site carries more weight than the lab, but only a step:
+   headlines sit at a medium weight in the brand's own Outfit, halfway
+   between the thin original and a true bold. Body text is regular. The
+   logo lockup, the wordmark, and the tagline are never touched by this. */
+
+body {
+  font-weight: 400;
+}
+
+.sheet .overline,
+.room .overline {
+  font-weight: 550;
+}
+
+/* the second half of a headline steps back a tone */
+.tone {
+  color: var(--ink-quiet);
+}
+
+.band.dark .tone,
+.band.deep .tone {
+  color: var(--glow);
+}
+
+/* ---------- the stage: the lake video, fixed behind the top of the page ---------- */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: #9aa8aa;
+}
+
+.stage.is-done {
+  visibility: hidden;
+}
+
+.hero-video {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 124%;
+  object-fit: cover;
+  transform: scale(1.06);
+  transform-origin: 50% 40%;
+  will-change: transform, filter;
+}
+
+.stage-tint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(48, 45, 38, 0.04), rgba(48, 45, 38, 0.2));
+}
+
+/* ---------- header and the lockup ---------- */
+
+.site-head {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(242, 241, 240, 0.94);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--t-slow) var(--ease-drift);
+}
+
+.site-head.is-moving {
+  border-bottom-color: rgba(151, 149, 149, 0.28);
+}
+
+.site-head-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: min(100% - 3rem, 84rem);
+  margin-inline: auto;
+  padding-block: 1.25rem;
+  transition: padding var(--t-slow) var(--ease-drift);
+}
+
+.site-head.is-moving .site-head-inner {
+  padding-block: 0.6rem;
+}
+
+.lockup {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: var(--ink);
+}
+
+.lockup-mark {
+  width: 2.9rem;
+  height: 2.9rem;
+  transition: width var(--t-slow) var(--ease-drift), height var(--t-slow) var(--ease-drift);
+}
+
+.site-head.is-moving .lockup-mark {
+  width: 2.2rem;
+  height: 2.2rem;
+}
+
+.lockup-name {
+  font-weight: 300;
+  font-size: 0.86rem;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  line-height: 1.4;
+  min-width: 8.5rem;
+}
+
+.lockup-word-line {
+  color: var(--ink-quiet);
+}
+
+.lockup-caret {
+  display: inline-block;
+  width: 1px;
+  height: 0.85em;
+  margin-left: 1px;
+  background: var(--ink-quiet);
+  opacity: 0;
+}
+
+.lockup-name.typing .lockup-caret {
+  opacity: 1;
+  animation: caret-blink 0.9s steps(1) infinite;
+}
+
+@keyframes caret-blink {
+  50% { opacity: 0; }
+}
+
+.site-links {
+  display: flex;
+  gap: clamp(0.9rem, 2.6vw, 2rem);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+}
+
+.site-links a {
+  position: relative;
+  color: var(--ink-quiet);
+  padding-block: 0.3rem;
+}
+
+.site-links a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--ink);
+  scale: 0 1;
+  transform-origin: left;
+  transition: scale var(--t-slow) var(--ease-drift);
+}
+
+.site-links a:hover,
+.site-links a:focus-visible {
+  color: var(--ink);
+}
+
+.site-links a:hover::after,
+.site-links a:focus-visible::after {
+  scale: 1 1;
+}
+
+/* ---------- hero: a clear window onto the stage ---------- */
+
+/* Wide screens get a wide screen: a cinema strip with a hard cut into the
+   paper below. Phones get the tall frame, set in the small screen rules. */
+.hero {
+  position: relative;
+  height: clamp(22rem, 66vh, 40rem);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  --focus: 0;
+}
+
+/* the paper that rises over the hero window as it scrolls away */
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+  opacity: var(--veil, 0);
+  pointer-events: none;
+}
+
+/* the wordmark and the line rest at the exact center of the hero. The
+   script then lets them ride a little slower than the page. */
+.hero-copy {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1.6rem;
+  will-change: transform;
+}
+
+.hero-wordmark {
+  --brand-asset: url('/brand/diplomacy-wordmark.png');
+  width: min(78vw, 46rem);
+  aspect-ratio: 3182 / 418;
+  background: #fff;
+  opacity: calc(0.5 + var(--focus) * 0.5);
+  filter: blur(calc((1 - var(--focus)) * 7px));
+}
+
+.hero-tag {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 350;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  opacity: calc(0.25 + var(--focus) * 0.75);
+}
+
+.hero-cue {
+  position: absolute;
+  bottom: 1.4rem;
+  left: 50%;
+  width: 1px;
+  height: 2.6rem;
+  overflow: hidden;
+  opacity: calc(var(--focus) * 0.9);
+}
+
+.hero-cue span {
+  display: block;
+  width: 1px;
+  height: 100%;
+  background: #fff;
+  animation: cue-fall 2.8s var(--ease-drift) infinite;
+}
+
+@keyframes cue-fall {
+  0% { translate: 0 -100%; }
+  60%, 100% { translate: 0 100%; }
+}
+
+/* ---------- the sheet ---------- */
+
+.sheet {
+  position: relative;
+}
+
+/* every band runs the full width; its contents hold a comfortable measure */
+.band {
+  position: relative;
+  padding: clamp(3.5rem, 9vw, 7.5rem) clamp(1.25rem, 5.5vw, 5rem);
+  background: var(--paper);
+}
+
+
+.band-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 62rem;
+  margin-inline: auto;
+}
+
+.band.dark {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.band.sand {
+  background: #dcdccc;
+}
+
+.band .overline {
+  margin-bottom: var(--space-2);
+}
+
+.band.dark .overline,
+.band.dark .lede {
+  color: #b9b5aa;
+}
+
+.section-head {
+  margin-bottom: var(--space-3);
+}
+
+.section-head h2,
+.band-contact h2,
+.studio-copy h2 {
+  font-size: clamp(2.1rem, 5vw, 3.6rem);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+}
+
+.lede {
+  color: var(--ink-quiet);
+  font-size: 1.08rem;
+}
+
+/* giant quiet words that slide behind a section */
+.ghost-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ghost {
+  position: absolute;
+  top: 1.2rem;
+  left: 4%;
+  font-size: clamp(7rem, 22vw, 17rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(151, 149, 149, 0.3);
+  user-select: none;
+  will-change: transform;
+}
+
+.band.dark .ghost {
+  -webkit-text-stroke-color: rgba(242, 241, 240, 0.12);
+}
+
+/* ---------- statement ---------- */
+
+.statement {
+  max-width: 21ch;
+  margin-bottom: var(--space-4);
+  font-size: clamp(1.95rem, 4.9vw, 3.6rem);
+  font-weight: 450;
+  line-height: 1.13;
+  letter-spacing: -0.012em;
+}
+
+[data-words] .w {
+  opacity: 0.16;
+  transition: opacity 700ms var(--ease-drift);
+}
+
+[data-words] .w.lit {
+  opacity: 1;
+}
+
+.pillars {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+/* cards of frosted paper; on phones the water moves behind them */
+.pillar {
+  padding: 1.5rem 1.4rem 1.6rem;
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-top-color: var(--ink);
+  border-radius: 3px;
+}
+
+.pillar h2 {
+  font-size: 1.5rem;
+  font-weight: 550;
+  letter-spacing: -0.005em;
+  margin-bottom: 0.5rem;
+}
+
+.pillar p {
+  color: var(--ink-quiet);
+  margin: 0;
+}
+
+/* ---------- company and recognition ---------- */
+
+.band-company {
+  padding-block: 0 var(--space-3);
+}
+
+/* one line of marks, riding the scroll sideways, fading out at both edges */
+.company-rail {
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  margin-top: var(--space-2);
+  padding-block: 1.6rem;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+}
+
+.company-track {
+  --logo-unit: 2.9rem;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  will-change: transform;
+}
+
+.company-track li {
+  flex: none;
+}
+
+.company-logo {
+  display: block;
+  background: var(--ink-quiet);
+  -webkit-mask: var(--logo) center / contain no-repeat;
+  mask: var(--logo) center / contain no-repeat;
+  transition: background var(--t-slow) var(--ease-drift);
+}
+
+.company-track li:hover .company-logo {
+  background: var(--ink);
+}
+
+/* with no motion the line cannot travel, so the marks wrap and all show */
+html:not(.js) .company-rail {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+html:not(.js) .company-track {
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2.5rem 3.5rem;
+}
+
+html:not(.js) .company-repeat {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .company-rail {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .company-track {
+    flex: 0 1 auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2.5rem 3.5rem;
+  }
+
+  .company-repeat {
+    display: none;
+  }
+}
+
+.band-recognition {
+  /* room above and below for the cards to float without touching the edges */
+  padding-block: clamp(3.5rem, 8vw, 5.5rem) clamp(4rem, 8.5vw, 6.5rem);
+}
+
+/* the warm room: brand Brown, with the facts set on their own cards */
+.band.deep {
+  background: var(--deep);
+  color: var(--paper);
+}
+
+/* Recognition is a dim window onto the stage: the same lake video, by now
+   far out of focus, held still behind the page so the band slides over
+   it. The brown wash dims it and keeps the cards readable. */
+.band.band-recognition {
+  background: linear-gradient(rgba(78, 67, 61, 0.76), rgba(48, 45, 38, 0.82));
+}
+
+.band.deep .overline {
+  color: var(--glow);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.fact {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  padding: 1.6rem 1.4rem 1.8rem;
+  background: rgba(34, 30, 27, 0.5);
+  border: 1px solid rgba(242, 241, 240, 0.14);
+  border-top-color: var(--glow);
+  border-radius: 3px;
+  will-change: transform;
+  transition: background var(--t-slow) var(--ease-drift);
+}
+
+.fact:hover {
+  background: rgba(34, 30, 27, 0.62);
+}
+
+/* The deal. Each card tips up from the table and settles with a little
+   overshoot, one after the next; the script in index.astro runs it and
+   lets the scroll hurry it along. Until the deal starts the cards wait
+   out of sight. */
+html.js .facts {
+  perspective: 1100px;
+  will-change: transform;
+}
+
+html.js .facts:not(.is-dealt) .fact {
+  opacity: 0;
+}
+
+.fact {
+  position: relative;
+  transform-origin: 50% 100%;
+  border-top-color: rgba(242, 241, 240, 0.14);
+}
+
+/* the sand edge that draws across the top of the card */
+.fact::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  top: -1px;
+  height: 1px;
+  background: var(--glow);
+  transform-origin: left;
+}
+
+.fact-figure {
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1;
+  color: var(--glow);
+}
+
+.fact-label {
+  font-size: 0.78rem;
+  font-weight: 550;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.fact-detail {
+  display: grid;
+  gap: 0;
+  margin-top: 0.7rem;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: rgba(242, 241, 240, 0.78);
+}
+
+.fact-detail span {
+  border-top: 1px solid rgba(242, 241, 240, 0.12);
+  padding-block: 0.45rem;
+}
+
+/* ---------- work ---------- */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: var(--space-3);
+}
+
+.chip {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 450;
+  letter-spacing: 0.06em;
+  color: var(--ink-quiet);
+  background: none;
+  border: 1px solid var(--stone);
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
+  cursor: pointer;
+  transition:
+    color var(--t-soft) var(--ease-drift),
+    background var(--t-soft) var(--ease-drift),
+    border-color var(--t-soft) var(--ease-drift);
+}
+
+.chip:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.chip[aria-pressed='true'] {
+  color: var(--paper);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.covers {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2.2rem 1.4rem;
+  padding-block: 1rem 2rem;
+}
+
+.cover {
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  will-change: transform;
+}
+
+.cover[hidden] {
+  display: none;
+}
+
+.cover-art {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--haze);
+  box-shadow: 0 10px 28px -14px rgba(48, 45, 38, 0.5);
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition:
+    transform 500ms var(--ease-drift),
+    box-shadow 500ms var(--ease-drift);
+}
+
+.cover-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: scale 900ms var(--ease-drift);
+}
+
+/* a soft light that follows the pointer across the cover */
+.cover-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgba(255, 255, 255, 0.28), transparent 55%);
+  opacity: 0;
+  transition: opacity 500ms var(--ease-drift);
+}
+
+.cover:hover .cover-art,
+.cover:focus-visible .cover-art {
+  box-shadow: 0 26px 44px -18px rgba(48, 45, 38, 0.6);
+  transition-duration: 120ms, 500ms;
+}
+
+.cover:hover .cover-art img {
+  scale: 1.05;
+}
+
+.cover:hover .cover-art::after {
+  opacity: 1;
+}
+
+.cover-badge {
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: rgba(242, 241, 240, 0.92);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+}
+
+.cover-title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.cover-role {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--ink-quiet);
+}
+
+/* ---------- games ---------- */
+
+/* The games floor at night: cooler and deeper than the brand Dark, with
+   out of focus lights behind everything. Glitz implied, never spelled out. */
+.band.band-games {
+  padding-bottom: clamp(6rem, 12vw, 9rem);
+  background:
+    radial-gradient(ellipse 70% 55% at 78% 8%, rgba(233, 201, 141, 0.1), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 12% 92%, rgba(132, 147, 150, 0.14), transparent 70%),
+    linear-gradient(#17181b, #1d1c1f 55%, #151517);
+}
+
+.bokeh {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bokeh-light {
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--light) 0%, var(--light) 38%, transparent 72%);
+  filter: blur(var(--soft));
+  mix-blend-mode: screen;
+  opacity: var(--glow);
+  animation: bokeh-breathe var(--time) ease-in-out var(--delay) infinite alternate;
+  will-change: transform, opacity;
+}
+
+.bokeh-glint {
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff3d6;
+  box-shadow: 0 0 6px 1px rgba(255, 233, 180, 0.7);
+  opacity: 0;
+  animation: bokeh-glint var(--time) ease-in-out var(--delay) infinite;
+}
+
+@keyframes bokeh-breathe {
+  from { opacity: calc(var(--glow) * 0.35); }
+  to { opacity: var(--glow); }
+}
+
+@keyframes bokeh-glint {
+  0%, 62%, 100% { opacity: 0; scale: 0.4; }
+  78% { opacity: 0.85; scale: 1; }
+}
+
+.games {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1.8rem 1.1rem;
+  padding-block: 0.6rem 1.6rem;
+}
+
+/* before the reels spin, each cell is an empty window */
+html.js .games:not(.is-spun) .game.is-on .game-art > *,
+html.js .games:not(.is-spun) .game.is-on h3,
+html.js .games:not(.is-spun) .game.is-on p {
+  visibility: hidden;
+}
+
+/* fifteen titles show at a time; the Spin button deals the rest. With no
+   script running, every title simply shows. */
+html.js .games .game:not(.is-on) {
+  display: none;
+}
+
+/* the strip of passing symbols, hung just below the real art */
+.reel-tail {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  display: block;
+  width: 100%;
+  will-change: transform;
+}
+
+.reel-tail img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: contain;
+}
+
+.game-art {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+  margin-bottom: 0.6rem;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #0f1012;
+}
+
+.game-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* the art is all shapes and sizes; show every title whole */
+  transition: scale 900ms var(--ease-drift);
+}
+
+/* no art yet: the title itself, set quietly, holds the tile */
+.game-art-name {
+  display: grid;
+  place-items: center;
+  padding: 0.8rem;
+  border: 1px solid rgba(242, 241, 240, 0.14);
+  background: none;
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  line-height: 1.5;
+  text-align: center;
+  text-transform: uppercase;
+  color: #b9b5aa;
+}
+
+.game:hover .game-art img {
+  scale: 1.06;
+}
+
+.game h3 {
+  min-height: 2.6em; /* two lines, so the grid holds its height from spin to spin */
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+}
+
+.game p {
+  margin: 0.15rem 0 0;
+  font-size: 0.72rem;
+  color: #b9b5aa;
+}
+
+.games-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end; /* the button sits on the right, as on the real thing */
+  gap: 1rem 1.6rem;
+  margin: var(--space-3) 0 0;
+  max-width: none;
+}
+
+.games-facts {
+  margin-top: 0.4rem;
+  font-size: 0.86rem;
+  letter-spacing: 0.04em;
+  color: #b9b5aa;
+}
+
+.games-count {
+  font-size: 0.86rem;
+  color: #b9b5aa;
+}
+
+html:not(.js) .games-more {
+  display: none;
+}
+
+/* the one loud button on the site: a lit pill that asks to be pressed */
+.spin-button {
+  position: relative;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: #1a1a1c;
+  background: linear-gradient(#f6e4b4, #e2bd78);
+  border: 0;
+  border-radius: 999px;
+  padding: 0.95rem 2.6rem 0.95rem 2.9rem;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 1px rgba(255, 244, 214, 0.6) inset,
+    0 0 0 5px rgba(233, 201, 141, 0.16),
+    0 10px 34px -8px rgba(233, 201, 141, 0.65);
+  transition:
+    scale 260ms var(--ease-drift),
+    box-shadow 400ms var(--ease-drift),
+    opacity 300ms var(--ease-drift);
+  animation: spin-invite 3.2s ease-in-out infinite;
+}
+
+.spin-button:hover,
+.spin-button:focus-visible {
+  box-shadow:
+    0 0 0 1px rgba(255, 244, 214, 0.8) inset,
+    0 0 0 8px rgba(233, 201, 141, 0.22),
+    0 12px 44px -6px rgba(233, 201, 141, 0.9);
+}
+
+.spin-button:active {
+  scale: 0.96;
+}
+
+.spin-button[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: default;
+  animation: none;
+}
+
+.spin-button:focus-visible {
+  outline-color: #f6e4b4;
+}
+
+@keyframes spin-invite {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.6) inset, 0 0 0 5px rgba(233, 201, 141, 0.16), 0 10px 34px -8px rgba(233, 201, 141, 0.65); }
+  50% { box-shadow: 0 0 0 1px rgba(255, 244, 214, 0.6) inset, 0 0 0 9px rgba(233, 201, 141, 0.07), 0 10px 40px -6px rgba(233, 201, 141, 0.85); }
+}
+
+.marquee-clip {
+  top: auto;
+  height: 5.5rem;
+}
+
+.marquee {
+  position: absolute;
+  bottom: 1.6rem;
+  left: -40%;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: pre;
+  color: rgba(242, 241, 240, 0.3);
+  will-change: transform;
+}
+
+/* ---------- shared buttons ---------- */
+
+.line-button {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 550;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  padding: 0 0 0.2rem;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity var(--t-soft) var(--ease-drift);
+}
+
+.line-button:hover,
+.line-button:focus-visible {
+  opacity: 1;
+}
+
+.block-button {
+  display: inline-block;
+  background: #2a2a22;
+  color: var(--paper);
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  padding: 0.95rem 1.8rem;
+  transition: background var(--t-soft) var(--ease-drift);
+}
+
+.block-button:hover,
+.block-button:focus-visible {
+  background: var(--deep);
+  color: var(--paper);
+}
+
+/* ---------- listen ---------- */
+
+.reels {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem 1.4rem;
+}
+
+.reel {
+  margin: 0;
+}
+
+.reel-lead {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.reel-frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--ink);
+  cursor: pointer;
+}
+
+.reel-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.88;
+  transition: scale 900ms var(--ease-drift), opacity var(--t-slow) var(--ease-drift);
+}
+
+.reel-frame:hover img,
+.reel-frame:focus-visible img {
+  scale: 1.04;
+  opacity: 1;
+}
+
+.reel-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3.4rem;
+  height: 3.4rem;
+  translate: -50% -50%;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: rgba(48, 45, 38, 0.25);
+  transition: scale var(--t-slow) var(--ease-drift), background var(--t-slow) var(--ease-drift);
+}
+
+.reel-play::after {
+  content: '';
+  position: absolute;
+  left: 54%;
+  top: 50%;
+  translate: -50% -50%;
+  border-left: 0.75rem solid #fff;
+  border-block: 0.5rem solid transparent;
+}
+
+.reel-frame:hover .reel-play {
+  scale: 1.12;
+  background: rgba(48, 45, 38, 0.5);
+}
+
+.reel figcaption {
+  display: grid;
+  gap: 0.15rem;
+  padding-top: 0.8rem;
+}
+
+.reel figcaption .overline {
+  margin: 0;
+  font-size: 0.68rem;
+}
+
+.reel-title {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.reel-lead .reel-title {
+  font-size: 1.6rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.reel-note {
+  font-size: 0.82rem;
+  color: var(--ink-quiet);
+}
+
+/* audio demos */
+.demos {
+  margin-bottom: var(--space-4);
+}
+
+.demo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--stone);
+}
+
+.demo {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr auto 1.6rem;
+  align-items: baseline;
+  gap: 1rem;
+  width: 100%;
+  padding: 1rem 0.4rem;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--haze);
+  cursor: pointer;
+  transition: background var(--t-soft) var(--ease-drift), padding var(--t-slow) var(--ease-drift);
+}
+
+.demo:hover,
+.demo.is-current {
+  background: rgba(217, 215, 194, 0.35);
+  padding-left: 1rem;
+}
+
+.demo-num {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--ink-quiet);
+}
+
+.demo-title {
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+
+.demo-meta {
+  font-size: 0.82rem;
+  color: var(--ink-quiet);
+}
+
+.demo-state {
+  justify-self: end;
+  align-self: center;
+  border-left: 0.6rem solid var(--ink);
+  border-block: 0.4rem solid transparent;
+}
+
+.demo[aria-pressed='true'] .demo-state {
+  width: 0.6rem;
+  height: 0.8rem;
+  border: 0;
+  border-inline: 0.2rem solid var(--ink);
+}
+
+.demo-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 1rem;
+  z-index: 30;
+  translate: -50% 0;
+  display: grid;
+  grid-template-columns: auto minmax(8rem, 14rem) 1fr auto auto auto;
+  align-items: center;
+  gap: 1rem;
+  width: min(100% - 2rem, 58rem);
+  padding: 0.8rem 1.2rem;
+  color: var(--paper);
+  background: rgba(48, 45, 38, 0.94);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-radius: 3px;
+  box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.6);
+}
+
+.demo-bar[hidden] {
+  display: none;
+}
+
+body.has-player .site-foot {
+  padding-bottom: 6rem;
+}
+
+.demo-toggle {
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid var(--paper);
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.demo-toggle::after {
+  content: '';
+  position: absolute;
+  left: 54%;
+  top: 50%;
+  translate: -50% -50%;
+  border-left: 0.6rem solid var(--paper);
+  border-block: 0.4rem solid transparent;
+}
+
+.demo-toggle.is-playing::after {
+  left: 50%;
+  width: 0.6rem;
+  height: 0.8rem;
+  border: 0;
+  border-inline: 0.2rem solid var(--paper);
+  box-sizing: border-box;
+}
+
+.demo-now {
+  display: grid;
+  min-width: 0;
+}
+
+.demo-now span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.demo-now-title {
+  font-size: 0.92rem;
+}
+
+.demo-now-meta {
+  font-size: 0.72rem;
+  color: #b9b5aa;
+}
+
+.demo-seek {
+  --played: 0%;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 1.2rem;
+  background: linear-gradient(var(--paper), var(--paper)) left center / var(--played) 1px no-repeat,
+    linear-gradient(rgba(242, 241, 240, 0.3), rgba(242, 241, 240, 0.3)) center / 100% 1px no-repeat;
+  cursor: pointer;
+}
+
+.demo-seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+.demo-seek::-moz-range-thumb {
+  width: 0.7rem;
+  height: 0.7rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+.demo-clock {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: #b9b5aa;
+}
+
+.demo-next,
+.demo-close {
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #b9b5aa;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.demo-next:hover,
+.demo-close:hover {
+  color: var(--paper);
+}
+
+.demo-bar button:focus-visible {
+  outline-color: var(--paper);
+}
+
+/* ---------- quote ---------- */
+
+.band-quote {
+  padding-block: clamp(2rem, 6vw, 4rem) clamp(4rem, 9vw, 7rem);
+}
+
+.band-quote blockquote {
+  margin: 0;
+  border-left: 2px solid var(--ink);
+  padding-left: clamp(1.2rem, 4vw, 3rem);
+}
+
+.band-quote blockquote p {
+  max-width: 34ch;
+  font-size: clamp(1.35rem, 2.9vw, 2.1rem);
+  font-weight: 350;
+  line-height: 1.32;
+}
+
+.band-quote footer {
+  font-size: 0.8rem;
+  font-weight: 550;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+
+/* ---------- studio ---------- */
+
+.studio-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: clamp(2rem, 6vw, 5rem);
+  align-items: start;
+}
+
+.studio-copy p:not(.overline) {
+  font-size: 1.08rem;
+}
+
+.ledger {
+  margin: 0;
+}
+
+.ledger-row {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 1rem;
+  border-top: 1px solid var(--haze);
+  padding-block: 0.95rem;
+}
+
+.ledger dt {
+  font-size: 0.75rem;
+  font-weight: 550;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding-top: 0.15rem;
+}
+
+.ledger dd {
+  margin: 0;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--ink-quiet);
+}
+
+/* ---------- contact: a short scene, held while the page scrolls ---------- */
+
+.band.band-contact {
+  padding: 0;
+}
+
+/* The tall track gives the scene its length. The stage inside it sticks
+   under the header for the whole of it. */
+.contact-scroll {
+  --head: 3rem;
+  height: calc(100svh - var(--head) + 150vh);
+}
+
+.contact-stage {
+  --cta: 1;
+  --drift: 0.5;
+  position: sticky;
+  top: var(--head);
+  height: calc(100svh - var(--head));
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 0.54fr) minmax(0, 0.46fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  column-gap: clamp(1.5rem, 5vw, 4rem);
+  /* the stage runs the full width so the backdrop can; the contents keep the page's measure */
+  --pad-top: clamp(1.5rem, 5vh, 3.5rem);
+  --pad-x: max(clamp(1.25rem, 5.5vw, 5rem), calc((100vw - 62rem) / 2));
+  --pad-bottom: clamp(1.2rem, 3vh, 2.2rem);
+  padding: var(--pad-top) var(--pad-x) var(--pad-bottom);
+}
+
+html.js .contact-stage {
+  --cta: 0;
+}
+
+.contact-copy {
+  position: relative;
+  z-index: 1;
+  grid-area: 1 / 1;
+  align-self: center;
+  min-width: 0;
+}
+
+/* the D mark, in ink, above the word Contact */
+.contact-mark {
+  --brand-asset: url('/brand/diplomacy-d-light.png');
+  display: block;
+  width: 3.4rem;
+  height: 3.4rem;
+  margin-bottom: 1.4rem;
+}
+
+.contact-hello {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--ink-quiet);
+}
+
+.contact-note {
+  margin: var(--space-2) 0 0;
+}
+
+.contact-note p {
+  max-width: 24ch;
+  margin-bottom: 1rem;
+  font-size: clamp(1.5rem, 3.3vw, 2.6rem);
+  font-weight: 400;
+  line-height: 1.22;
+  letter-spacing: -0.012em;
+}
+
+/* the note is laid out whole from the start, so nothing shifts as it is written */
+.tw-word {
+  white-space: nowrap;
+}
+
+html.js .tw-ch {
+  position: relative;
+  opacity: 0;
+}
+
+html.js .tw-ch.on {
+  opacity: 1;
+}
+
+.tw-ch.caret::after {
+  content: '';
+  position: absolute;
+  left: calc(100% + 2px);
+  top: 0.12em;
+  width: 2px;
+  height: 0.95em;
+  background: var(--ink);
+  animation: caret-blink 0.9s steps(1) infinite;
+}
+
+.contact-note footer {
+  font-size: 0.78rem;
+  font-weight: 550;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+  transition: opacity 600ms var(--ease-drift);
+}
+
+html.js .contact-stage:not(.is-typed) .contact-note footer {
+  opacity: 0;
+}
+
+/* The portrait is the backdrop: far bigger than the frame, cropped by it,
+   and drifting upward as the scene scrolls along. It fills the whole
+   stage edge to edge and runs off the bottom, so it never ends in mid
+   air. The button and its row of links arrive on top of it. */
+.contact-portrait {
+  position: relative;
+  z-index: 0;
+  grid-area: 1 / 1 / 3 / 3;
+  margin: calc(var(--pad-top) * -1) calc(var(--pad-x) * -1) calc(var(--pad-bottom) * -1);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* The photo is a cold black and white cut out. Multiplied over the band's
+   own sand, its whites and grays take the colour of the band, so it sits
+   in the page instead of on top of it. The flat sand layer behind it is
+   there only so the blend has something to multiply with. */
+.contact-portrait::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #dcdccc;
+}
+
+.contact-portrait img {
+  position: absolute;
+  right: -11%;
+  top: -9%;
+  width: auto;
+  max-width: none;
+  height: 128%;
+  mix-blend-mode: multiply;
+  filter: contrast(1.06);
+  /* trims a stray mark in the empty strip at the photo's left edge */
+  clip-path: inset(0 0 0 10.5%);
+  translate: 0 calc((0.5 - var(--drift)) * 9%);
+  scale: calc(1 + var(--drift) * 0.05);
+  transform-origin: 62% 28%;
+  will-change: translate, scale;
+}
+
+/* The button arrives once the note is written: it wipes in from the left
+   and settles. It is the loudest thing on the site, on purpose. */
+.contact-cta {
+  position: relative;
+  z-index: 1;
+  grid-area: 2 / 1 / 3 / 3;
+}
+
+.loud-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  /* a banner, edge to edge: it breaks out of the page's measure, and its
+     words stay lined up with everything above them */
+  width: calc(100% + var(--pad-x) * 2);
+  margin-inline: calc(var(--pad-x) * -1);
+  padding: clamp(1rem, 3.2vh, 2.1rem) var(--pad-x);
+  font-size: clamp(2.1rem, 7.4vw, 6.4rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: #fff;
+  background: #2f5a6b; /* the lake's deep water blue, until the photo arrives */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.22);
+  text-shadow: 0 1px 18px rgba(14, 38, 52, 0.4);
+  opacity: var(--cta);
+  translate: 0 calc((1 - var(--cta)) * 2.2rem);
+  clip-path: inset(0 calc((1 - var(--cta)) * 100%) 0 0);
+}
+
+/* Glass: the lake itself, far out of focus, behind the words. Only the
+   bottom strip of the photo is used, the deep open water, because that is
+   where the pure blues are; the sky and the horizon run warm. It slides a
+   little as the scene scrolls, so the colour in the glass moves. */
+.loud-button::before {
+  content: '';
+  position: absolute;
+  inset: -2.5rem;
+  z-index: -1;
+  background:
+    linear-gradient(rgba(14, 38, 52, 0.1), rgba(14, 38, 52, 0.3)),
+    var(--lake) calc(20% + var(--drift, 0.5) * 60%) calc(97% + var(--drift, 0.5) * 3%) / 135% 820% no-repeat;
+  filter: blur(16px) saturate(1.35);
+  transition: filter var(--t-slow) var(--ease-drift);
+}
+
+html.js .contact-stage:not(.is-done) .loud-button {
+  pointer-events: none;
+}
+
+.loud-button:hover,
+.loud-button:focus-visible {
+  color: #fff;
+}
+
+.loud-button:hover::before,
+.loud-button:focus-visible::before {
+  filter: blur(16px) saturate(1.5) brightness(1.14);
+}
+
+.loud-arrow {
+  flex: none;
+  font-weight: 300;
+  transition: translate var(--t-slow) var(--ease-drift);
+}
+
+.loud-button:hover .loud-arrow,
+.loud-button:focus-visible .loud-arrow {
+  translate: 0.4rem 0;
+}
+
+.contact-stage.is-done .loud-button {
+  animation: loud-land 700ms var(--ease-drift);
+}
+
+@keyframes loud-land {
+  0% { scale: 1; }
+  40% { scale: 1.012; }
+  100% { scale: 1; }
+}
+
+.contact-actions {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.8rem;
+  margin-top: 1rem;
+  opacity: var(--cta);
+}
+
+/* a strip of the band's own sand under the links, edge to edge, so they
+   stay readable where the portrait runs behind them */
+.contact-actions::before {
+  content: '';
+  position: absolute;
+  top: -1rem;
+  bottom: calc(var(--pad-bottom) * -1);
+  left: calc(var(--pad-x) * -1);
+  right: calc(var(--pad-x) * -1);
+  z-index: -1;
+  background: #dcdccc;
+}
+
+.contact-email {
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.socials {
+  font-weight: 550;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.4rem;
+  margin: 0 0 0 auto;
+  padding: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ---------- the lab: the explorable room ---------- */
+
+.room {
+  position: relative;
+  height: clamp(34rem, 100vh, 64rem);
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 90% 60% at 70% 20%, var(--glow) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 70% at 20% 80%, var(--water) 0%, transparent 60%),
+    linear-gradient(175deg, var(--haze) 0%, var(--paper) 70%);
+}
+
+.room canvas {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1200ms var(--ease-drift);
+}
+
+.room.is-live canvas {
+  opacity: 1;
+}
+
+/* the words sit over the shapes and let every touch through */
+.room-copy {
+  position: absolute;
+  left: clamp(1.25rem, 6vw, 6rem);
+  top: clamp(2.5rem, 7vw, 6rem);
+  z-index: 1;
+  max-width: 24rem;
+  pointer-events: none;
+}
+
+.room-copy h2 {
+  font-size: clamp(2.1rem, 5vw, 3.6rem);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.08;
+}
+
+.room-copy p:not(.overline) {
+  color: var(--ink-quiet);
+  font-size: 1.08rem;
+}
+
+.room-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.6rem;
+  margin-top: var(--space-3);
+}
+
+.room-controls .line-button {
+  pointer-events: auto;
+  color: var(--ink);
+}
+
+/* reduced motion: the room stays still, so the play controls step back */
+.room.is-still #room-sound,
+.room.is-still #room-floor {
+  display: none;
+}
+
+/* ---------- footer ---------- */
+
+.site-foot {
+  background:
+    linear-gradient(rgba(132, 147, 150, 0.35), rgba(132, 147, 150, 0.35)),
+    var(--lake) center / cover no-repeat,
+    #a9b5b7;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem 2rem;
+  padding: var(--space-4) 1.5rem;
+  color: #fff;
+  font-size: 0.74rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.site-foot-mark {
+  --brand-asset: url('/brand/diplomacy-wordmark.png');
+  width: 9rem;
+  aspect-ratio: 3182 / 418;
+  background: #fff;
+}
+
+/* ---------- the credit sheet ---------- */
+
+.credit-dialog {
+  width: min(100% - 2rem, 54rem);
+  max-height: min(100dvh - 2rem, 44rem);
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 0 40px 100px -30px rgba(0, 0, 0, 0.6);
+  overflow: auto;
+}
+
+.credit-dialog::backdrop {
+  background: rgba(48, 45, 38, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.credit-dialog[open] {
+  animation: sheet-in 500ms var(--ease-drift);
+}
+
+@keyframes sheet-in {
+  from { opacity: 0; translate: 0 1.2rem; }
+}
+
+.credit-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+}
+
+.credit-body img {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.credit-text {
+  padding: clamp(1.5rem, 4vw, 3rem);
+  padding-top: clamp(3rem, 5vw, 3.6rem);
+}
+
+.credit-text h2 {
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.12;
+}
+
+.credit-roles {
+  font-size: 1.02rem;
+}
+
+.credit-line {
+  font-size: 0.9rem;
+  color: var(--ink-quiet);
+}
+
+.credit-awards {
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.credit-awards li {
+  border-top: 1px solid var(--haze);
+  padding-block: 0.5rem;
+}
+
+.credit-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.credit-links a {
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 0.15rem;
+}
+
+.dialog-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.2rem;
+  z-index: 1;
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.dialog-close:hover {
+  color: var(--ink);
+}
+
+/* ---------- smaller screens ---------- */
+
+@media (max-width: 900px) {
+  .covers { grid-template-columns: repeat(3, 1fr); }
+  .games { grid-template-columns: repeat(3, 1fr); }
+  .facts { grid-template-columns: repeat(2, 1fr); }
+  .studio-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+  .site-head-inner {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+    padding-block: 0.7rem;
+  }
+
+  .site-links {
+    width: 100%;
+    justify-content: space-between;
+    font-size: 0.76rem;
+  }
+
+  .lockup-mark { width: 2.2rem; height: 2.2rem; }
+  .lockup-name { font-size: 0.74rem; }
+
+  /* the tall frame: the hero fills the screen, and the first two bands
+     are clear so the stage shows through behind the cards. A soft wash
+     of paper keeps the words readable over the water. */
+  .hero {
+    height: calc(100svh - 5.2rem);
+    min-height: 24rem;
+  }
+
+  .band-statement {
+    background:
+      linear-gradient(rgba(242, 241, 240, 0) 0, rgba(242, 241, 240, 0.42) 9rem, rgba(242, 241, 240, 0.42) 100%),
+      rgb(242 241 240 / var(--veil, 0));
+  }
+
+  .band.band-company {
+    background:
+      linear-gradient(rgba(242, 241, 240, 0.42), rgba(242, 241, 240, 0.42)),
+      rgb(242 241 240 / var(--veil, 0));
+  }
+
+
+
+  .pillars { grid-template-columns: 1fr; gap: var(--space-2); }
+  .company-track { --logo-unit: 2.2rem; gap: 3rem; }
+  .covers { grid-template-columns: repeat(2, 1fr); gap: 1.6rem 1rem; }
+  /* three reels of three on a phone */
+  .games { grid-template-columns: repeat(3, 1fr); gap: 1.3rem 0.6rem; }
+  .game h3 { font-size: 0.72rem; min-height: 3.9em; }
+  .game p { font-size: 0.62rem; }
+  .game-art-name { font-size: 0.5rem; letter-spacing: 0.08em; padding: 0.3rem; }
+  .reels { grid-template-columns: 1fr; }
+  .reel-lead { grid-column: auto; grid-row: auto; }
+  /* the contact scene on a phone: same two columns, smaller, under a taller header */
+  .contact-scroll { --head: 6.1rem; }
+  .contact-stage {
+    --pad-top: 1.4rem;
+    grid-template-columns: minmax(0, 0.57fr) minmax(0, 0.43fr);
+    column-gap: 0.6rem;
+  }
+  .contact-portrait img { right: -44%; top: 9%; height: 92%; }
+  .contact-copy { align-self: start; }
+  .contact-mark { width: 2.6rem; height: 2.6rem; margin-bottom: 1rem; }
+  .contact-hello { font-size: 1.05rem; }
+  .contact-note p { font-size: 1.2rem; line-height: 1.3; }
+  .loud-button { font-size: 2.15rem; }
+  .loud-arrow { display: none; }
+  .socials { margin-left: 0; gap: 0.9rem; font-size: 0.72rem; }
+  .contact-actions { gap: 0.5rem 1.2rem; }
+  .ledger-row { grid-template-columns: 1fr; gap: 0.3rem; }
+
+  .credit-body { grid-template-columns: 1fr; }
+  .credit-body img { max-height: 46vh; }
+
+  .fact { padding: 1.2rem 1rem 1.3rem; }
+  .demo { grid-template-columns: 2rem 1fr 1.4rem; }
+  .demo-meta { grid-column: 2; }
+  .demo-state { grid-row: 1; grid-column: 3; }
+  .demo-bar { grid-template-columns: auto 1fr auto; row-gap: 0.4rem; }
+  .demo-seek { grid-column: 1 / -1; grid-row: 2; }
+  .demo-clock, .demo-next { display: none; }
+}
+
+/* ---------- stillness on request ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-cue span,
+  .credit-dialog[open] {
+    animation: none;
+  }
+
+  .bokeh-light,
+  .bokeh-glint,
+  .spin-button {
+    animation: none;
+  }
+
+  /* no held scene: the contact band is just a band */
+  .contact-scroll {
+    height: auto;
+  }
+
+  .contact-stage {
+    position: static;
+    height: auto;
+    min-height: 34rem;
+  }
+
+  .contact-stage.is-done .loud-button {
+    animation: none;
+  }
+
+  .bokeh-glint {
+    opacity: 0.35;
+  }
+
+  .cover-art,
+  .cover-art img,
+  .game-art img,
+  .reel-frame img {
+    transition: none;
+  }
+}

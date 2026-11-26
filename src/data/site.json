@@ -1,0 +1,28 @@
+{
+  "hero": {
+    "video": {
+      "hd": "/video/lake-1080.mp4",
+      "sd": "/video/lake-720.mp4"
+    },
+    "poster": "/video/lake.jpg"
+  },
+  "email": "daniel@diplomacymusic.com",
+  "socials": [
+    {
+      "label": "IMDb",
+      "href": "https://www.imdb.com/name/nm2981999/"
+    },
+    {
+      "label": "LinkedIn",
+      "href": "https://www.linkedin.com/in/daniel-brunelle-a447a882/"
+    },
+    {
+      "label": "Instagram",
+      "href": "https://www.instagram.com/danielhbrunelle/"
+    },
+    {
+      "label": "Facebook",
+      "href": "https://www.facebook.com/DiplomacyMusic"
+    }
+  ]
+}

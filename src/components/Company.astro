@@ -1,0 +1,60 @@
+---
+import fs from 'node:fs';
+
+// The publishers and studios, as one sliding line. Each logo is a real
+// brand SVG rendered through a mask so the whole wall sits in one quiet
+// tone. Every mark gets the same visual area, not the same height: a
+// long wordmark runs wide and low, a round badge sits compact, and they
+// read as equals. `weight` nudges the few that still look light or heavy.
+const names = [
+  { id: 'marvel', name: 'Marvel', weight: 0.95 },
+  { id: 'spotify', name: 'Spotify', weight: 1 },
+  { id: 'audible', name: 'Audible', weight: 1 },
+  { id: 'startrek', name: 'Star Trek', weight: 1.05 },
+  { id: 'dc', name: 'DC', weight: 0.82 },
+  { id: 'amazon', name: 'Amazon', weight: 1 },
+  { id: 'sega', name: 'Sega', weight: 0.95 },
+  { id: 'siriusxm', name: 'SiriusXM', weight: 1.05 },
+  { id: 'broadwayvideo', name: 'Broadway Video', weight: 1 },
+];
+
+const logos = names.map((logo) => {
+  const svg = fs.readFileSync(`public/brand/logos/${logo.id}.svg`, 'utf8');
+  let ratio = 3;
+  const viewBox = svg.match(/viewBox="([^"]+)"/);
+  if (viewBox) {
+    const parts = viewBox[1].trim().split(/[\s,]+/).map(Number);
+    if (parts.length === 4 && parts[3] > 0) ratio = parts[2] / parts[3];
+  } else {
+    const w = svg.match(/<svg[^>]*\swidth="([\d.]+)/);
+    const h = svg.match(/<svg[^>]*\sheight="([\d.]+)/);
+    if (w && h && Number(h[1]) > 0) ratio = Number(w[1]) / Number(h[1]);
+  }
+  // equal area: width grows with the square root of the proportions
+  const width = Math.sqrt(ratio) * logo.weight;
+  return { ...logo, ratio, width };
+});
+---
+
+<div class="company">
+  <p class="overline" data-reveal>In good company</p>
+  <!-- one line of marks that slides sideways as the page scrolls. The
+       set repeats so the line is always full; only the first set is read
+       out, the repeats are decoration -->
+  <div class="company-rail" data-reveal>
+    <ul class="company-track" data-depth="1.7" data-axis="x">
+      {[0, 1, 2].map((round) =>
+        logos.map((logo) => (
+          <li class={round === 1 ? undefined : 'company-repeat'} aria-hidden={round === 1 ? undefined : 'true'}>
+            <span
+              class="company-logo"
+              role={round === 1 ? 'img' : undefined}
+              aria-label={round === 1 ? logo.name : undefined}
+              style={`--logo: url('/brand/logos/${logo.id}.svg'); width: calc(var(--logo-unit) * ${logo.width.toFixed(3)}); aspect-ratio: ${logo.ratio.toFixed(3)};`}
+            />
+          </li>
+        ))
+      )}
+    </ul>
+  </div>
+</div>

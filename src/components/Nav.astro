@@ -1,16 +1,16 @@
 ---
 const links = [
-  { href: '/#featured', label: 'Featured Work' },
-  { href: '/#series', label: 'Series' },
-  { href: '/#games', label: 'Games' },
-  { href: '/#build', label: 'Studio' },
+  { href: '/lab/#featured', label: 'Featured Work' },
+  { href: '/lab/#series', label: 'Series' },
+  { href: '/lab/#games', label: 'Games' },
+  { href: '/lab/#build', label: 'Studio' },
 ];
 const current = Astro.url.pathname;
 ---
 
 <header class="nav-bar">
   <nav class="wrap nav-inner" aria-label="Main">
-    <a class="brand" href="/" aria-label="Diplomacy, home">
+    <a class="brand" href="/lab/" aria-label="Diplomacy, home">
       <img class="brand-mark" src="/brand/diplomacy-avatar.jpg" alt="" width="315" height="315" />
       <span class="brand-name" aria-hidden="true">Diplomacy<br /><span
           class="brand-word-line"><span id="brand-word">Music</span><span class="type-caret"></span></span></span>
@@ -21,7 +21,7 @@ const current = Astro.url.pathname;
           {link.label}
         </a>
       ))}
-      <a class="index-toggle" href="/indexlist">Index</a>
+      <a class="index-toggle" href="/lab/indexlist">Index</a>
     </div>
   </nav>
 </header>

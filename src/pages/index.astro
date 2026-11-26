@@ -1,617 +1,1196 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import LogoWall from '../components/LogoWall.astro';
-import BuildCollage from '../components/BuildCollage.astro';
+import Site from '../layouts/Site.astro';
+import Company from '../components/Company.astro';
+import DemoPlayer from '../components/DemoPlayer.astro';
 import credits from '../data/credits.json';
 import games from '../data/games.json';
+import reels from '../data/reels.json';
+import demos from '../data/demos.json';
+import site from '../data/site.json';
 
-const featured = credits.filter((credit) => credit.featured);
+// small web copies made by tools/make_thumbs.sh
+const thumb = (path) =>
+  path ? path.replace('/art/', '/art/thumb/').replace(/\.(jpg|png|webp)$/, '.webp') : null;
 
-// one card per show for the series stretch of the ribbon
-const seen = new Set();
-const seriesCards = credits.filter((credit) => {
-  if (!credit.group) return true;
-  if (seen.has(credit.group)) return false;
-  seen.add(credit.group);
-  return true;
+// what each credit answers to in the filter row
+const tagsFor = (credit) => {
+  const tags = new Set();
+  for (const role of credit.roles) {
+    if (/Composer/.test(role)) tags.add('score');
+    if (/Sound Designer/.test(role)) tags.add('design');
+    if (/Mix/.test(role)) tags.add('mix');
+    if (/Supervisor/.test(role)) tags.add('supervision');
+  }
+  return [...tags];
+};
+
+const filters = [
+  { id: 'all', label: 'Everything' },
+  { id: 'score', label: 'Score' },
+  { id: 'design', label: 'Sound design' },
+  { id: 'mix', label: 'Mix' },
+  { id: 'supervision', label: 'Supervision' },
+];
+
+const work = credits.map((credit) => ({ ...credit, tags: tagsFor(credit), thumb: thumb(credit.artwork) }));
+
+// recognition, counted straight from the credits so it can never drift
+const showKey = (credit) => credit.group || credit.id;
+const showsWith = (badge) => {
+  const seen = new Map();
+  for (const credit of credits) {
+    if (credit.badges.includes(badge) && !seen.has(showKey(credit))) {
+      seen.set(showKey(credit), credit.title.replace(/,?\s*Season \d+/, ''));
+    }
+  }
+  return [...seen.values()];
+};
+const appleFiction = showsWith('Apple Fiction #1');
+const spotifyGlobal = showsWith('Spotify Global #1');
+const recognition = [
+  { figure: String(appleFiction.length), label: 'Apple Fiction No. 1', lines: appleFiction },
+  { figure: String(spotifyGlobal.length), label: 'Spotify Global No. 1', lines: spotifyGlobal },
+  {
+    figure: 'Signal',
+    label: 'Award winner',
+    lines: [
+      'DC High Volume: Batman',
+      'Best Original Score and Music',
+      'Most Innovative Audio Experience',
+      'Best Scripted Fiction',
+      'Best Editing',
+    ],
+  },
+  {
+    figure: 'Ambie',
+    label: 'Award winner',
+    lines: [
+      'Murder at the Patel Motel',
+      'Winner, Best Performance in Audio Fiction',
+      'Nominated, Best Original Score and Music Supervision',
+    ],
+  },
+];
+
+const titles = games.map((game) => ({ ...game, thumb: thumb(game.artwork) }));
+const licenses = [...new Set(games.map((game) => game.license).filter(Boolean))];
+const FIRST_GAMES = 15;
+
+// the symbols that fly past while the reels spin: art from further down the list
+const reelPool = titles.slice(FIRST_GAMES).filter((game) => game.thumb).slice(0, 14).map((game) => game.thumb);
+
+// A field of soft lights behind the games: out of focus glints, placed by a
+// fixed seed so the page builds the same way every time.
+const seeded = (seed) => () => {
+  seed = (seed * 16807) % 2147483647;
+  return (seed - 1) / 2147483646;
+};
+const rand = seeded(1048576);
+const LIGHTS = ['#e9c98d', '#f4ead2', '#d9d7c2', '#a9bcc0', '#e6a98f'];
+const bokeh = Array.from({ length: 22 }, (_, i) => {
+  const size = 3 + rand() * 9;
+  return {
+    left: (rand() * 104 - 2).toFixed(1),
+    top: (rand() * 100).toFixed(1),
+    size: size.toFixed(1),
+    color: LIGHTS[Math.floor(rand() * LIGHTS.length)],
+    glow: (0.1 + rand() * 0.22).toFixed(2),
+    blur: (size * 0.14).toFixed(1),
+    depth: (rand() * 1.1 - 0.35).toFixed(2),
+    time: (5 + rand() * 7).toFixed(1),
+    delay: (-rand() * 10).toFixed(1),
+  };
 });
-const listenLink = (credit) =>
-  credit.links.apple || credit.links.spotify || credit.links.official;
+const glints = Array.from({ length: 34 }, () => ({
+  left: (rand() * 100).toFixed(1),
+  top: (rand() * 100).toFixed(1),
+  size: (1.5 + rand() * 2.5).toFixed(1),
+  time: (1.8 + rand() * 3.4).toFixed(1),
+  delay: (-rand() * 6).toFixed(1),
+}));
+
+const statement = 'A sound studio for stories, games, and the machines that give them voice.';
+
+// Daniel's own words, from the old site. They write themselves out in the
+// contact band as the page scrolls.
+const note =
+  "I'm just like you, I have been making sounds my whole life. The only difference is that I record them, combine them, and put them back out into the world.";
+
+const pillars = [
+  {
+    word: 'Music',
+    text: 'Original score for audio drama, games, and picture.',
+  },
+  {
+    word: 'Sound',
+    text: 'Sound design, re-recording mix, and post production supervision.',
+  },
+  {
+    word: 'Tech',
+    text: 'Tools and workflows that give the people making the work more room to make it.',
+  },
+];
+
+const earlier = [
+  {
+    term: 'Film',
+    lines: ['Feature scores for Broken Bridge, The North Star, Greensburg (PBS), and Poverty in Chicago (PBS).'],
+  },
+  {
+    term: 'Advertising',
+    lines: [
+      "Music for Kellogg's, McDonald's, Maytag, Whirlpool, Secret, Centrum, Mack Trucks, the Beef Council, and Exelon.",
+      'With Leo Burnett, BBDO, VSA Partners, Draft FCB, and Razorfish.',
+    ],
+  },
+  {
+    term: 'Records',
+    lines: [
+      'Gemini Club, MONAKR, and Shealeigh.',
+      'No. 1 rotation on SiriusXM Alt Nation. No. 3 on Radio Disney. Lollapalooza, 2014.',
+    ],
+  },
+  {
+    term: 'Sync',
+    lines: ['Nintendo 3DS, Ubisoft Watch Dogs, TNT, Vice, Gatorade, Hugo Boss, MTV, Red Bull, Lacoste, Fox Sports Net.'],
+  },
+  {
+    term: 'Interactive',
+    lines: ['Finding Dolores, a voice guided interactive podcast. Webby nominee, 2018.'],
+  },
+];
+
+const creditData = Object.fromEntries(
+  work.map((credit) => [
+    credit.id,
+    {
+      title: credit.title,
+      publisher: credit.publisher,
+      producers: credit.producers,
+      roles: credit.roles,
+      genre: credit.genre,
+      stars: credit.stars,
+      badges: credit.badges,
+      awards: credit.awards,
+      links: credit.links,
+      thumb: credit.thumb,
+    },
+  ])
+);
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      name: 'Diplomacy',
+      url: 'https://www.diplomacymusic.com',
+      description: statement,
+      founder: { '@id': '#daniel-brunelle' },
+    },
+    {
+      '@type': 'Person',
+      '@id': '#daniel-brunelle',
+      name: 'Daniel Brunelle',
+      jobTitle: 'Composer and Sound Designer',
+      url: 'https://www.diplomacymusic.com/#studio',
+      worksFor: { '@type': 'Organization', name: 'Diplomacy' },
+    },
+  ],
+};
 ---
 
-<Layout
-  title="Diplomacy. An audio studio."
-  description="Diplomacy is an audio studio for stories, games, and the machines that give them voice. Audio drama, game audio, and original production instruments."
+<Site
+  title="Diplomacy. Music, sound, and studio."
+  description="Diplomacy is the sound studio of composer and sound designer Daniel Brunelle. Score, sound design, mix, and post production for audio drama and games. Chicago."
 >
-  <div class="environment" id="environment" aria-hidden="true"></div>
+  <!-- The stage: the one lake video, fixed behind the top of the page. It
+       drifts slower than the scroll and falls out of focus as the page
+       moves. It is seen through two windows: the hero, which lightens to
+       paper as it leaves, and the recognition band, which shows it dimmed.
+       After that band it rests. -->
+  <div class="stage" aria-hidden="true">
+    <video
+      class="hero-video"
+      muted
+      loop
+      playsinline
+      preload="none"
+      poster={site.hero.poster}
+      data-hd={site.hero.video.hd}
+      data-sd={site.hero.video.sd}></video>
+    <div class="stage-tint"></div>
+  </div>
 
-  <section class="hero">
-    <div class="hero-copy wrap">
-      <h1 class="visually-hidden">
-        Diplomacy. An audio studio for stories, games, and the machines that give them voice.
-      </h1>
+  <section class="hero" id="top">
+
+    <!-- the wordmark and the line rest dead center, then ride the scroll a little slower than the page -->
+    <div class="hero-copy">
+      <h1 class="visually-hidden">Diplomacy. {statement}</h1>
       <span class="brand-mask hero-wordmark" role="img" aria-label="Diplomacy"></span>
-      <p class="overline">Sound is listening</p>
-      <p class="hero-line">An audio studio for stories, games,<br />and the machines that give them voice.</p>
-      <div class="pillars">
-        <a href="/#featured"><span class="overline">Story</span> Audio drama</a>
-        <a href="/games"><span class="overline">Play</span> Game audio</a>
-        <a href="/studio"><span class="overline">Build</span> The studio</a>
+      <p class="hero-tag">Sound is listening</p>
+    </div>
+
+    <a class="hero-cue" href="#statement" aria-label="Scroll to the work"><span></span></a>
+  </section>
+
+  <main class="sheet">
+    <!-- statement -->
+    <section class="band band-statement" id="statement">
+      <div class="band-inner">
+        <p class="overline" data-reveal>Diplomacy</p>
+        <p class="statement" data-words>
+          {statement.split(' ').map((w) => <><span class="w">{w}</span>{' '}</>)}
+        </p>
+        <div class="pillars">
+          {pillars.map((pillar) => (
+            <div class="pillar" data-reveal>
+              <h2>{pillar.word}</h2>
+              <p>{pillar.text}</p>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="featured wrap soft-veil" id="featured">
-    <h2>Featured work</h2>
-    <p class="lede">Places to stop and listen. Each one opens with the audio and the intent side by side.</p>
-    <div class="featured-grid">
-      {featured.map((credit) => (
-        <article class="card" data-reveal>
-          {credit.artwork && (
-            <img src={credit.artwork} alt={`Cover art for ${credit.title}`} loading="lazy" width="600" height="600" />
-          )}
-          <h3>{credit.title}</h3>
-          <p class="card-meta">{credit.roles.join(', ')}</p>
-          {credit.badges.length > 0 && <span class="badge">{credit.badges[0]}</span>}
-        </article>
-      ))}
-    </div>
-    <p class="all-link"><a href="/indexlist">Every credit, one page, no waiting.</a></p>
-  </section>
+    <section class="band band-company" aria-label="Publishers and studios Diplomacy has worked with">
+      <div class="band-inner">
+        <Company />
+      </div>
+    </section>
 
-  <LogoWall />
+    <!-- recognition -->
+    <section class="band band-recognition deep" aria-label="Recognition">
+      <!-- this band is a dim window onto the stage: the one lake video, by now far out of focus -->
+      <div class="band-inner" data-depth="0.07">
+        <p class="overline" data-reveal>Recognition</p>
+      </div>
+      <!-- the cards are dealt one at a time when the row comes into view, and the
+           whole row rides a little faster than the band, so it floats over the lake -->
+      <div class="band-inner facts" id="facts" data-depth="0.07">
+        {recognition.map((fact, i) => (
+          <div class="fact" style={`--i: ${i}`}>
+            <span class="fact-figure" data-count={/^\d+$/.test(fact.figure) ? fact.figure : undefined}>{fact.figure}</span>
+            <span class="fact-label">{fact.label}</span>
+            <span class="fact-detail">{fact.lines.map((line, j) => <span style={`--j: ${j}`}>{line}</span>)}</span>
+          </div>
+        ))}
+      </div>
+    </section>
 
-  <section class="ribbon-series" id="series">
-    <div class="wrap">
-      <header class="section-head">
-        <p class="overline">Series</p>
-        <h2>Stories, told in the dark.</h2>
-        <p class="lede">Every show opens where it lives, ready to play.</p>
-      </header>
-      <div class="sr-grid">
-        {seriesCards.map((credit, i) => (
-          <a class="sr-card" data-reveal={i % 2 ? 'right' : 'left'} href={listenLink(credit)} target="_blank" rel="noopener">
-            {credit.artwork && (
-              <span class="sr-art">
-                <img src={credit.artwork} alt={`Cover art for ${credit.title}`} loading="lazy" width="600" height="600" />
+    <!-- work -->
+    <section class="band band-work" id="work">
+      <div class="ghost-clip" aria-hidden="true">
+        <span class="ghost" data-depth="-0.9" data-axis="x">Sound</span>
+      </div>
+      <div class="band-inner">
+        <header class="section-head">
+          <p class="overline" data-reveal>Audio drama</p>
+          <h2 data-reveal>Stories, <span class="tone">told in the dark.</span></h2>
+          <p class="lede" data-reveal>
+            <span id="work-count">{work.length}</span> productions for Audible, Marvel, DC, Star Trek, Spotify, and Sega.
+            Open any cover for the credits.
+          </p>
+        </header>
+
+        <div class="filters" role="group" aria-label="Filter the work by discipline">
+          {filters.map((filter) => (
+            <button class="chip" type="button" data-filter={filter.id} aria-pressed={filter.id === 'all' ? 'true' : 'false'}>
+              {filter.label}
+            </button>
+          ))}
+        </div>
+
+        <div class="covers" id="covers" data-depth-cols="0.07,-0.05,0.1,-0.02">
+          {work.map((credit) => (
+            <button
+              class="cover"
+              type="button"
+              data-id={credit.id}
+              data-tags={credit.tags.join(' ')}
+              style={`view-transition-name: c-${credit.id}`}
+              data-reveal
+            >
+              <span class="cover-art">
+                <img src={credit.thumb} alt={`Cover art for ${credit.title}`} loading="lazy" width="640" height="640" />
+                {credit.badges.length > 0 && <span class="cover-badge">{credit.badges[0]}</span>}
               </span>
-            )}
-            <h3>{credit.group ? credit.title.replace(/,?\s*Season \d+/, '') : credit.title}</h3>
-            <p class="sr-meta">{credit.roles.join(', ')}</p>
-            {credit.badges.length > 0 && <span class="badge">{credit.badges[0]}</span>}
-          </a>
+              <span class="cover-title">{credit.title}</span>
+              <span class="cover-role">{credit.roles.join(', ')}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- games -->
+    <section class="band band-games dark" id="games">
+      <!-- implied glitz: soft out of focus lights and a few glints -->
+      <div class="bokeh" aria-hidden="true">
+        {bokeh.map((light) => (
+          <span
+            class="bokeh-light"
+            data-depth={light.depth}
+            style={`left:${light.left}%; top:${light.top}%; width:${light.size}rem; --light:${light.color}; --glow:${light.glow}; --soft:${light.blur}rem; --time:${light.time}s; --delay:${light.delay}s`}
+          />
         ))}
+        {glints.map((glint) => (
+          <span
+            class="bokeh-glint"
+            style={`left:${glint.left}%; top:${glint.top}%; width:${glint.size}px; --time:${glint.time}s; --delay:${glint.delay}s`}
+          />
+        ))}
+      </div>
+      <div class="ghost-clip" aria-hidden="true">
+        <span class="ghost" data-depth="0.9" data-axis="x">Play</span>
+      </div>
+      <div class="band-inner">
+        <header class="section-head">
+          <p class="overline" data-reveal>Games</p>
+          <h2 data-reveal>Where sound <span class="tone">meets code.</span></h2>
+          <p class="lede" data-reveal>
+            Dynamic music and audio experiences that go wherever the player goes.
+          </p>
+          <p class="games-facts" data-reveal>Over one hundred shipped titles, built in Unity and FMOD.</p>
+        </header>
+
+        <!-- Fifteen titles show at a time, and they arrive as reels: every column
+             spins, then they stop left to right. The Re-Spin button, on the right
+             where the button lives on the real thing, deals another fifteen. Without scripts the whole list simply shows. -->
+        <div class="games" id="games-grid" data-reel-pool={JSON.stringify(reelPool)}>
+          {titles.map((game, i) => (
+            <article class={`game${i < FIRST_GAMES ? ' is-on' : ''}`}>
+              <span class={`game-art${game.thumb ? '' : ' game-art-name'}`}>
+                {game.thumb ? (
+                  <img src={game.thumb} alt={`Art for ${game.title}`} loading="lazy" width="720" height="450" />
+                ) : (
+                  <span aria-hidden="true">{game.title}</span>
+                )}
+              </span>
+              <h3>{game.title}</h3>
+              <p>{[game.license && game.license !== game.title ? game.license : null, game.year].filter(Boolean).join(' · ')}</p>
+            </article>
+          ))}
+        </div>
+        <p class="games-more">
+          <span class="games-count">{titles.length} titles in all. Re-Spin for another <span id="games-per">{FIRST_GAMES}</span>.</span>
+          <button class="spin-button" type="button" id="games-spin"><span>Re-Spin</span></button>
+        </p>
+      </div>
+      <div class="ghost-clip marquee-clip" aria-hidden="true">
+        <span class="marquee" data-depth="-1.4" data-axis="x">{licenses.join('  ·  ')}  ·  {licenses.join('  ·  ')}</span>
+      </div>
+    </section>
+
+    <!-- listen -->
+    <section class="band band-listen" id="listen">
+      <div class="ghost-clip" aria-hidden="true">
+        <span class="ghost" data-depth="-0.9" data-axis="x">Music</span>
+      </div>
+      <div class="band-inner">
+        <header class="section-head">
+          <p class="overline" data-reveal>Listen</p>
+          <h2 data-reveal>Reels <span class="tone">and records.</span></h2>
+          <p class="lede" data-reveal>Score, design, and the bands that came first.</p>
+        </header>
+
+        {demos.length > 0 && <DemoPlayer />}
+
+        <div class="reels">
+          {reels.map((reel, i) => (
+            <figure class={`reel${i === 0 ? ' reel-lead' : ''}`} data-reveal>
+              <button class="reel-frame" type="button" data-video={reel.id} aria-label={`Play ${reel.title}`}>
+                <img
+                  src={`https://i.ytimg.com/vi/${reel.id}/${reel.thumb}.jpg`}
+                  alt=""
+                  loading="lazy"
+                  width="640"
+                  height="360"
+                />
+                <span class="reel-play" aria-hidden="true"></span>
+              </button>
+              <figcaption>
+                <span class="overline">{reel.kind}</span>
+                <span class="reel-title">{reel.title}</span>
+                <span class="reel-note">{reel.note}</span>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- a word from a client -->
+    <section class="band band-quote" aria-label="Testimonial">
+      <div class="band-inner">
+        <blockquote data-reveal>
+          <p data-words>
+            {'Dan is the rare breed who possesses the instincts and hyper creativity of the most relevant artist-producers, but also understands the grind, nuance and collaboration required to appease all the subjective demands of making great music for marketing.'
+              .split(' ')
+              .map((w) => <><span class="w">{w}</span>{' '}</>)}
+          </p>
+          <footer>Chris Clark, Director of Music, Leo Burnett</footer>
+        </blockquote>
+      </div>
+    </section>
+
+    <!-- studio -->
+    <section class="band band-studio" id="studio">
+      <div class="ghost-clip" aria-hidden="true">
+        <span class="ghost" data-depth="0.9" data-axis="x">Studio</span>
+      </div>
+      <div class="band-inner studio-grid">
+        <div class="studio-copy">
+          <p class="overline" data-reveal>Studio</p>
+          <h2 data-reveal>Diplomacy <span class="tone">Studio</span></h2>
+          <p data-reveal>
+            Diplomacy is the studio of composer and sound designer Daniel Brunelle.
+            Classical training, rock and roll habits, and a long apprenticeship in rooms
+            where the deadline is real. Based in Chicago.
+          </p>
+          <p data-reveal>
+            The studio works in three rooms. Music: original score. Sound: design, mix,
+            and the supervision that carries a show from script to delivery. Tech:
+            custom software built from inside the creative process. Alignment systems,
+            assembly automation, adaptive music engines. Tools that let the people
+            in the room spend their time on the work.
+          </p>
+        </div>
+        <dl class="ledger">
+          <p class="overline" data-reveal>Before, and alongside</p>
+          {earlier.map((row) => (
+            <div class="ledger-row" data-reveal>
+              <dt>{row.term}</dt>
+              <dd>{row.lines.map((line) => <span>{line}</span>)}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+
+    <!-- contact -->
+    <!-- Contact is a short scene. The band holds still while the page scrolls:
+         the note writes itself out on the left beside the portrait, and when
+         it is finished the big button arrives underneath. Without scripts or
+         with reduced motion, everything simply shows. -->
+    <section class="band band-contact sand" id="contact" aria-label="Contact">
+      <div class="contact-scroll" id="contact-scroll">
+        <div class="contact-stage">
+          <div class="contact-copy">
+            <span class="brand-mask contact-mark" role="img" aria-label="Diplomacy"></span>
+            <p class="overline">Contact</p>
+            <p class="contact-hello">Thanks for coming, i'm dan</p>
+            <blockquote class="contact-note" aria-label={note}>
+              <p class="typed" aria-hidden="true">
+                {note.split(' ').map((word) => (
+                  <><span class="tw-word">{[...word].map((ch) => <span class="tw-ch">{ch}</span>)}</span>{' '}</>
+                ))}
+              </p>
+              <footer>Daniel Brunelle</footer>
+            </blockquote>
+          </div>
+
+          <!-- the portrait is the backdrop of the scene: far bigger than the frame,
+               and drifting slowly as the scroll moves the scene along -->
+          <figure class="contact-portrait">
+            <img src="/studio/portrait.webp" alt="Daniel Brunelle" width="994" height="1687" loading="lazy" />
+          </figure>
+
+          <div class="contact-cta">
+            <a class="loud-button" href={`mailto:${site.email}`}>
+              <span>Let's get loud together.</span>
+              <span class="loud-arrow" aria-hidden="true">&rarr;</span>
+            </a>
+            <div class="contact-actions">
+              <a class="contact-email" href={`mailto:${site.email}`}>{site.email}</a>
+              <button class="line-button" type="button" id="copy-email" data-email={site.email}>Copy the address</button>
+              <ul class="socials">
+                {site.socials.map((social) => (
+                  <li><a href={social.href} target="_blank" rel="noopener">{social.label}</a></li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- the lab: the explorable room, playable right here -->
+  <section class="room" id="room" aria-label="The lab. A room of shapes you can play.">
+    <div class="room-copy">
+      <p class="overline">The lab</p>
+      <h2>Sound <span class="tone">is listening.</span></h2>
+      <p>Touch a shape. Throw one. Everything in this room answers.</p>
+      <div class="room-controls">
+        <button class="line-button" type="button" id="room-sound" aria-pressed="false">Sound on</button>
+        <button class="line-button" type="button" id="room-floor" aria-pressed="false">Let them fall</button>
+        <a class="line-button" href="/lab/">The whole experiment</a>
       </div>
     </div>
   </section>
 
-  <section class="ribbon-games" id="games">
-    <div class="wrap">
-      <header class="section-head">
-        <p class="overline">Games</p>
-        <h2>The casino floor, heard properly.</h2>
-        <p class="lede">
-          Over one hundred shipped titles. Dynamic music engines with
-          <span class="odometer" id="combo-count">1,048,576</span> combinations,
-          built in Unity and FMOD.
-        </p>
-      </header>
-      <div class="gm-grid">
-        {games.slice(0, 20).map((game) => (
-          <article class="gm-card" data-reveal>
-            <span class="gm-art">
-              {game.artwork ? (
-                <img src={game.artwork} alt={`Art for ${game.title}`} loading="lazy" width="600" height="400" />
-              ) : (
-                <span class="gm-pending" aria-hidden="true"></span>
-              )}
-            </span>
-            <h3>{game.title}</h3>
-            <p class="gm-meta">{game.publisher}{game.year && ` · ${game.year}`}</p>
-          </article>
-        ))}
+  <dialog class="credit-dialog" id="credit-dialog" aria-labelledby="credit-title">
+    <button class="dialog-close" type="button" aria-label="Close">Close</button>
+    <div class="credit-body">
+      <img id="credit-art" alt="" width="640" height="640" />
+      <div class="credit-text">
+        <p class="overline" id="credit-publisher"></p>
+        <h2 id="credit-title"></h2>
+        <p class="credit-roles" id="credit-roles"></p>
+        <p class="credit-line" id="credit-stars"></p>
+        <ul class="credit-awards" id="credit-awards"></ul>
+        <p class="credit-links" id="credit-links"></p>
       </div>
-      <p class="gm-rest">
-        {games.slice(20).map((game) => game.title).join('  ·  ')}
-      </p>
     </div>
-  </section>
-
-  <section class="ribbon-build" id="build">
-    <div class="wrap">
-      <header class="section-head soft-veil">
-        <p class="overline">Build</p>
-        <h2>The studio makes its own instruments.</h2>
-        <p class="lede">
-          Alignment systems, assembly automation, adaptive music engines.
-          Stated plainly, never explained.
-        </p>
-      </header>
-    </div>
-    <BuildCollage />
-    <div class="wrap studio-meta soft-veil">
-      <p>
-        Diplomacy is the studio of composer and sound designer Daniel Brunelle.
-        Chicago, IL.
-      </p>
-      <p>
-        <a href="mailto:daniel@diplomacymusic.com">daniel@diplomacymusic.com</a>
-        <span class="dot"> · </span>
-        <a href="/studio">The longer story</a>
-      </p>
-    </div>
-  </section>
-</Layout>
-
-<style>
-  .hero {
-    position: relative;
-    min-height: 86vh;
-    display: grid;
-    align-items: center;
-  }
-
-  /* The environment rides behind the whole page now, so the shapes can
-     follow the visitor all the way down and pile up at the bottom. The
-     still gradient is always present, even without the animated layer. */
-  .environment {
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    background:
-      radial-gradient(ellipse 90% 60% at 70% 20%, var(--glow) 0%, transparent 55%),
-      radial-gradient(ellipse 70% 70% at 20% 80%, var(--water) 0%, transparent 60%),
-      linear-gradient(175deg, var(--haze) 0%, var(--paper) 70%);
-  }
-
-  .environment :global(canvas) {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    transition: opacity 1200ms var(--ease-drift);
-  }
-
-  .environment.is-live :global(canvas) {
-    opacity: 1;
-  }
-
-  .hero-copy {
-    position: relative;
-    z-index: 1; /* keeps the scrim below the words but above the environment */
-    padding-block: var(--space-5);
-  }
-
-  /* a breath of paper behind the words so the shapes never crowd them:
-     dim plus an edgeless blur, feathered away by the mask */
-  .hero-copy::before {
-    content: '';
-    position: absolute;
-    inset: -14% -22%;
-    background: radial-gradient(
-      ellipse 62% 75% at 32% 50%,
-      var(--veil) 0%,
-      rgba(242, 241, 240, 0.55) 45%,
-      transparent 68%
-    );
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    -webkit-mask-image: radial-gradient(ellipse 62% 75% at 32% 50%, black 38%, transparent 66%);
-    mask-image: radial-gradient(ellipse 62% 75% at 32% 50%, black 38%, transparent 66%);
-    pointer-events: none;
-    z-index: -1;
-  }
-
-  /* the official wordmark, large and calm over the environment */
-  .hero-wordmark {
-    --brand-asset: url('/brand/diplomacy-wordmark.png');
-    display: block;
-    width: min(100%, 46rem);
-    aspect-ratio: 3182 / 418;
-    mask-position: left center;
-    -webkit-mask-position: left center;
-    margin-bottom: var(--space-2);
-  }
-
-  .hero-line {
-    font-size: clamp(1.1rem, 2.5vw, 1.45rem);
-    font-weight: 300;
-    line-height: 1.4;
-  }
-
-  .pillars {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-3);
-    margin-top: var(--space-3);
-  }
-
-  .pillars a {
-    display: grid;
-    gap: 0.15rem;
-    color: var(--ink);
-    border-top: 1px solid var(--deep);
-    padding-top: 0.6rem;
-    min-width: 8.5rem;
-  }
-
-  .pillars a:hover .overline,
-  .pillars a:focus-visible .overline {
-    color: var(--deep);
-  }
-
-  .featured {
-    padding-block: var(--space-4);
-  }
-
-  .lede {
-    color: var(--ink-quiet);
-  }
-
-  .featured-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
-    gap: var(--space-3);
-    margin-block: var(--space-3);
-  }
-
-  .card img {
-    border-radius: 6px;
-    margin-bottom: var(--space-1);
-    aspect-ratio: 1;
-    object-fit: cover;
-  }
-
-  .card h3 {
-    margin-bottom: 0.2rem;
-  }
-
-  .card-meta {
-    color: var(--ink-quiet);
-    font-size: 0.88rem;
-    margin-bottom: 0.4rem;
-  }
-
-  .all-link {
-    margin-top: var(--space-2);
-  }
-
-  /* ----- the ribbon sections, each with its own weather ----- */
-
-  .section-head {
-    padding-block: var(--space-4) var(--space-2);
-    max-width: 38rem;
-  }
-
-  /* Series: a near opaque page that dissolves at its foot, so the
-     shapes swallow the catalog just before the lights go down */
-  .ribbon-series {
-    padding-block: var(--space-3) var(--space-5);
-    background: linear-gradient(
-      to bottom,
-      rgba(242, 241, 240, 0.92) 0%,
-      rgba(242, 241, 240, 0.88) 62%,
-      rgba(242, 241, 240, 0) 100%
-    );
-  }
-
-  .sr-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
-    gap: var(--space-3);
-    padding-bottom: var(--space-3);
-  }
-
-  .sr-card {
-    display: block;
-    color: var(--ink);
-  }
-
-  .sr-art {
-    display: block;
-    overflow: hidden;
-    border-radius: 6px;
-    margin-bottom: var(--space-1);
-  }
-
-  .sr-card img {
-    aspect-ratio: 1;
-    object-fit: cover;
-    transition: scale 900ms var(--ease-drift), filter 900ms var(--ease-drift);
-  }
-
-  .sr-card h3 {
-    font-size: 1.02rem;
-    margin-bottom: 0.15rem;
-    transition: color var(--t-soft) var(--ease-drift);
-  }
-
-  .sr-meta {
-    color: var(--ink-quiet);
-    font-size: 0.84rem;
-    margin-bottom: 0.35rem;
-  }
-
-  .sr-card:hover img,
-  .sr-card:focus-visible img {
-    scale: 1.05;
-    filter: saturate(1.12) brightness(1.03);
-  }
-
-  .sr-card:hover h3,
-  .sr-card:focus-visible h3 {
-    color: var(--deep);
-  }
-
-  /* Games: the lights go down and the drawings come out. Engineery:
-     hairline rules, index numbers, registration ticks, nothing soft */
-  .ribbon-games {
-    background: var(--ink);
-    color: var(--paper);
-    padding-block: var(--space-2) var(--space-4);
-    margin-block: var(--space-4);
-  }
-
-  .ribbon-games .section-head {
-    padding-bottom: var(--space-2);
-  }
-
-  .odometer {
-    font-family: 'SF Mono', Menlo, monospace;
-    font-variant-numeric: tabular-nums;
-    font-size: 0.92em;
-    color: var(--haze);
-  }
-
-  .ribbon-games .overline {
-    color: var(--haze);
-  }
-
-  .ribbon-games .lede {
-    color: var(--stone);
-  }
-
-  .gm-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
-    gap: var(--space-3);
-  }
-
-  .gm-art {
-    display: block;
-    margin-bottom: var(--space-1);
-  }
-
-  .gm-card img,
-  .gm-pending {
-    aspect-ratio: 3 / 2;
-    width: 100%;
-    display: block;
-    object-fit: contain;
-  }
-
-  /* the rest of the catalog, names only, set big */
-  .gm-rest {
-    max-width: none;
-    margin-top: var(--space-4);
-    font-size: clamp(1.4rem, 3vw, 2.3rem);
-    font-weight: 250;
-    line-height: 1.55;
-    letter-spacing: var(--track-soft);
-    color: var(--paper);
-    opacity: 0.85;
-  }
-
-  .gm-card h3 {
-    font-size: 0.98rem;
-    margin-bottom: 0.1rem;
-  }
-
-  .gm-meta {
-    color: var(--stone);
-    font-size: 0.82rem;
-  }
-
-  /* Build: the collage carries it, the copy stays calm */
-  .ribbon-build {
-    padding-block: var(--space-3) var(--space-4);
-  }
-
-  .studio-meta {
-    padding-block: var(--space-3);
-    font-size: 1.05rem;
-  }
-
-  .studio-meta .dot {
-    color: var(--stone);
-  }
-
-  /* Mobile optimizations for phones and narrow screens.
-     The panels give the environment back its room: the hero copy
-     rides high so the lower third is open water, and clearings open
-     at two seams where the shapes can be seen and touched. */
-  @media (max-width: 720px) {
-    .hero {
-      min-height: 100svh;
-      align-items: start;
-      padding-top: 4svh;
-      /* a whole screen of pure shape play before the work begins */
-      margin-bottom: 100svh;
-    }
-
-    .hero-copy {
-      padding-block: 3rem 0;
-    }
-
-    .featured {
-      margin-bottom: 42svh;
-    }
-
-    .ribbon-games {
-      margin-bottom: 34svh;
-    }
-
-    .hero-wordmark {
-      width: min(100%, 32rem);
-    }
-
-    /* STORY, PLAY, and BUILD are three rungs locked into the open
-       water below the hero: a staircase you step down as you scroll,
-       each pinned to its own place on the page. */
-    .pillars {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 100%;
-      height: 100svh;
-      display: block;
-      z-index: 5;
-    }
-
-    .pillars a {
-      position: absolute;
-      min-width: auto;
-      display: grid;
-      gap: 0.25rem;
-      font-size: 1.7rem;
-      border-top: none;
-      padding-top: 0;
-    }
-
-    .pillars a:nth-child(1) {
-      top: 8svh;
-      left: 8vw;
-    }
-
-    .pillars a:nth-child(2) {
-      top: 40svh;
-      left: 34vw;
-    }
-
-    .pillars a:nth-child(3) {
-      top: 72svh;
-      left: 60vw;
-    }
-
-    .featured-grid {
-      display: flex;
-      overflow-x: auto;
-      touch-action: pan-x pan-y;
-      overscroll-behavior-x: contain;
-      scroll-snap-type: x mandatory;
-      gap: var(--space-2);
-      padding-bottom: var(--space-2);
-      scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .featured-grid::-webkit-scrollbar {
-      display: none;
-    }
-
-    .featured-grid .card {
-      flex: 0 0 clamp(40vw, 44vw, 178px);
-      scroll-snap-align: start;
-    }
-
-    .sr-grid {
-      display: flex;
-      overflow-x: auto;
-      touch-action: pan-x pan-y;
-      overscroll-behavior-x: contain;
-      scroll-snap-type: x mandatory;
-      gap: var(--space-2);
-      padding-bottom: var(--space-3);
-      scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .sr-grid::-webkit-scrollbar {
-      display: none;
-    }
-
-    .sr-card {
-      flex: 0 0 clamp(40vw, 44vw, 178px);
-      scroll-snap-align: start;
-    }
-
-    .section-head {
-      padding-block: var(--space-2) var(--space-2);
-    }
-
-    .ribbon-series {
-      padding-block: var(--space-2) var(--space-3);
-    }
-
-    .ribbon-games {
-      padding-block: var(--space-2) var(--space-2);
-    }
-
-    .gm-grid {
-      display: flex;
-      overflow-x: auto;
-      touch-action: pan-x pan-y;
-      overscroll-behavior-x: contain;
-      scroll-snap-type: x mandatory;
-      gap: var(--space-2);
-      scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .gm-grid::-webkit-scrollbar {
-      display: none;
-    }
-
-    .gm-card {
-      flex: 0 0 clamp(40vw, 44vw, 178px);
-      scroll-snap-align: start;
-    }
-
-    .gm-rest {
-      font-size: clamp(0.95rem, 2vw, 1.4rem);
-      line-height: 1.4;
-      margin-top: var(--space-2);
-    }
-
-    .ribbon-build {
-      padding-block: var(--space-2) var(--space-3);
-    }
-
-    .studio-meta {
-      padding-block: var(--space-2);
-      font-size: 0.95rem;
-    }
-  }
-</style>
+  </dialog>
+
+  <script type="application/json" id="credit-data" set:html={JSON.stringify(creditData)} />
+  <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+</Site>
 
 <script>
-  import { shouldAnimate, startEnvironment } from '../scripts/environment.js';
+  import { startMotion } from '../scripts/site-motion.js';
 
-  // the jackpot odometer: the million combination claim, counted out
-  const combo = document.getElementById('combo-count');
-  if (combo && !window.matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
-    const TARGET = 1048576;
-    const watcher = new IntersectionObserver((entries) => {
-      if (!entries.some((entry) => entry.isIntersecting)) return;
-      watcher.disconnect();
-      const startedAt = performance.now();
-      const DURATION = 2200;
-      const tick = () => {
-        const progress = Math.min(1, (performance.now() - startedAt) / DURATION);
-        const eased = 1 - (1 - progress) ** 3;
-        combo.textContent = Math.round(TARGET * eased).toLocaleString('en-US');
-        if (progress < 1) requestAnimationFrame(tick);
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const saveData = (navigator as any).connection?.saveData === true;
+
+  startMotion();
+
+  // ---- hero and stage. One video, fixed behind the top of the page,
+  // drifting slower than the scroll and falling out of focus as the page
+  // moves. Two windows look onto it. The hero lightens to paper as it
+  // leaves (--veil, which the phone layout also uses for its clear bands).
+  // The recognition band shows it dimmed and far out of focus. Once that
+  // band has gone by, the stage rests. The wordmark rests dead center,
+  // then rides its own layer a little slower than the page.
+  const hero = document.querySelector<HTMLElement>('.hero');
+  const stage = document.querySelector<HTMLElement>('.stage');
+  const video = document.querySelector<HTMLVideoElement>('.hero-video');
+  const heroCopy = document.querySelector<HTMLElement>('.hero-copy');
+  const lastWindow = document.querySelector<HTMLElement>('.band-recognition');
+  const canPlay = !reduced && !saveData;
+
+  if (video && canPlay) {
+    video.src = (window.innerWidth > 1000 ? video.dataset.hd : video.dataset.sd) || '';
+    video.play().catch(() => {});
+  }
+
+  if (hero && stage && video && heroCopy && lastWindow) {
+    const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+    const root = document.documentElement;
+    const born = performance.now();
+    let smooth = window.scrollY;
+    let done = false;
+    let lastBlur = -1;
+    let lastVeil = -1;
+
+    const frame = () => {
+      const vh = window.innerHeight;
+      smooth += (window.scrollY - smooth) * 0.16;
+      const y = reduced ? window.scrollY : smooth;
+
+      // the paper veil is complete as the recognition band enters the screen
+      const band = lastWindow.getBoundingClientRect();
+      const bandTop = band.top + window.scrollY;
+      const end = Math.max(vh * 0.9, bandTop - vh);
+      const ramp = vh * 0.45;
+      const q = clamp01(y / ramp);
+      const quick = q * q * (3 - 2 * q); // fast at first, eased
+      const tail = clamp01((y - ramp) / Math.max(1, end - ramp));
+
+      const veil = Math.round((quick * 0.8 + tail * 0.2) * 200) / 200;
+      if (veil !== lastVeil) {
+        lastVeil = veil;
+        root.style.setProperty('--veil', String(veil));
+      }
+
+      const blur = Math.round((quick * 8 + tail * 2) * 2) / 2; // soft, so the lake still reads as a lake
+      if (blur !== lastBlur) {
+        lastBlur = blur;
+        video.style.filter = blur > 0 ? `blur(${blur}px)` : 'none';
+      }
+
+      if (!reduced) {
+        const drift = Math.min(y * 0.14, vh * 0.2);
+        video.style.transform = `translate3d(0, ${(-drift).toFixed(1)}px, 0) scale(1.06)`;
+        heroCopy.style.transform = `translate3d(0, ${(y * 0.2).toFixed(1)}px, 0)`;
+      }
+
+      const intro = reduced ? 1 : clamp01((performance.now() - born - 500) / 2600);
+      const eased = 1 - Math.pow(1 - intro, 3);
+      const away = clamp01(y / (hero.offsetHeight * 0.7));
+      hero.style.setProperty('--focus', (eased * (1 - away)).toFixed(3));
+
+      // once the last window has scrolled off the top, the stage rests
+      const nowDone = band.bottom < -40;
+      if (nowDone !== done) {
+        done = nowDone;
+        stage.classList.toggle('is-done', done);
+        if (canPlay) {
+          if (done) video.pause();
+          else video.play().catch(() => {});
+        }
+      }
+
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
+
+  // A set of animations runs on its own clock, but the scroll can push that
+  // clock forward. However fast the page moves, everything has landed by
+  // the time the block's top is a little above the middle of the screen,
+  // so nobody scrolls past an empty block.
+  // `enter` is how far down the screen the block's top sits when the clock
+  // starts, as a fraction of the screen height.
+  const scrollPushed = (
+    block: HTMLElement,
+    anims: Animation[],
+    length: number,
+    each?: (clock: number) => void,
+    done?: () => void,
+    enter = 0.95
+  ) => {
+    const pump = () => {
+      const vh = window.innerHeight;
+      const travelled = Math.min(1, Math.max(0, (vh * enter - block.getBoundingClientRect().top) / (vh * 0.55)));
+      const floor = travelled * length;
+      let clock = 0;
+      let running = false;
+      for (const anim of anims) {
+        if ((Number(anim.currentTime) || 0) < floor) anim.currentTime = floor;
+        clock = Math.max(clock, Number(anim.currentTime) || 0);
+        if (anim.playState !== 'finished') running = true;
+      }
+      each?.(clock);
+      if (running) requestAnimationFrame(pump);
+      else done?.();
+    };
+    requestAnimationFrame(pump);
+  };
+
+  // ---- recognition: deal the cards one at a time as the row arrives.
+  // The deal runs on its own clock, but the scroll can push that clock
+  // forward: however fast the page moves, the cards are down before the
+  // row reaches the middle of the screen. Nobody scrolls past a blank row.
+  const facts = document.getElementById('facts');
+  if (facts) {
+    const cards = [...facts.querySelectorAll<HTMLElement>('.fact')];
+
+    const deal = () => {
+      facts.classList.add('is-dealt');
+      if (reduced || typeof facts.animate !== 'function') return;
+
+      const SPRING = 'cubic-bezier(0.2, 1.35, 0.35, 1)';
+      const DRIFT = 'cubic-bezier(0.25, 0.1, 0.25, 1)';
+      const RISE = [
+        { opacity: 0, translate: '0 0.7rem' },
+        { opacity: 1, translate: '0 0' },
+      ];
+      const anims: Animation[] = [];
+      const counters: { el: HTMLElement; target: number; from: number }[] = [];
+      let length = 0;
+      const play = (el: Element, frames: Keyframe[], duration: number, delay: number, easing: string, pseudo?: string) => {
+        anims.push(el.animate(frames, { duration, delay, easing, fill: 'backwards', pseudoElement: pseudo }));
+        length = Math.max(length, delay + duration);
       };
-      tick();
-    }, { threshold: 0.4 });
-    watcher.observe(combo);
+
+      cards.forEach((card, i) => {
+        const at = i * 170;
+        play(card, [{ opacity: 0 }, { opacity: 1 }], 420, at, DRIFT);
+        play(
+          card,
+          [
+            { translate: '0 4.5rem', rotate: 'x -42deg', scale: '0.9' },
+            { translate: '0 0', rotate: 'x 0deg', scale: '1' },
+          ],
+          950,
+          at,
+          SPRING
+        );
+        play(card, [{ scale: '0 1' }, { scale: '1 1' }], 900, at + 350, DRIFT, '::before');
+
+        const figure = card.querySelector<HTMLElement>('.fact-figure');
+        if (figure) {
+          play(
+            figure,
+            [
+              { clipPath: 'inset(0 100% 0 0)', translate: '-0.6rem 0' },
+              { clipPath: 'inset(0 0 0 0)', translate: '0 0' },
+            ],
+            700,
+            at + 260,
+            DRIFT
+          );
+          if (figure.dataset.count) {
+            counters.push({ el: figure, target: Number(figure.dataset.count), from: at + 260 });
+            figure.textContent = '0';
+          }
+        }
+        const label = card.querySelector('.fact-label');
+        if (label) play(label, RISE, 550, at + 420, DRIFT);
+        card.querySelectorAll('.fact-detail span').forEach((line, j) => play(line, RISE, 550, at + 520 + j * 80, DRIFT));
+      });
+
+      scrollPushed(
+        facts,
+        anims,
+        length,
+        (clock) => {
+          for (const counter of counters) {
+            const progress = Math.min(1, Math.max(0, (clock - counter.from) / 900));
+            counter.el.textContent = String(Math.round(counter.target * (1 - Math.pow(1 - progress, 3))));
+          }
+        },
+        () => counters.forEach((counter) => (counter.el.textContent = String(counter.target)))
+      );
+    };
+
+    if (reduced || !('IntersectionObserver' in window)) {
+      deal();
+    } else {
+      const arrive = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          arrive.disconnect();
+          deal();
+        },
+        { threshold: 0.08 }
+      );
+      arrive.observe(facts);
+    }
   }
 
-  const container = document.getElementById('environment');
-  if (container && shouldAnimate()) {
-    const begin = () => startEnvironment(container);
-    'requestIdleCallback' in window
-      ? requestIdleCallback(begin, { timeout: 2000 })
-      : setTimeout(begin, 300);
+  // ---- work: filter by discipline
+  const covers = [...document.querySelectorAll<HTMLElement>('.cover')];
+  const chips = [...document.querySelectorAll<HTMLElement>('.chip')];
+  const count = document.getElementById('work-count');
+
+  const applyFilter = (tag: string) => {
+    let shown = 0;
+    for (const cover of covers) {
+      const match = tag === 'all' || (cover.dataset.tags || '').split(' ').includes(tag);
+      cover.hidden = !match;
+      if (match) {
+        shown += 1;
+        cover.classList.add('is-seen');
+      }
+    }
+    if (count) count.textContent = String(shown);
+    chips.forEach((chip) => chip.setAttribute('aria-pressed', String(chip.dataset.filter === tag)));
+  };
+
+  chips.forEach((chip) =>
+    chip.addEventListener('click', () => {
+      const tag = chip.dataset.filter || 'all';
+      const doc = document as any;
+      if (doc.startViewTransition && !reduced) doc.startViewTransition(() => applyFilter(tag));
+      else applyFilter(tag);
+    })
+  );
+
+  // ---- work: a cover leans toward the pointer
+  if (!reduced && window.matchMedia('(hover: hover)').matches) {
+    for (const cover of covers) {
+      const art = cover.querySelector<HTMLElement>('.cover-art');
+      if (!art) continue;
+      cover.addEventListener('pointermove', (event) => {
+        const rect = art.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / rect.width - 0.5;
+        const y = (event.clientY - rect.top) / rect.height - 0.5;
+        art.style.setProperty('--ry', `${(x * 9).toFixed(2)}deg`);
+        art.style.setProperty('--rx', `${(-y * 9).toFixed(2)}deg`);
+        art.style.setProperty('--gx', `${((x + 0.5) * 100).toFixed(1)}%`);
+        art.style.setProperty('--gy', `${((y + 0.5) * 100).toFixed(1)}%`);
+      });
+      cover.addEventListener('pointerleave', () => {
+        art.style.setProperty('--ry', '0deg');
+        art.style.setProperty('--rx', '0deg');
+      });
+    }
   }
 
+  // ---- work: the credit sheet
+  const dialog = document.getElementById('credit-dialog') as HTMLDialogElement | null;
+  const data = JSON.parse(document.getElementById('credit-data')?.textContent || '{}');
+  const $ = (id: string) => document.getElementById(id)!;
+
+  const openCredit = (id: string) => {
+    const credit = data[id];
+    if (!credit || !dialog) return;
+    ($('credit-art') as HTMLImageElement).src = credit.thumb || '';
+    ($('credit-art') as HTMLImageElement).alt = `Cover art for ${credit.title}`;
+    $('credit-title').textContent = credit.title;
+    $('credit-publisher').textContent = [credit.publisher, ...(credit.producers || [])]
+      .filter((v, i, all) => v && all.indexOf(v) === i)
+      .join(' · ');
+    $('credit-roles').textContent = credit.roles.join(', ');
+    const lines = [];
+    if (credit.genre) lines.push(credit.genre);
+    if (credit.stars?.length) lines.push(`With ${credit.stars.join(', ')}`);
+    $('credit-stars').textContent = lines.join('. ');
+    $('credit-stars').hidden = lines.length === 0;
+
+    const awards = $('credit-awards');
+    awards.replaceChildren();
+    // a badge that an award line already spells out is not said twice
+    const badges = credit.badges.filter(
+      (badge: string) => !credit.awards.some((award: string) => award.startsWith(badge.split(' ')[0]))
+    );
+    for (const fact of [...badges, ...credit.awards]) {
+      const li = document.createElement('li');
+      li.textContent = fact;
+      awards.append(li);
+    }
+    awards.hidden = awards.children.length === 0;
+
+    const links = $('credit-links');
+    links.replaceChildren();
+    const named: [string, string | null][] = [
+      ['Apple Podcasts', credit.links.apple],
+      ['Spotify', credit.links.spotify],
+      ['Official page', credit.links.official],
+    ];
+    for (const [label, href] of named) {
+      if (!href) continue;
+      const a = document.createElement('a');
+      a.href = href;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = label;
+      links.append(a);
+    }
+    links.hidden = links.children.length === 0;
+    dialog.showModal();
+  };
+
+  covers.forEach((cover) => cover.addEventListener('click', () => openCredit(cover.dataset.id || '')));
+  dialog?.querySelector('.dialog-close')?.addEventListener('click', () => dialog.close());
+  dialog?.addEventListener('click', (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+
+  // ---- games: the reels. A hand of titles shows at a time. Every column
+  // spins at once, art streaming down from the top, then the columns brake
+  // and lock one after another from left to right. A soft light runs
+  // across the row when the last one lands. The Re-Spin button deals
+  // another hand from a shuffled deck, so every title comes round.
+  const gamesGrid = document.getElementById('games-grid');
+  const spinButton = document.getElementById('games-spin') as HTMLButtonElement | null;
+  if (gamesGrid) {
+    const allGames = [...gamesGrid.querySelectorAll<HTMLElement>('.game')];
+    // five reels of three on wide screens, three reels of three on phones
+    const narrow = window.matchMedia('(max-width: 720px)');
+    const handSize = () => (narrow.matches ? 9 : 15);
+    const perLabel = document.getElementById('games-per');
+    // Keep exactly one full hand on show. If the window changes size, the
+    // grid trims down or tops back up, so there is never a short row.
+    const fitHand = () => {
+      const size = handSize();
+      const showing = allGames.filter((cell) => cell.classList.contains('is-on'));
+      showing.slice(size).forEach((cell) => cell.classList.remove('is-on'));
+      if (showing.length < size) {
+        allGames
+          .filter((cell) => !cell.classList.contains('is-on'))
+          .slice(0, size - showing.length)
+          .forEach((cell) => {
+            cell.classList.add('is-on');
+            cell.querySelector('img')?.setAttribute('loading', 'eager');
+          });
+      }
+      if (perLabel) perLabel.textContent = String(size);
+    };
+    fitHand();
+    narrow.addEventListener('change', fitHand);
+    const canSpin = !reduced && typeof gamesGrid.animate === 'function';
+    const pool: string[] = JSON.parse(gamesGrid.dataset.reelPool || '[]');
+    const artOf = (cell: HTMLElement) => cell.querySelector<HTMLImageElement>('.game-art img')?.getAttribute('src') || '';
+    let spinning = false;
+
+    // `leaving` is the art each window showed before this spin, so the old
+    // symbols are seen rolling away. The spin always runs at its own pace:
+    // the scroll never hurries it.
+    const spin = (leaving: string[]) => {
+      const cells = allGames.filter((cell) => cell.classList.contains('is-on'));
+      const lefts = [...new Set(cells.map((cell) => Math.round(cell.offsetLeft)))].sort((a, b) => a - b);
+      const anims: Animation[] = [];
+      const tails: HTMLElement[] = [];
+      let length = 0;
+      const lastStop = 820 + (lefts.length - 1) * 300;
+
+      cells.forEach((cell, n) => {
+        const art = cell.querySelector<HTMLElement>('.game-art');
+        const face = art?.firstElementChild as HTMLElement | null;
+        if (!art || !face) return;
+        const col = lefts.indexOf(Math.round(cell.offsetLeft));
+        const height = art.clientHeight;
+        const count = 7 + col * 3; // later reels spin longer, so they show more symbols
+        const duration = 820 + col * 300;
+
+        // the strip of passing symbols hangs below the real art and rides with it
+        const tail = document.createElement('span');
+        tail.className = 'reel-tail';
+        for (let k = 0; k < count; k++) {
+          const symbol = new Image();
+          symbol.alt = '';
+          const last = k === count - 1;
+          symbol.src = (last && leaving[n]) || pool[(n * 5 + k * 3) % pool.length] || '';
+          tail.append(symbol);
+        }
+        art.append(tail);
+        tails.push(tail);
+
+        // fast and steady, then the brake, a small overshoot, and the lock
+        const frames: Keyframe[] = [
+          { translate: `0 ${-count * height}px`, filter: 'blur(0px)', easing: 'ease-in' },
+          { translate: `0 ${-(count - 1.2) * height}px`, filter: 'blur(3px)', offset: 0.1, easing: 'linear' },
+          { translate: `0 ${-1.7 * height}px`, filter: 'blur(2.5px)', offset: 0.58, easing: 'cubic-bezier(0.12, 0.72, 0.3, 1)' },
+          { translate: `0 ${0.09 * height}px`, filter: 'blur(0px)', offset: 0.88, easing: 'ease-in-out' },
+          { translate: '0 0', filter: 'blur(0px)' },
+        ];
+        for (const part of [face, tail]) {
+          anims.push(part.animate(frames, { duration, fill: 'backwards' }));
+        }
+        // the lock: a quick ring of light on the cell, and the title appears
+        anims.push(
+          art.animate(
+            [
+              { boxShadow: '0 0 0 0 rgba(233, 201, 141, 0)' },
+              { boxShadow: '0 0 0 2px rgba(233, 201, 141, 0.95), 0 0 26px 2px rgba(233, 201, 141, 0.45)', offset: 0.18 },
+              { boxShadow: '0 0 0 0 rgba(233, 201, 141, 0)' },
+            ],
+            { duration: 620, delay: duration * 0.86 }
+          )
+        );
+        cell.querySelectorAll('h3, p').forEach((line) => {
+          anims.push(
+            line.animate(
+              [
+                { opacity: 0, translate: '0 0.4rem' },
+                { opacity: 1, translate: '0 0' },
+              ],
+              { duration: 380, delay: duration * 0.9, fill: 'backwards', easing: 'ease-out' }
+            )
+          );
+        });
+        // the payoff: one soft pulse runs left to right after the last reel
+        anims.push(
+          art.animate([{ scale: '1' }, { scale: '1.045' }, { scale: '1' }], {
+            duration: 460,
+            delay: lastStop + 140 + col * 80,
+            easing: 'ease-out',
+          })
+        );
+        length = Math.max(length, lastStop + 140 + col * 80 + 460);
+      });
+
+      spinning = true;
+      spinButton?.setAttribute('aria-disabled', 'true');
+      gamesGrid.classList.add('is-spun');
+      const finished = () => {
+        tails.forEach((tail) => tail.remove());
+        spinning = false;
+        spinButton?.removeAttribute('aria-disabled');
+      };
+      Promise.allSettled(anims.map((anim) => anim.finished)).then(finished);
+    };
+
+    // the deck: every title, shuffled, dealt fifteen at a time
+    let deck: HTMLElement[] = [];
+    const deal = () => {
+      const showing = allGames.filter((cell) => cell.classList.contains('is-on'));
+      const hand: HTMLElement[] = [];
+      while (hand.length < handSize()) {
+        if (deck.length === 0) {
+          deck = allGames.filter((cell) => !showing.includes(cell) && !hand.includes(cell));
+          for (let i = deck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+          }
+          if (deck.length === 0) break;
+        }
+        hand.push(deck.pop() as HTMLElement);
+      }
+      const leaving = showing.map(artOf);
+      showing.forEach((cell) => cell.classList.remove('is-on'));
+      hand.forEach((cell) => {
+        cell.classList.add('is-on');
+        cell.querySelector('img')?.setAttribute('loading', 'eager');
+      });
+      return leaving;
+    };
+
+    spinButton?.addEventListener('click', () => {
+      if (spinning) return;
+      const leaving = deal();
+      if (canSpin) spin(leaving);
+      else gamesGrid.classList.add('is-spun');
+    });
+
+    if (!canSpin) {
+      gamesGrid.classList.add('is-spun');
+    } else {
+      // Watch the grid's position directly. The passing symbols are fetched
+      // while it is still a couple of screens away, and the first spin starts
+      // once the top row is properly on screen, so it is seen from the start.
+      let warmed = false;
+      const watch = () => {
+        const rect = gamesGrid.getBoundingClientRect();
+        const vh = window.innerHeight;
+        if (!warmed && rect.top < vh * 3) {
+          warmed = true;
+          pool.forEach((src) => (new Image().src = src));
+        }
+        if (rect.top < vh * 0.8 && rect.bottom > 0) {
+          window.removeEventListener('scroll', watch);
+          if (!spinning && !gamesGrid.classList.contains('is-spun')) spin([]);
+        }
+      };
+      window.addEventListener('scroll', watch, { passive: true });
+      watch();
+    }
+  }
+
+  // ---- reels: nothing loads from the video host until asked
+  document.querySelectorAll<HTMLButtonElement>('.reel-frame').forEach((frame) => {
+    frame.addEventListener('click', () => {
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://www.youtube-nocookie.com/embed/${frame.dataset.video}?autoplay=1&rel=0`;
+      iframe.title = frame.getAttribute('aria-label') || 'Video';
+      iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+      iframe.allowFullscreen = true;
+      iframe.className = 'reel-frame reel-live';
+      frame.replaceWith(iframe);
+    });
+  });
+
+  // ---- the lab: the shapes, their voices, and gravity on request.
+  // Nothing loads until the room is nearly on screen.
+  const room = document.getElementById('room');
+  if (room && 'IntersectionObserver' in window) {
+    const soundButton = document.getElementById('room-sound');
+    const floorButton = document.getElementById('room-floor');
+    let falling = false;
+
+    const boot = async () => {
+      const [{ shouldAnimate, startEnvironment }, { engine }] = await Promise.all([
+        import('../scripts/environment.js'),
+        import('../scripts/audio-engine.js'),
+      ]);
+
+      const paintSound = (on: boolean) => {
+        if (!soundButton) return;
+        soundButton.setAttribute('aria-pressed', String(on));
+        soundButton.textContent = on ? 'Sound off' : 'Sound on';
+      };
+      soundButton?.addEventListener('click', () => {
+        const on = !engine.isOn();
+        engine.setOn(on);
+        paintSound(on);
+      });
+      // on unless this visitor turned it off before; the browser keeps
+      // audio asleep until their first touch inside the room
+      if (engine.savedChoice() === 'off') {
+        paintSound(false);
+      } else {
+        engine.setOn(true);
+        paintSound(true);
+        room.addEventListener('pointerdown', () => engine.wake(), { once: true, capture: true });
+      }
+
+      floorButton?.addEventListener('click', () => {
+        falling = !falling;
+        floorButton.setAttribute('aria-pressed', String(falling));
+        floorButton.textContent = falling ? 'Lift them' : 'Let them fall';
+      });
+
+      if (shouldAnimate()) startEnvironment(room, { room: true, pile: () => falling });
+      else room.classList.add('is-still');
+    };
+
+    const near = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        near.disconnect();
+        boot();
+      },
+      { rootMargin: '60% 0px 60% 0px' }
+    );
+    near.observe(room);
+  }
+
+  // ---- contact: the scene. While the band is held, the scroll writes the
+  // note out one letter at a time. When it is written, the big button
+  // slides in. Scrolling back up un-writes it.
+  const contactScroll = document.getElementById('contact-scroll');
+  if (contactScroll) {
+    const stageEl = contactScroll.querySelector<HTMLElement>('.contact-stage');
+    const letters = [...contactScroll.querySelectorAll<HTMLElement>('.tw-ch')];
+    if (stageEl && letters.length) {
+      if (reduced) {
+        letters.forEach((letter) => letter.classList.add('on'));
+        stageEl.style.setProperty('--drift', '0.5');
+        stageEl.style.setProperty('--cta', '1');
+        stageEl.classList.add('is-typed', 'is-done');
+      } else {
+        const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+        let shown = 0;
+        let queued = false;
+
+        const update = () => {
+          queued = false;
+          const vh = window.innerHeight;
+          const rect = contactScroll.getBoundingClientRect();
+          const pinTop = parseFloat(getComputedStyle(stageEl).top) || 0;
+          // the writing starts as the band comes up past the middle of the
+          // screen, and everything is finished just before the band lets go
+          const start = vh * 0.62;
+          const travel = Math.max(1, rect.height - stageEl.offsetHeight + (start - pinTop));
+          const progress = clamp01((start - rect.top) / travel);
+
+          const written = clamp01(progress / 0.7);
+          const count = Math.round(written * letters.length);
+          if (count !== shown) {
+            const from = Math.min(count, shown);
+            const to = Math.max(count, shown);
+            for (let i = from; i < to; i++) letters[i].classList.toggle('on', i < count);
+            letters[shown - 1]?.classList.remove('caret');
+            if (count > 0 && count < letters.length) letters[count - 1].classList.add('caret');
+            shown = count;
+          }
+
+          // the backdrop portrait drifts with the whole scene
+          stageEl.style.setProperty('--drift', progress.toFixed(4));
+
+          const arrive = clamp01((progress - 0.72) / 0.22);
+          const eased = 1 - Math.pow(1 - arrive, 3);
+          stageEl.style.setProperty('--cta', eased.toFixed(3));
+          stageEl.classList.toggle('is-typed', written >= 1);
+          stageEl.classList.toggle('is-done', arrive >= 1);
+        };
+
+        const queue = () => {
+          if (queued) return;
+          queued = true;
+          requestAnimationFrame(update);
+        };
+        window.addEventListener('scroll', queue, { passive: true });
+        window.addEventListener('resize', queue);
+        update();
+      }
+    }
+  }
+
+  // ---- contact: copy the address
+  const copy = document.getElementById('copy-email');
+  copy?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(copy.dataset.email || '');
+      copy.textContent = 'Copied';
+    } catch {
+      copy.textContent = copy.dataset.email || '';
+    }
+    setTimeout(() => (copy.textContent = 'Copy the address'), 2400);
+  });
 </script>

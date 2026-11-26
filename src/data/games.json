@@ -718,5 +718,89 @@
   "videoCapture": null,
   "musicDemo": null,
   "note": null
+ },
+ {
+  "id": "lockitlink_loteria_lasirena",
+  "title": "Lock It Link Lotería - La Sirena",
+  "license": null,
+  "publisher": "WMS (Scientific Games)",
+  "year": 2016,
+  "roles": [],
+  "artwork": null,
+  "videoCapture": null,
+  "musicDemo": null,
+  "note": null
+ },
+ {
+  "id": "lockitlink_loteria_eldiablito",
+  "title": "Lock It Link Lotería - El Diablito",
+  "license": null,
+  "publisher": "WMS (Scientific Games)",
+  "year": 2016,
+  "roles": [],
+  "artwork": null,
+  "videoCapture": null,
+  "musicDemo": null,
+  "note": null
+ },
+ {
+  "id": "lockitlink_loteria_elbarrildefiesta_dualos_5rv",
+  "title": "Lock It Link Lotería - El Barril de Fiesta",
+  "license": null,
+  "publisher": "WMS (Scientific Games)",
+  "year": null,
+  "roles": [],
+  "artwork": null,
+  "videoCapture": null,
+  "musicDemo": null,
+  "note": null
+ },
+ {
+  "id": "lockitlink_loteria_elmundo_dualos_5rv",
+  "title": "Lock It Link Lotería - El Mundo",
+  "license": null,
+  "publisher": "WMS (Scientific Games)",
+  "year": null,
+  "roles": [],
+  "artwork": null,
+  "videoCapture": null,
+  "musicDemo": null,
+  "note": null
+ },
+ {
+  "id": "ironman_dualos_5rv",
+  "title": "Iron Man",
+  "license": "Iron Man",
+  "publisher": "Scientific Games",
+  "year": 2017,
+  "roles": [],
+  "artwork": null,
+  "videoCapture": null,
+  "musicDemo": null,
+  "note": null
+ },
+ {
+  "id": "monsters_return_gamefield",
+  "title": "Monsters Return",
+  "license": "Universal Monsters",
+  "publisher": "Scientific Games",
+  "year": 2018,
+  "roles": [],
+  "artwork": null,
+  "videoCapture": null,
+  "musicDemo": null,
+  "note": null
+ },
+ {
+  "id": "lifeofluxury_twinstar_3rm",
+  "title": "Life of Luxury",
+  "license": null,
+  "publisher": "WMS (Scientific Games)",
+  "year": 2017,
+  "roles": [],
+  "artwork": null,
+  "videoCapture": null,
+  "musicDemo": null,
+  "note": null
  }
 ]

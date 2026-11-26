@@ -1,0 +1,135 @@
+---
+// The main site shell: the lake behind, the header with the lockup that
+// types its way through Music, Sound, and Studio, and one sheet of paper.
+// The experimental explorable site keeps its own shell in Layout.astro
+// and lives on at /lab.
+import '@fontsource-variable/outfit';
+import '../styles/global.css';
+import '../styles/site.css';
+import site from '../data/site.json';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+
+const links = [
+  { href: '#work', label: 'Work' },
+  { href: '#games', label: 'Games' },
+  { href: '#listen', label: 'Listen' },
+  { href: '#studio', label: 'Studio' },
+  { href: '#contact', label: 'Contact' },
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#f2f1f0" />
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  </head>
+  <body style={`--lake: url('${site.hero.poster}')`}>
+
+    <header class="site-head">
+      <nav class="site-head-inner" aria-label="Main">
+        <a class="lockup" href="#top" aria-label="Diplomacy, back to top">
+          <img class="lockup-mark" src="/brand/diplomacy-avatar.jpg" alt="" width="315" height="315" />
+          <span class="lockup-name" aria-hidden="true">Diplomacy<br /><span
+              class="lockup-word-line"><span id="lockup-word">Music</span><span class="lockup-caret"></span></span></span>
+        </a>
+        <div class="site-links">
+          {links.map((link) => <a href={link.href}>{link.label}</a>)}
+        </div>
+      </nav>
+    </header>
+
+    <slot />
+
+    <footer class="site-foot">
+      <span class="brand-mask site-foot-mark" role="img" aria-label="Diplomacy"></span>
+      <span>Sound is listening.</span>
+      <span>Chicago</span>
+    </footer>
+  </body>
+</html>
+
+<script>
+  document.documentElement.classList.add('js');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // The second line of the lockup types its way through Music, Sound,
+  // and Studio, and keeps going. Typed by hand, like everything here.
+  const word = document.getElementById('lockup-word');
+  const name = document.querySelector('.lockup-name');
+
+  if (word && name && !reduced) {
+    const SEQUENCE = ['Sound', 'Studio', 'Music'];
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    (async () => {
+      await wait(3200);
+      for (let i = 0; ; i = (i + 1) % SEQUENCE.length) {
+        name.classList.add('typing');
+        while (word.textContent && word.textContent.length) {
+          word.textContent = word.textContent.slice(0, -1);
+          await wait(70);
+        }
+        await wait(260);
+        const next = SEQUENCE[i];
+        for (let c = 1; c <= next.length; c++) {
+          word.textContent = next.slice(0, c);
+          await wait(115);
+        }
+        name.classList.remove('typing');
+        await wait(3800);
+      }
+    })();
+  }
+
+  // the header tightens once the page is moving
+  const head = document.querySelector('.site-head');
+  const onScroll = () => head?.classList.toggle('is-moving', window.scrollY > 40);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Reveal things as they enter the view. Marked html.js so the CSS only
+  // hides things when this script is actually running.
+  const items = document.querySelectorAll<HTMLElement>('[data-reveal]');
+  if (!reduced && 'IntersectionObserver' in window && items.length) {
+    let observerAlive = false;
+    const seen = new IntersectionObserver(
+      (entries) => {
+        observerAlive = true;
+        let order = 0;
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const target = entry.target as HTMLElement;
+          target.style.transitionDelay = `${Math.min(order, 8) * 60}ms`;
+          target.classList.add('is-seen');
+          seen.unobserve(target);
+          order += 1;
+        }
+      },
+      { rootMargin: '0px 0px -6% 0px', threshold: 0.1 }
+    );
+    items.forEach((item) => seen.observe(item));
+    setTimeout(() => {
+      if (!observerAlive) {
+        seen.disconnect();
+        items.forEach((item) => item.classList.add('is-seen'));
+      }
+    }, 1500);
+  } else {
+    items.forEach((item) => item.classList.add('is-seen'));
+  }
+</script>
