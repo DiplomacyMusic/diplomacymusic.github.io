@@ -6,7 +6,7 @@
 //   - every voice passes through the master fader, so off means off
 //   - nothing sounds on its own: no bed, no drone, strikes only
 //   - the voices are Daniel's recorded FirstObjects notes (a spread
-//     D major 13 sharp 11 ladder with round robins). Until the bank
+//     B flat major 13 sharp 11 ladder with round robins). Until the bank
 //     finishes loading, a soft synth understudy holds the part.
 
 import { SAMPLE_BANK } from './sample-bank.js';
@@ -72,6 +72,16 @@ async function loadBank() {
     })
   );
   state.bank = loaded;
+}
+
+// The room's dynamic range, narrowed. The quietest event the room sounds
+// (gain 0.03, the floor the environment itself uses) comes out twice as
+// loud, the loudest (gain 1) comes out unchanged, and everything between is
+// scaled evenly in decibels: a gentle upward compression of about 1.25 to 1.
+const QUIETEST = 0.03;
+const RANGE = 1 + Math.log(2) / Math.log(QUIETEST); // about 0.80
+function shapeGain(gain) {
+  return Math.pow(Math.max(0, Math.min(gain, 1)), RANGE);
 }
 
 // The synth understudy: a clear sine pluck at the pitch's frequency,
@@ -214,7 +224,7 @@ export const engine = {
     const index = Math.max(0, Math.min(PITCH_COUNT - 1, pitch));
 
     const level = context.createGain();
-    level.gain.value = Math.min(gain, 1) * 0.34;
+    level.gain.value = shapeGain(gain) * 0.34;
     const panner = context.createStereoPanner();
     panner.pan.value = Math.max(-1, Math.min(1, pan));
     level.connect(panner).connect(state.pingBus);

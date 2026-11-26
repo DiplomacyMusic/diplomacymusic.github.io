@@ -7,7 +7,7 @@
 // and the collisions play the room.
 //
 // Pitch comes from mass, so the big planets speak low. The voices are
-// the FirstObjects recordings, a D major 13 sharp 11 ladder, so anything
+// the FirstObjects recordings, a B flat major 13 sharp 11 ladder, so anything
 // touching anything lands inside one chord.
 //
 // Loads lazily, degrades gracefully, never runs for reduced motion.
@@ -44,24 +44,30 @@ export function shouldAnimate() {
   return true;
 }
 
-// physics tuning, all in world units
-const GRAVITY = 0.6;          // pull between planets
-const SOFTEN = 4;             // keeps close passes from slingshotting
-const HOME_PULL = 0.18;       // gentle leash back to each home position
-const DAMPING = 0.955;        // water drag, but throws still carry
-const RESTITUTION = 0.45;     // collisions in water are soft
+// physics tuning, all in world units. Loosened on November 26, 2026 so
+// the room is easier to whip up: less drag, livelier bounces, a longer
+// leash, and quieter touches allowed to ring.
+const GRAVITY = 0.8;          // pull between planets
+const SOFTEN = 2.5;           // close passes may slingshot a little
+const HOME_PULL = 0.12;       // a long leash back to each home position
+const DAMPING = 0.975;        // thin water: a throw carries about twice as far
+const RESTITUTION = 0.82;     // collisions bounce on, so one hit starts others
 const BOUNDS = { x: 13, y: 8, zNear: 4, zFar: -9 };
 const RESONANCE_RADIUS = 15;  // how far sympathy travels
-const STRIKE_COOLDOWN = 0.13; // seconds between strikes per shape
-const SCROLL_INERTIA = 0.004; // how hard scrolling drags the planets
-const SCROLL_INERTIA_TOUCH = 0.008; // on a phone the scroll is the current: it plays the room
-const SCROLL_CLAMP = 1600;          // px/s; the current saturates so flicks stay musical
+const STRIKE_COOLDOWN = 0.08; // seconds between strikes per shape
+const SCROLL_INERTIA = 0.006; // how hard scrolling drags the planets
+const SCROLL_INERTIA_TOUCH = 0.011; // on a phone the scroll is the current: it plays the room
+const SCROLL_CLAMP = 2200;          // px/s; the current still saturates, later than it did
 const FLOOR_Y = -6.5;         // where they land at the bottom of the page
 const FALL_PULL = 9;          // gravity once the bottom of the page arrives
 const TILT_PULL = 5;          // how hard a tilted phone pulls
 const DRAG_RADIUS = 6.5;      // how close a dragged shape must come to wake another
-const HOLD_PULL_BOOST = 12;   // a held shape pulls like something far heavier
-const STIR = 0.12;            // dragging stirs the water, momentum passed by proximity
+const HOLD_PULL_BOOST = 16;   // a held shape pulls like something far heavier
+const STIR = 0.2;             // dragging stirs the water, momentum passed by proximity
+const THROW_MAX = 20;         // the fastest a thrown shape may leave the hand
+const RING_SPEED = 0.5;       // how hard two things must meet before they speak
+const LISTEN_SECONDS = 9;     // how long after a touch the room keeps sounding
+const WALL_SPRING = 5;        // wide screens: a runaway is sent back through the family
 const TAP_DRIFT = 0.25;       // world units a mouse may wander before a press is a drag
 const TAP_DRIFT_TOUCH = 0.7;  // fingers wobble more than mice do
 const LONG_PRESS_MS = 300;    // a finger that stays this long starts the slow swell
@@ -446,7 +452,7 @@ export async function startEnvironment(container, options = {}) {
       logLine(`release(${SHAPE_NAMES[held.userData.type]}.${held.userData.index})`);
       held.userData.velocity.multiplyScalar(0);
     } else {
-      held.userData.velocity.copy(throwVelocity).clampLength(0, 12);
+      held.userData.velocity.copy(throwVelocity).clampLength(0, THROW_MAX);
       logLine(`throw(${SHAPE_NAMES[held.userData.type]}.${held.userData.index}, v = ${held.userData.velocity.length().toFixed(1)})`);
       const [sx, sy] = screenOf(held);
       score.arc(sx, sy, throwVelocity.x, -throwVelocity.y);
@@ -644,10 +650,10 @@ export async function startEnvironment(container, options = {}) {
         force.x += Math.sign(mesh.position.x || 1) * 0.8 * data.mass * pile;
       }
 
-      // soft walls. Portrait walls are springs: the scroll current is
-      // strong enough to fire shapes at them, and the bounce sends a
+      // soft walls, and springs: the scroll current and a hard throw are
+      // both strong enough to fire shapes at them, and the bounce sends a
       // runaway back through the family instead of losing it offstage
-      const springiness = portrait ? 10 : 0;
+      const springiness = portrait ? 10 : WALL_SPRING;
       const overX = Math.abs(mesh.position.x) - field.bounds.x;
       if (overX > 0)
         force.x -= Math.sign(mesh.position.x) * data.mass * (2 + overX * springiness);
@@ -669,7 +675,7 @@ export async function startEnvironment(container, options = {}) {
           data.velocity.y *= -0.22;
           data.velocity.x *= 0.9;
           data.velocity.z *= 0.9;
-          if (impact > 0.9 && t - lastEnergyAt < 5) {
+          if (impact > RING_SPEED && t - lastEnergyAt < LISTEN_SECONDS) {
             logLine(`land(${SHAPE_NAMES[data.type]}.${data.index}, impact = ${impact.toFixed(1)})`);
             clusterStrike(mesh, Math.min(0.32, impact * 0.05), t);
           }
@@ -760,8 +766,8 @@ export async function startEnvironment(container, options = {}) {
           // idle drift grazes stay silent: a collision speaks only when
           // it is a real impact, and only while the visitor is present
           const speed = Math.abs(closing);
-          if (speed > 0.9 && t - lastEnergyAt < 5) {
-            const hitGain = Math.min(0.9, 0.1 + (speed - 0.9) * 0.28);
+          if (speed > RING_SPEED && t - lastEnergyAt < LISTEN_SECONDS) {
+            const hitGain = Math.min(0.9, 0.1 + (speed - RING_SPEED) * 0.28);
             if (pile > 0.5) {
               // tumbling at the bottom speaks in soft clusters, not strikes
               clusterStrike(A, hitGain * 0.45, t);

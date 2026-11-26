@@ -1443,7 +1443,8 @@ body.has-player .site-foot {
    under the header for the whole of it. */
 .contact-scroll {
   --head: 3rem;
-  height: calc(100svh - var(--head) + 150vh);
+  /* long enough to write the note and then hold the finished card */
+  height: calc(100svh - var(--head) + 170vh);
 }
 
 .contact-stage {
@@ -1596,7 +1597,8 @@ html.js .contact-stage:not(.is-typed) .contact-note footer {
 }
 
 /* The button arrives once the note is written: it wipes in from the left
-   and settles. It is the loudest thing on the site, on purpose. */
+   and settles. It is a button and looks like one: a pill of lake glass
+   with an arrow, and pressing it starts an email. */
 .contact-cta {
   position: relative;
   z-index: 1;
@@ -1604,31 +1606,32 @@ html.js .contact-stage:not(.is-typed) .contact-note footer {
 }
 
 .loud-button {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  /* a banner, edge to edge: it breaks out of the page's measure, and its
-     words stay lined up with everything above them */
-  width: calc(100% + var(--pad-x) * 2);
-  margin-inline: calc(var(--pad-x) * -1);
-  padding: clamp(1rem, 3.2vh, 2.1rem) var(--pad-x);
-  font-size: clamp(2.1rem, 7.4vw, 6.4rem);
+  gap: 0.9em;
+  max-width: 100%;
+  padding: 0.72em 1.15em 0.72em 1.45em;
+  font-size: clamp(1.35rem, 2.7vw, 2.3rem);
   font-weight: 500;
-  letter-spacing: -0.03em;
-  line-height: 1;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
   position: relative;
   isolation: isolate;
   overflow: hidden;
   color: #fff;
   background: #2f5a6b; /* the lake's deep water blue, until the photo arrives */
+  border-radius: 999px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.22);
+    inset 0 -1px 0 rgba(255, 255, 255, 0.22),
+    0 0.5rem 1.6rem rgba(14, 38, 52, 0.28);
   text-shadow: 0 1px 18px rgba(14, 38, 52, 0.4);
   opacity: var(--cta);
   translate: 0 calc((1 - var(--cta)) * 2.2rem);
-  clip-path: inset(0 calc((1 - var(--cta)) * 100%) 0 0);
+  clip-path: inset(0 calc((1 - var(--cta)) * 100%) 0 0 round 999px);
+  transition:
+    transform var(--t-soft) var(--ease-drift),
+    box-shadow var(--t-soft) var(--ease-drift);
 }
 
 /* Glass: the lake itself, far out of focus, behind the words. Only the
@@ -1654,6 +1657,15 @@ html.js .contact-stage:not(.is-done) .loud-button {
 .loud-button:hover,
 .loud-button:focus-visible {
   color: #fff;
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.22),
+    0 0.8rem 2.2rem rgba(14, 38, 52, 0.34);
+}
+
+.loud-button:active {
+  transform: translateY(0) scale(0.985);
 }
 
 .loud-button:hover::before,
@@ -1661,9 +1673,18 @@ html.js .contact-stage:not(.is-done) .loud-button {
   filter: blur(16px) saturate(1.5) brightness(1.14);
 }
 
+/* the arrow sits in its own small disc, the part that says press me */
 .loud-arrow {
   flex: none;
-  font-weight: 300;
+  display: grid;
+  place-items: center;
+  width: 1.9em;
+  height: 1.9em;
+  font-size: 0.78em;
+  font-weight: 400;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
   transition: translate var(--t-slow) var(--ease-drift);
 }
 
@@ -1994,8 +2015,7 @@ html.js .contact-stage:not(.is-done) .loud-button {
   .contact-mark { width: 2.6rem; height: 2.6rem; margin-bottom: 1rem; }
   .contact-hello { font-size: 1.05rem; }
   .contact-note p { font-size: 1.2rem; line-height: 1.3; }
-  .loud-button { font-size: 2.15rem; }
-  .loud-arrow { display: none; }
+  .loud-button { font-size: min(1.3rem, 5.4vw); }
   .socials { margin-left: 0; gap: 0.9rem; font-size: 0.72rem; }
   .contact-actions { gap: 0.5rem 1.2rem; }
   .ledger-row { grid-template-columns: 1fr; gap: 0.3rem; }
@@ -2273,50 +2293,58 @@ html.js .contact-stage:not(.is-done) .loud-button {
   50% { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -8px 14px rgba(255, 255, 255, 0.06), 0 0 0 0.7rem rgba(255, 255, 255, 0); }
 }
 
-/* the volume line: one thin stroke and a dot, at the right edge of the page */
+/* the volume line: one thin stroke and a dot, at the right edge of the page.
+   The box around it is wide enough for a thumb and claims the touch, so
+   dragging the dot never scrolls the page. */
 .track-volume {
+  --level: 0.6;
   position: fixed;
   top: 0;
-  right: clamp(0.4rem, 4.2vw, 4.4rem);
+  right: clamp(0rem, calc(4.2vw - 1rem), 3.4rem);
   z-index: 15;
-  width: 1.5rem;
-  height: 0;
+  width: 2.75rem;
+  height: 8rem;
   /* white over the lake, ink once the paper has come up */
   color: color-mix(in srgb, #fff calc((1 - var(--veil, 0)) * 100%), var(--ink));
   opacity: 0;
+  cursor: ns-resize;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
   transition: opacity 900ms var(--ease-drift);
   will-change: transform;
 }
 
 .track-volume.is-on { opacity: 0.85; }
 .track-volume.is-away { visibility: hidden; }
+.track-volume[hidden] { display: none; }
 
-.track-volume input {
-  -webkit-appearance: none;
-  appearance: none;
+.track-volume-line {
   position: absolute;
   left: 50%;
-  top: 0;
-  width: 6.5rem;
-  height: 1.5rem;
-  margin: -0.75rem 0 0 -3.25rem;
-  rotate: -90deg;
-  background: none;
-  color: inherit;
-  cursor: pointer;
+  top: 12px;
+  bottom: 12px;
+  width: 1px;
+  margin-left: -0.5px;
+  background: currentColor;
+  opacity: 0.6;
 }
 
-.track-volume input::-webkit-slider-runnable-track { height: 1px; background: currentColor; opacity: 0.55; }
-.track-volume input::-moz-range-track { height: 1px; background: currentColor; opacity: 0.55; }
-.track-volume input::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 0.55rem;
-  height: 0.55rem;
-  margin-top: calc(-0.275rem + 0.5px);
+.track-volume-dot {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--level) * 100%);
+  width: 0.6rem;
+  height: 0.6rem;
+  margin: 0 0 -0.3rem -0.3rem;
   border-radius: 50%;
   background: currentColor;
 }
-.track-volume input::-moz-range-thumb { width: 0.55rem; height: 0.55rem; border: 0; border-radius: 50%; background: currentColor; }
+
+.track-volume:focus-within .track-volume-dot {
+  outline: 1px solid currentColor;
+  outline-offset: 3px;
+}
 
 /* the corner button: smaller, and glass that bends what is behind it */
 .track-corner {
