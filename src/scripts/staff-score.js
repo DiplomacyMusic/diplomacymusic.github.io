@@ -26,16 +26,16 @@ const CHROME_OPACITY = 0.22; // the staff itself at a quarter of the notes
 
 // where each rung of the FirstObjects ladder lives on the grand staff
 const SPEC = [
-  { heads: [{ y: 92, acc: '♭' }] },                            // Bb2, bass second line
+  { heads: [{ y: 100, acc: '♭' }] },                           // Gb2, bass bottom line
+  { heads: [{ y: 84, acc: '♭' }] },                            // Db3, bass middle line
   { heads: [{ y: 76 }] },                                      // F3, bass fourth line
-  { heads: [{ y: 68 }] },                                      // A3, bass top line
-  { heads: [{ y: 60, ledgers: [60] }] },                       // C4, middle C ledger
-  { heads: [{ y: 48 }] },                                      // F4, treble first space
-  { heads: [{ y: 44 }] },                                      // G4, second line
+  { heads: [{ y: 68, acc: '♭' }] },                            // Ab3, bass top line
+  { heads: [{ y: 56, acc: '♭' }] },                            // Db4, under the treble staff
+  { heads: [{ y: 52, acc: '♭' }] },                            // Eb4, treble bottom line
+  { heads: [{ y: 40, acc: '♭' }] },                            // Ab4
   { heads: [{ y: 32 }] },                                      // C5
-  { heads: [{ y: 24 }] },                                      // E5
-  { heads: [{ y: 16 }, { y: 4, ledgers: [12, 4] }] },                              // G5 + C6
-  { heads: [{ y: 0, ledgers: [12, 4] }, { y: -12, ledgers: [-4, -12] }] },         // D6 + G6
+  { heads: [{ y: 24, acc: '♭' }, { y: 12, acc: '♭', ledgers: [12] }] },            // Eb5 + Ab5
+  { heads: [{ y: 8, acc: '♭', ledgers: [12] }, { y: -4, acc: '♭', ledgers: [4, -4] }] }, // Bb5 + Eb6
 ];
 
 // rhythm from density: time since the previous event picks the value.

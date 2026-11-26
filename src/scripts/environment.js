@@ -7,7 +7,7 @@
 // and the collisions play the room.
 //
 // Pitch comes from mass, so the big planets speak low. The voices are
-// the FirstObjects recordings, a B flat major 13 sharp 11 ladder, so anything
+// the FirstObjects recordings, a G flat major 13 sharp 11 ladder, so anything
 // touching anything lands inside one chord.
 //
 // Loads lazily, degrades gracefully, never runs for reduced motion.
@@ -47,12 +47,17 @@ export function shouldAnimate() {
 // physics tuning, all in world units. Loosened on November 26, 2026 so
 // the room is easier to whip up: less drag, livelier bounces, a longer
 // leash, and quieter touches allowed to ring.
-const GRAVITY = 0.8;          // pull between planets
+const GRAVITY = 1.5;          // pull between planets while someone is playing: they find each other
+const IDLE_PULL = 0.2;        // the share of that pull left once the room is alone, so a
+                              // huddle lets go and everything drifts back to its own place
 const SOFTEN = 2.5;           // close passes may slingshot a little
 const HOME_PULL = 0.12;       // a long leash back to each home position
 const DAMPING = 0.975;        // thin water: a throw carries about twice as far
 const RESTITUTION = 0.82;     // collisions bounce on, so one hit starts others
-const BOUNDS = { x: 13, y: 8, zNear: 4, zFar: -9 };
+// Depth of the room; its sides are the edges of the screen. Nearly the
+// same in front of the middle as behind it, so the room can be turned
+// right round without the shapes piling against the lens.
+const BOUNDS = { zNear: 5, zFar: -8 };
 const RESONANCE_RADIUS = 15;  // how far sympathy travels
 const STRIKE_COOLDOWN = 0.08; // seconds between strikes per shape
 const SCROLL_INERTIA = 0.006; // how hard scrolling drags the planets
@@ -67,7 +72,14 @@ const STIR = 0.2;             // dragging stirs the water, momentum passed by pr
 const THROW_MAX = 20;         // the fastest a thrown shape may leave the hand
 const RING_SPEED = 0.5;       // how hard two things must meet before they speak
 const LISTEN_SECONDS = 9;     // how long after a touch the room keeps sounding
-const WALL_SPRING = 5;        // wide screens: a runaway is sent back through the family
+const WALL_BOUNCE = 0.6;       // how much speed a shape keeps off the edge of the screen
+const EDGE_KEEP = 0.4;         // a shape's centre stays this share of its radius inside the edge
+const ORBIT_TURN = 0.0045;     // radians of turn per pixel dragged across empty space
+const ORBIT_PITCH_MAX = 1.05;  // how far over the top or under the view may go
+const SWIRL = 1.4;             // how hard a turning room drags the shapes round with it
+const SWIRL_MAX = 4;           // radians a second; past this the water stops keeping up
+const ZOOM_NEAR = 0.7;         // a pinch may bring the camera this much closer
+const ZOOM_FAR = 1.3;          // or push it this much farther away, short of the fog
 const TAP_DRIFT = 0.25;       // world units a mouse may wander before a press is a drag
 const TAP_DRIFT_TOUCH = 0.7;  // fingers wobble more than mice do
 const LONG_PRESS_MS = 300;    // a finger that stays this long starts the slow swell
@@ -105,16 +117,16 @@ export async function startEnvironment(container, options = {}) {
   const field = portrait
     ? {
         count: 10,
-        spreadX: halfW * 2.2,
-        spreadY: halfH * 1.7,
+        spreadX: halfW * 1.7,
+        spreadY: halfH * 1.6,
         spreadZ: 10, // deep, so the dolly streaks near shapes past far ones
-        bounds: { x: halfW + 1.5, y: halfH + 1, zNear: BOUNDS.zNear, zFar: BOUNDS.zFar },
+        bounds: BOUNDS,
         floor: -(halfH * 0.9),
       }
     : {
         count: 14,
-        spreadX: 22,
-        spreadY: 11,
+        spreadX: Math.min(22, halfW * 1.7),
+        spreadY: Math.min(11, halfH * 1.6),
         spreadZ: 10,
         bounds: BOUNDS,
         floor: FLOOR_Y,
@@ -191,7 +203,7 @@ export async function startEnvironment(container, options = {}) {
       (Math.random() - 0.5) * field.spreadY,
       // portrait sits the family a step deeper, so nothing parks on
       // the lens of a narrow frame
-      (Math.random() - 0.5) * field.spreadZ - (portrait ? 3.5 : 2)
+      (Math.random() - 0.5) * field.spreadZ - (portrait ? 3 : 1.5)
     );
     const scale = 0.5 + Math.random() * 1.3;
     mesh.scale.setScalar(scale);
@@ -254,7 +266,8 @@ export async function startEnvironment(container, options = {}) {
       if (other === mesh || other.userData.type !== data.type) continue;
       const distance = mesh.position.distanceTo(other.position);
       if (distance > RESONANCE_RADIUS) continue;
-      const sympathy = gain * (1 - distance / RESONANCE_RADIUS) * 0.55;
+      // the answer is nearly as loud as the call, and fades gently with distance
+      const sympathy = gain * (1 - 0.6 * (distance / RESONANCE_RADIUS)) * 0.9;
       if (sympathy < 0.03) continue;
       engine.strike({
         pitch: other.userData.pitch,
@@ -340,6 +353,38 @@ export async function startEnvironment(container, options = {}) {
   let tiltX = 0;
   let tiltY = 0;
 
+  // A drag that starts on empty space turns the whole room. The camera
+  // swings around the middle of it; the shapes stay where they are, and
+  // the edges of the room follow the view. A mouse can also tip the room
+  // over; a finger's up and down still belongs to the page.
+  let orbitPointer = null;
+  let orbitTouch = false;
+  let orbitX = 0;
+  let orbitY = 0;
+  let orbitMovedAt = 0;
+  let yawDrift = 0;
+  let yawTarget = 0;
+  let pitchTarget = 0;
+  let yaw = 0;
+  let pitch = 0;
+  // two fingers on a phone do more: their travel turns the room both ways,
+  // their twist rolls it, and their pinch moves the camera in and out
+  let rollTarget = 0;
+  let roll = 0;
+  let zoomTarget = 1;
+  let zoom = 1;
+  let gesture = null;
+  // Turning the room stirs it. The turn is an arm swept through a lake:
+  // the shapes are leaves caught in the motion, dragged round the middle
+  // of the room the same way, the small ones soonest, and left circling
+  // after the arm has stopped. This is how fast the water is turning.
+  const swirl = new THREE.Vector3();
+  const turned = { yaw: 0, pitch: 0, roll: 0 };
+  const AXIS_X = new THREE.Vector3(1, 0, 0);
+  const AXIS_Y = new THREE.Vector3(0, 1, 0);
+  // where the camera would sit if the room had never been turned
+  const rig = camera.position.clone();
+
   function updatePointer(event) {
     const rect = container.getBoundingClientRect();
     pointer.set(
@@ -354,6 +399,20 @@ export async function startEnvironment(container, options = {}) {
       tiltX = (event.clientX / window.innerWidth - 0.5) * 1.6;
       tiltY = (event.clientY / window.innerHeight - 0.5) * 0.9;
     }
+    if (event.pointerId === orbitPointer) {
+      const dx = event.clientX - orbitX;
+      const dy = event.clientY - orbitY;
+      orbitX = event.clientX;
+      orbitY = event.clientY;
+      yawTarget += dx * ORBIT_TURN;
+      yawDrift = dx * ORBIT_TURN;
+      orbitMovedAt = performance.now();
+      if (!orbitTouch) {
+        pitchTarget = Math.max(-ORBIT_PITCH_MAX, Math.min(ORBIT_PITCH_MAX, pitchTarget + dy * ORBIT_TURN * 0.8));
+      }
+      // turning the room is being in the room
+      lastEnergyAt = performance.now() / 1000;
+    }
     // while a shape is held, only the grabbing finger speaks
     if (heldPointerId !== null && event.pointerId !== heldPointerId) return;
     updatePointer(event);
@@ -362,7 +421,55 @@ export async function startEnvironment(container, options = {}) {
   // The rule on touch: a finger that lands on a shape owns the gesture.
   // Claiming it here, before scrolling can start, is the only reliable
   // way to keep a vertical drag from scrolling the page instead.
+  const twoFingers = (touches) => {
+    const [a, b] = [touches[0], touches[1]];
+    return {
+      x: (a.clientX + b.clientX) / 2,
+      y: (a.clientY + b.clientY) / 2,
+      spread: Math.max(24, Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY)),
+      angle: Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX),
+    };
+  };
+
+  window.addEventListener('touchmove', (event) => {
+    if (!gesture || event.touches.length !== 2) return;
+    if (event.cancelable) event.preventDefault();
+    const now = twoFingers(event.touches);
+    yawTarget += (now.x - gesture.x) * ORBIT_TURN;
+    pitchTarget = Math.max(-ORBIT_PITCH_MAX, Math.min(ORBIT_PITCH_MAX, pitchTarget + (now.y - gesture.y) * ORBIT_TURN * 0.8));
+    // the short way round, so a twist never jumps as the fingers cross over
+    let twist = now.angle - gesture.angle;
+    if (twist > Math.PI) twist -= Math.PI * 2;
+    if (twist < -Math.PI) twist += Math.PI * 2;
+    rollTarget += twist;
+    // fingers apart brings the camera in, fingers together sends it back
+    zoomTarget = Math.max(ZOOM_NEAR, Math.min(ZOOM_FAR, (zoomTarget * gesture.spread) / now.spread));
+    gesture = now;
+    lastEnergyAt = performance.now() / 1000;
+  }, { passive: false });
+
+  const endTwoFingers = (event) => {
+    if (!gesture || event.touches.length >= 2) return;
+    gesture = null;
+    const degrees = (radians) => Math.round((radians * 180) / Math.PI);
+    logLine(`turn(room, { yaw: ${degrees(yawTarget)}, pitch: ${degrees(pitchTarget)}, roll: ${degrees(rollTarget)}, zoom: ${(1 / zoomTarget).toFixed(2)} })`);
+  };
+  window.addEventListener('touchend', endTwoFingers);
+  window.addEventListener('touchcancel', endTwoFingers);
+
   window.addEventListener('touchstart', (event) => {
+    // two fingers on the empty room claim the gesture for the room: no
+    // page scroll, no page zoom, and the one finger turn steps aside
+    if (event.touches.length === 2 && !held) {
+      const inRoom = [...event.touches].every((touch) => touch.target === renderer.domElement);
+      if (inRoom) {
+        if (event.cancelable) event.preventDefault();
+        gesture = twoFingers(event.touches);
+        orbitPointer = null;
+        lastEnergyAt = performance.now() / 1000;
+      }
+      return;
+    }
     if (event.touches.length !== 1) return;
     const touch = event.touches[0];
     if (event.target.closest && event.target.closest('a, button')) return;
@@ -383,7 +490,22 @@ export async function startEnvironment(container, options = {}) {
     updatePointer(event);
     raycaster.setFromCamera(pointer, camera);
     const hit = raycaster.intersectObjects(shapes, false)[0];
-    if (!hit) return;
+    if (!hit) {
+      // empty space: this drag turns the room
+      if (event.target !== renderer.domElement || orbitPointer !== null) return;
+      orbitPointer = event.pointerId;
+      orbitTouch = event.pointerType !== 'mouse';
+      orbitX = event.clientX;
+      orbitY = event.clientY;
+      yawDrift = 0;
+      if (!orbitTouch) {
+        event.preventDefault();
+        document.body.style.userSelect = 'none';
+        document.body.style.webkitUserSelect = 'none';
+        container.style.cursor = 'grabbing';
+      }
+      return;
+    }
     held = hit.object;
     heldPointerId = event.pointerId;
     heldIsTouch = event.pointerType !== 'mouse';
@@ -429,6 +551,18 @@ export async function startEnvironment(container, options = {}) {
   });
 
   function releaseHold(event) {
+    if (event.pointerId === orbitPointer) {
+      orbitPointer = null;
+      // let go in the middle of a turn and the room coasts a little further
+      if (event.type === 'pointerup' && performance.now() - orbitMovedAt < 80) yawTarget += yawDrift * 4;
+      const degrees = (radians) => Math.round((radians * 180) / Math.PI);
+      logLine(`turn(room, { yaw: ${degrees(yawTarget)}, pitch: ${degrees(pitchTarget)} })`);
+      if (!orbitTouch) {
+        document.body.style.userSelect = '';
+        document.body.style.webkitUserSelect = '';
+        container.style.cursor = hovered ? 'grab' : '';
+      }
+    }
     if (!held) return;
     if (heldPointerId !== null && event.pointerId !== heldPointerId) return;
     clearTimeout(longPressTimer);
@@ -527,9 +661,76 @@ export async function startEnvironment(container, options = {}) {
 
   const force = new THREE.Vector3();
   const between = new THREE.Vector3();
+
+  // The room is exactly as big as the screen. A shape is held inside what
+  // the camera can see, wherever the camera has been turned to: its centre
+  // may not pass the edge of the view, so no shape is ever wholly out of
+  // sight. The edges are hard and a little bouncy, and they make no sound,
+  // except the bottom one once the floor has arrived.
+  const camRight = new THREE.Vector3();
+  const camUp = new THREE.Vector3();
+  const camBack = new THREE.Vector3();
+  const fromCam = new THREE.Vector3();
+  const edge = new THREE.Vector3();
+  const tanHalf = Math.tan((camera.fov * Math.PI) / 360);
+
+  // take away the speed a shape has toward an edge, and give some back
+  function turnBack(data, normal, bounce) {
+    const outward = data.velocity.dot(normal);
+    if (outward > 0) data.velocity.addScaledVector(normal, -(1 + bounce) * outward);
+    return outward;
+  }
+
+  function keepInView(mesh, t) {
+    const data = mesh.userData;
+    // The room keeps one size. Its edges are the edges of the view as it
+    // is before any pinch, so coming in close looks at part of the room
+    // instead of crushing the shapes together, and pulling back shows the
+    // whole room with air around it.
+    fromCam.copy(camera.position).multiplyScalar(-1 / zoom).add(mesh.position);
+
+    // depth first: never onto the lens, never lost in the fog
+    const distance = camera.position.length() / zoom;
+    const nearest = distance - field.bounds.zNear;
+    const farthest = distance - field.bounds.zFar;
+    let depth = -fromCam.dot(camBack);
+    if (depth < nearest) {
+      mesh.position.addScaledVector(camBack, depth - nearest);
+      turnBack(data, camBack, WALL_BOUNCE);
+      depth = nearest;
+    } else if (depth > farthest) {
+      mesh.position.addScaledVector(camBack, depth - farthest);
+      turnBack(data, edge.copy(camBack).negate(), WALL_BOUNCE);
+      depth = farthest;
+    }
+
+    // then the four edges of the screen, which widen with depth
+    const halfY = Math.max(0.5, depth * tanHalf - data.radius * EDGE_KEEP);
+    const halfX = Math.max(0.5, depth * tanHalf * camera.aspect - data.radius * EDGE_KEEP);
+    const x = fromCam.dot(camRight);
+    const y = fromCam.dot(camUp);
+    if (Math.abs(x) > halfX) {
+      const side = Math.sign(x);
+      mesh.position.addScaledVector(camRight, side * halfX - x);
+      turnBack(data, edge.copy(camRight).multiplyScalar(side), WALL_BOUNCE);
+    }
+    if (Math.abs(y) > halfY) {
+      const side = Math.sign(y);
+      mesh.position.addScaledVector(camUp, side * halfY - y);
+      // once the floor has arrived, the bottom of the screen is floor too
+      const landing = side < 0 && pile > 0.3;
+      const impact = turnBack(data, edge.copy(camUp).multiplyScalar(side), landing ? 0.22 : WALL_BOUNCE);
+      if (landing && impact > RING_SPEED && t - lastEnergyAt < LISTEN_SECONDS) {
+        logLine(`land(${SHAPE_NAMES[data.type]}.${data.index}, impact = ${impact.toFixed(1)})`);
+        clusterStrike(mesh, Math.min(0.32, impact * 0.05), t);
+      }
+    }
+  }
+
   let lastFrameAt = performance.now();
   let lastScrollY = window.scrollY;
   let pile = 0; // eases toward 1 when the bottom of the page arrives
+  let presence = IDLE_PULL; // eases toward 1 while someone is playing
 
   function frame() {
     const now = performance.now();
@@ -549,6 +750,11 @@ export async function startEnvironment(container, options = {}) {
       ? (options.pile && options.pile() ? 1 : 0)
       : scrollProgress() > 0.85 ? 1 : 0;
     pile += (pileTarget - pile) * 0.04;
+
+    // the pull between the shapes is full while someone is playing and
+    // eases off once they stop
+    const presenceTarget = t - lastEnergyAt < LISTEN_SECONDS ? 1 : IDLE_PULL;
+    presence += (presenceTarget - presence) * 0.02;
 
     // hover feedback, only where hover exists: on touch the slow
     // swell belongs to the long press instead
@@ -589,6 +795,69 @@ export async function startEnvironment(container, options = {}) {
       }
     }
 
+    // The camera moves first, so the shapes are held inside the view that
+    // is about to be drawn, not the one before it.
+    // pointer tilts the view, scroll sinks it, perspective does the rest
+    rig.x += (tiltX - rig.x) * 0.02;
+    if (portrait) {
+      // a dolly down the page: at the top the family is far away, specks
+      // in the distance; through the play gap the camera rushes in close
+      // so they fill the frame and dance, then eases back a little.
+      const vh = window.innerHeight;
+      const apex = vh * 1.35; // scroll where the shapes are nearest
+      let closeness;
+      if (room) {
+        closeness = 0.6; // a room holds one distance: near enough to play
+      } else if (scrollY <= apex) {
+        const u = apex > 0 ? scrollY / apex : 1;
+        closeness = u * u * (3 - 2 * u); // smoothstep far to near
+      } else {
+        const u = Math.min(1, (scrollY - apex) / (vh * 0.9));
+        closeness = 1 - 0.55 * (u * u * (3 - 2 * u)); // ease back, stay near
+      }
+      // 25 keeps them as hazy specks at the top rather than lost in the
+      // fog (far plane 34); 12 brings them right up close for the play
+      const targetZ = 25 + (12 - 25) * closeness;
+      rig.z += (targetZ - rig.z) * 0.08;
+      // much stronger parallax, bounded so the bottom pile still composes
+      const sink = room ? 0 : Math.min(scrollY, vh * 2.2) * 0.012;
+      rig.y += (-tiltY - sink - rig.y) * 0.06;
+    } else {
+      rig.y += (-tiltY - (room ? 0 : scrollY * 0.004) - rig.y) * 0.05;
+    }
+    // then the room's own turn: nearer or farther, over the top, around,
+    // and last a roll about the line of sight. What moved this frame is
+    // kept, because the next frame's water turns by it.
+    const before = { yaw, pitch, roll };
+    yaw += (yawTarget - yaw) * 0.14;
+    pitch += (pitchTarget - pitch) * 0.14;
+    roll += (rollTarget - roll) * 0.14;
+    zoom += (zoomTarget - zoom) * 0.14;
+    turned.yaw = yaw - before.yaw;
+    turned.pitch = pitch - before.pitch;
+    turned.roll = roll - before.roll;
+    camera.position.copy(rig).multiplyScalar(zoom).applyAxisAngle(AXIS_X, -pitch).applyAxisAngle(AXIS_Y, -yaw);
+    camera.lookAt(0, 0, 0);
+    if (roll) camera.rotateZ(roll);
+
+    // where the camera is looking from, for the edges of the room
+    camera.updateMatrixWorld();
+    camRight.setFromMatrixColumn(camera.matrixWorld, 0);
+    camUp.setFromMatrixColumn(camera.matrixWorld, 1);
+    camBack.setFromMatrixColumn(camera.matrixWorld, 2);
+
+    // how fast the room was turned this frame, as one spin: around the
+    // upright for a sideways turn, around the camera's own level for a tip
+    // over the top, and around the line of sight for a twist
+    const perSecond = 1 / Math.max(dt, 0.008);
+    swirl
+      .set(0, 0, 0)
+      .addScaledVector(AXIS_Y, turned.yaw * perSecond)
+      .addScaledVector(camRight, turned.pitch * perSecond)
+      .addScaledVector(camBack, -turned.roll * perSecond)
+      .clampLength(0, SWIRL_MAX);
+    const stirring = swirl.lengthSq() > 0.0004;
+
     // forces and integration
     for (const mesh of shapes) {
       const data = mesh.userData;
@@ -605,7 +874,7 @@ export async function startEnvironment(container, options = {}) {
         const d2 = between.lengthSq() + SOFTEN;
         const dragging = other === held && holdMoved > tapDrift;
         const boost = dragging ? HOLD_PULL_BOOST : 1;
-        const pull = (GRAVITY * boost * data.mass * other.userData.mass) / d2;
+        const pull = (GRAVITY * presence * boost * data.mass * other.userData.mass) / d2;
         force.addScaledVector(between.normalize(), pull);
         if (dragging) {
           force.addScaledVector(
@@ -613,6 +882,13 @@ export async function startEnvironment(container, options = {}) {
             (STIR * data.mass * other.userData.mass) / d2
           );
         }
+      }
+
+      // the turning water: its speed here is the turn crossed with where
+      // the shape sits, and it grips by area, so the small shapes go first
+      if (stirring) {
+        between.crossVectors(swirl, mesh.position);
+        force.addScaledVector(between, (SWIRL * data.mass) / data.radius);
       }
 
       // the leash home keeps the system composed, until the floor arrives
@@ -650,22 +926,10 @@ export async function startEnvironment(container, options = {}) {
         force.x += Math.sign(mesh.position.x || 1) * 0.8 * data.mass * pile;
       }
 
-      // soft walls, and springs: the scroll current and a hard throw are
-      // both strong enough to fire shapes at them, and the bounce sends a
-      // runaway back through the family instead of losing it offstage
-      const springiness = portrait ? 10 : WALL_SPRING;
-      const overX = Math.abs(mesh.position.x) - field.bounds.x;
-      if (overX > 0)
-        force.x -= Math.sign(mesh.position.x) * data.mass * (2 + overX * springiness);
-      const overY = Math.abs(mesh.position.y) - field.bounds.y;
-      if (overY > 0)
-        force.y -= Math.sign(mesh.position.y) * data.mass * (2 + overY * springiness);
-      if (mesh.position.z > field.bounds.zNear) force.z -= data.mass * 2;
-      if (mesh.position.z < field.bounds.zFar) force.z += data.mass * 2;
-
       data.velocity.addScaledVector(force, dt / data.mass);
       data.velocity.multiplyScalar(DAMPING ** (dt * 60));
       mesh.position.addScaledVector(data.velocity, dt);
+      keepInView(mesh, t);
 
       // the floor is real once the pile begins: land, settle, and sing
       if (pile > 0.3 && mesh.position.y - data.radius < field.floor) {
@@ -719,7 +983,7 @@ export async function startEnvironment(container, options = {}) {
                 od.dragVoice = engine.swellStart({
                   pitch: od.pitch,
                   pan: panOf(other),
-                  peak: 0.2,
+                  peak: 0.7,
                 });
                 if (od.dragVoice) staff.note(od.pitch);
               }
@@ -800,36 +1064,6 @@ export async function startEnvironment(container, options = {}) {
       mesh.material.emissiveIntensity = data.glow * 0.6 + data.hoverGlow;
     }
 
-    // pointer tilts the view, scroll sinks it, perspective does the rest
-    camera.position.x += (tiltX - camera.position.x) * 0.02;
-    if (portrait) {
-      // a dolly down the page: at the top the family is far away, specks
-      // in the distance; through the play gap the camera rushes in close
-      // so they fill the frame and dance, then eases back a little.
-      const vh = window.innerHeight;
-      const apex = vh * 1.35; // scroll where the shapes are nearest
-      let closeness;
-      if (room) {
-        closeness = 0.6; // a room holds one distance: near enough to play
-      } else if (scrollY <= apex) {
-        const u = apex > 0 ? scrollY / apex : 1;
-        closeness = u * u * (3 - 2 * u); // smoothstep far to near
-      } else {
-        const u = Math.min(1, (scrollY - apex) / (vh * 0.9));
-        closeness = 1 - 0.55 * (u * u * (3 - 2 * u)); // ease back, stay near
-      }
-      // 25 keeps them as hazy specks at the top rather than lost in the
-      // fog (far plane 34); 12 brings them right up close for the play
-      const targetZ = 25 + (12 - 25) * closeness;
-      camera.position.z += (targetZ - camera.position.z) * 0.08;
-      // much stronger parallax, bounded so the bottom pile still composes
-      const sink = room ? 0 : Math.min(scrollY, vh * 2.2) * 0.012;
-      camera.position.y += (-tiltY - sink - camera.position.y) * 0.06;
-    } else {
-      camera.position.y += (-tiltY - (room ? 0 : scrollY * 0.004) - camera.position.y) * 0.05;
-    }
-    camera.lookAt(0, 0, 0);
-
     renderer.render(scene, camera);
   }
 
@@ -847,6 +1081,10 @@ export async function startEnvironment(container, options = {}) {
       run();
     }).observe(container);
   }
+
+  // a handle for checking the room from the console while developing;
+  // the published build does not carry it
+  if (import.meta.env && import.meta.env.DEV) window.__room = { shapes, camera, THREE };
 
   container.classList.add('is-live');
 }

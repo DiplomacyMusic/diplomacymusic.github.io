@@ -6,7 +6,7 @@
 //   - every voice passes through the master fader, so off means off
 //   - nothing sounds on its own: no bed, no drone, strikes only
 //   - the voices are Daniel's recorded FirstObjects notes (a spread
-//     B flat major 13 sharp 11 ladder with round robins). Until the bank
+//     G flat major 13 sharp 11 ladder with round robins). Until the bank
 //     finishes loading, a soft synth understudy holds the part.
 
 import { SAMPLE_BANK } from './sample-bank.js';
@@ -75,14 +75,18 @@ async function loadBank() {
 }
 
 // The room's dynamic range, narrowed. The quietest event the room sounds
-// (gain 0.03, the floor the environment itself uses) comes out twice as
-// loud, the loudest (gain 1) comes out unchanged, and everything between is
-// scaled evenly in decibels: a gentle upward compression of about 1.25 to 1.
+// (gain 0.03, the floor the environment itself uses) comes out four times
+// as loud, the loudest (gain 1) comes out unchanged, and everything between
+// is scaled evenly in decibels: an upward compression of about 1.65 to 1.
 const QUIETEST = 0.03;
-const RANGE = 1 + Math.log(2) / Math.log(QUIETEST); // about 0.80
+const QUIET_LIFT = 4;
+const RANGE = 1 + Math.log(QUIET_LIFT) / Math.log(QUIETEST); // about 0.60
 function shapeGain(gain) {
   return Math.pow(Math.max(0, Math.min(gain, 1)), RANGE);
 }
+
+// seconds for a swell to bloom
+const SWELL_ATTACK = 0.6;
 
 // The synth understudy: a clear sine pluck at the pitch's frequency,
 // used only before the recorded bank has arrived.
@@ -145,9 +149,13 @@ export const engine = {
     }
   },
 
-  // Begin a swell: the pitch blooms in slowly, the sound of leaning
-  // close to something resonant. Returns a handle for swellEnd.
-  swellStart({ pitch = 0, pan = 0, peak = 0.3 } = {}) {
+  // Begin a swell: the pitch blooms in, the sound of leaning close to
+  // something resonant. Returns a handle for swellEnd.
+  // A swell fades in over a struck note, so it has lost the strike and
+  // some of the ring before it is heard: on these recordings it measured
+  // about 19 dB under a strike at the same gain. The quicker bloom and the
+  // higher level here are what make the resonance audible.
+  swellStart({ pitch = 0, pan = 0, peak = 1 } = {}) {
     if (!state.on || !state.context) return null;
 
     const context = state.context;
@@ -164,7 +172,7 @@ export const engine = {
 
     const level = context.createGain();
     level.gain.setValueAtTime(0, now);
-    level.gain.linearRampToValueAtTime(peak, now + 1.6); // the slow attack
+    level.gain.linearRampToValueAtTime(peak, now + SWELL_ATTACK);
     const panner = context.createStereoPanner();
     panner.pan.value = Math.max(-1, Math.min(1, pan));
     level.connect(panner).connect(state.pingBus);
@@ -180,6 +188,11 @@ export const engine = {
     } else {
       const built = synthVoice(context, now, SAMPLE_BANK[index].freq);
       built.out.connect(level);
+      // the understudy does not decay under the fade the way a recording
+      // does, so it keeps the old, lower level
+      level.gain.cancelScheduledValues(now);
+      level.gain.setValueAtTime(0, now);
+      level.gain.linearRampToValueAtTime(peak * 0.3, now + SWELL_ATTACK);
     }
 
     const voice = { level, swell: true };

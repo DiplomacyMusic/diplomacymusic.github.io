@@ -552,22 +552,17 @@ html:not(.js) .company-repeat {
   background: rgba(34, 30, 27, 0.62);
 }
 
-/* The deal. Each card tips up from the table and settles with a little
-   overshoot, one after the next; the script in index.astro runs it and
-   lets the scroll hurry it along. Until the deal starts the cards wait
-   out of sight. */
-html.js .facts {
-  perspective: 1100px;
-  will-change: transform;
-}
-
-html.js .facts:not(.is-dealt) .fact {
-  opacity: 0;
+/* The cards ease in with the page's ordinary reveal, one after another.
+   They keep their soft hover through it. */
+html.js .fact[data-reveal] {
+  transition:
+    opacity 700ms var(--ease-drift),
+    translate 700ms var(--ease-drift),
+    background var(--t-slow) var(--ease-drift);
 }
 
 .fact {
   position: relative;
-  transform-origin: 50% 100%;
   border-top-color: rgba(242, 241, 240, 0.14);
 }
 

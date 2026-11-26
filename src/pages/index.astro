@@ -362,11 +362,12 @@ const structuredData = {
       <div class="band-inner" data-depth="0.07">
         <p class="overline" data-reveal>Recognition</p>
       </div>
-      <!-- the cards are dealt one at a time when the row comes into view, and the
-           whole row rides a little faster than the band, so it floats over the lake -->
+      <!-- the cards ease in one after another, left to right and top to bottom,
+           the same quiet rise as the ledger rows further down. The whole block
+           rides a little faster than the band, so it floats over the lake -->
       <div class="band-inner facts" id="facts" data-depth="0.07">
         {recognition.map((fact, i) => (
-          <div class="fact" style={`--i: ${i}`}>
+          <div class="fact" style={`--i: ${i}`} data-reveal data-reveal-step="120">
             <span class="fact-head">
               <span class="fact-figure" data-count={/^\d+$/.test(fact.figure) ? fact.figure : undefined}>{fact.figure}</span>
               {fact.mark && (
@@ -916,132 +917,6 @@ const structuredData = {
     }
     window.addEventListener('scroll', placeVolume, { passive: true });
     window.addEventListener('resize', placeVolume);
-  }
-
-  // A set of animations runs on its own clock, but the scroll can push that
-  // clock forward. However fast the page moves, everything has landed by
-  // the time the block's top is a little above the middle of the screen,
-  // so nobody scrolls past an empty block.
-  // `enter` is how far down the screen the block's top sits when the clock
-  // starts, as a fraction of the screen height.
-  const scrollPushed = (
-    block: HTMLElement,
-    anims: Animation[],
-    length: number,
-    each?: (clock: number) => void,
-    done?: () => void,
-    enter = 0.95
-  ) => {
-    const pump = () => {
-      const vh = window.innerHeight;
-      const travelled = Math.min(1, Math.max(0, (vh * enter - block.getBoundingClientRect().top) / (vh * 0.55)));
-      const floor = travelled * length;
-      let clock = 0;
-      let running = false;
-      for (const anim of anims) {
-        if ((Number(anim.currentTime) || 0) < floor) anim.currentTime = floor;
-        clock = Math.max(clock, Number(anim.currentTime) || 0);
-        if (anim.playState !== 'finished') running = true;
-      }
-      each?.(clock);
-      if (running) requestAnimationFrame(pump);
-      else done?.();
-    };
-    requestAnimationFrame(pump);
-  };
-
-  // ---- recognition: deal the cards one at a time as the row arrives.
-  // The deal runs on its own clock, but the scroll can push that clock
-  // forward: however fast the page moves, the cards are down before the
-  // row reaches the middle of the screen. Nobody scrolls past a blank row.
-  const facts = document.getElementById('facts');
-  if (facts) {
-    const cards = [...facts.querySelectorAll<HTMLElement>('.fact')];
-
-    const deal = () => {
-      facts.classList.add('is-dealt');
-      if (reduced || typeof facts.animate !== 'function') return;
-
-      const SPRING = 'cubic-bezier(0.2, 1.35, 0.35, 1)';
-      const DRIFT = 'cubic-bezier(0.25, 0.1, 0.25, 1)';
-      const RISE = [
-        { opacity: 0, translate: '0 0.7rem' },
-        { opacity: 1, translate: '0 0' },
-      ];
-      const anims: Animation[] = [];
-      const counters: { el: HTMLElement; target: number; from: number }[] = [];
-      let length = 0;
-      const play = (el: Element, frames: Keyframe[], duration: number, delay: number, easing: string, pseudo?: string) => {
-        anims.push(el.animate(frames, { duration, delay, easing, fill: 'backwards', pseudoElement: pseudo }));
-        length = Math.max(length, delay + duration);
-      };
-
-      cards.forEach((card, i) => {
-        const at = i * 170;
-        play(card, [{ opacity: 0 }, { opacity: 1 }], 420, at, DRIFT);
-        play(
-          card,
-          [
-            { translate: '0 4.5rem', rotate: 'x -42deg', scale: '0.9' },
-            { translate: '0 0', rotate: 'x 0deg', scale: '1' },
-          ],
-          950,
-          at,
-          SPRING
-        );
-        play(card, [{ scale: '0 1' }, { scale: '1 1' }], 900, at + 350, DRIFT, '::before');
-
-        const figure = card.querySelector<HTMLElement>('.fact-figure');
-        if (figure) {
-          play(
-            figure,
-            [
-              { clipPath: 'inset(0 100% 0 0)', translate: '-0.6rem 0' },
-              { clipPath: 'inset(0 0 0 0)', translate: '0 0' },
-            ],
-            700,
-            at + 260,
-            DRIFT
-          );
-          if (figure.dataset.count) {
-            counters.push({ el: figure, target: Number(figure.dataset.count), from: at + 260 });
-            figure.textContent = '0';
-          }
-        }
-        const label = card.querySelector('.fact-label');
-        if (label) play(label, RISE, 550, at + 420, DRIFT);
-        card.querySelectorAll('.fact-detail > span').forEach((line, j) => play(line, RISE, 550, at + 520 + j * 80, DRIFT));
-        const also = card.querySelector('.fact-also');
-        if (also) play(also, RISE, 550, at + 900, DRIFT);
-      });
-
-      scrollPushed(
-        facts,
-        anims,
-        length,
-        (clock) => {
-          for (const counter of counters) {
-            const progress = Math.min(1, Math.max(0, (clock - counter.from) / 900));
-            counter.el.textContent = String(Math.round(counter.target * (1 - Math.pow(1 - progress, 3))));
-          }
-        },
-        () => counters.forEach((counter) => (counter.el.textContent = String(counter.target)))
-      );
-    };
-
-    if (reduced || !('IntersectionObserver' in window)) {
-      deal();
-    } else {
-      const arrive = new IntersectionObserver(
-        (entries) => {
-          if (!entries.some((entry) => entry.isIntersecting)) return;
-          arrive.disconnect();
-          deal();
-        },
-        { threshold: 0.08 }
-      );
-      arrive.observe(facts);
-    }
   }
 
   // ---- work: filter by discipline

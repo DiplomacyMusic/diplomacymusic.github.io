@@ -1,24 +1,28 @@
 // The FirstObjects sample bank: Daniel's recorded single notes, from the
-// root up: Bb2, F3, A3, C4, F4, G4, C5, E5, then the dyads G5+C6 and
-// D6+G6 at the top. Most pitches carry two takes for round robin so
-// repeated strikes never sound stamped out.
+// root up: Gb2, Db3, F3, Ab3, Db4, Eb4, Ab4, C5, then the dyads Eb5+Ab5
+// and Bb5+Eb6 at the top. Most pitches carry two takes for round robin
+// so repeated strikes never sound stamped out.
 //
 // Generated from the FirstObjects session bounces (June 12, 2026),
 // ladder per Daniel, dyads confirmed by spectrum. The recordings were
-// made a major third higher, on D, and brought down four semitones
-// tape style (November 26, 2026) so the room sits in the key of the
-// site theme. Frequencies sit a few cents bright of equal temperament,
-// which is part of the charm.
+// made on D (D3, A3, C#4, E4, A4, B4, E5, G#5, B5+E6, F#6+B6) and are
+// brought down eight semitones, tape style, in one pass (November 26,
+// 2026) so the room sits in the key of the site theme, A flat major and
+// D flat Lydian. The bottom rung is rare: it only speaks for the very
+// largest shape, so the lowest note usually heard is the D flat above
+// it, and everything from there up is inside A flat major. The G flat
+// itself is the one note outside that key. Frequencies sit a few cents
+// bright of equal temperament, which is part of the charm.
 
 export const SAMPLE_BANK = [
-  { note: 'Bb2',    freq: 116.3,  files: ['/audio/materials/bb2-a.m4a', '/audio/materials/bb2-b.m4a'] },
-  { note: 'F3',     freq: 174.8,  files: ['/audio/materials/f3-a.m4a', '/audio/materials/f3-b.m4a'] },
-  { note: 'A3',     freq: 220.4,  files: ['/audio/materials/a3-a.m4a', '/audio/materials/a3-b.m4a'] },
-  { note: 'C4',     freq: 262.2,  files: ['/audio/materials/c4-a.m4a', '/audio/materials/c4-b.m4a'] },
-  { note: 'F4',     freq: 349.7,  files: ['/audio/materials/f4-a.m4a', '/audio/materials/f4-b.m4a'] },
-  { note: 'G4',     freq: 393.9,  files: ['/audio/materials/g4-a.m4a', '/audio/materials/g4-b.m4a'] },
-  { note: 'C5',     freq: 525.4,  files: ['/audio/materials/c5-a.m4a', '/audio/materials/c5-b.m4a'] },
-  { note: 'E5',     freq: 661.5,  files: ['/audio/materials/e5-a.m4a', '/audio/materials/e5-b.m4a'] },
-  { note: 'G5+C6',  freq: 787.9,  files: ['/audio/materials/g5c6-a.m4a', '/audio/materials/g5c6-b.m4a'] },
-  { note: 'D6+G6',  freq: 1181.8, files: ['/audio/materials/d6g6-a.m4a'] },
+  { note: 'Gb2',     freq: 92.3,  files: ['/audio/materials/gb2-a.m4a', '/audio/materials/gb2-b.m4a'] },
+  { note: 'Db3',     freq: 138.7, files: ['/audio/materials/db3-a.m4a', '/audio/materials/db3-b.m4a'] },
+  { note: 'F3',      freq: 174.9, files: ['/audio/materials/f3-a.m4a', '/audio/materials/f3-b.m4a'] },
+  { note: 'Ab3',     freq: 208.1, files: ['/audio/materials/ab3-a.m4a', '/audio/materials/ab3-b.m4a'] },
+  { note: 'Db4',     freq: 277.6, files: ['/audio/materials/db4-a.m4a', '/audio/materials/db4-b.m4a'] },
+  { note: 'Eb4',     freq: 312.6, files: ['/audio/materials/eb4-a.m4a', '/audio/materials/eb4-b.m4a'] },
+  { note: 'Ab4',     freq: 417.0, files: ['/audio/materials/ab4-a.m4a', '/audio/materials/ab4-b.m4a'] },
+  { note: 'C5',      freq: 525.1, files: ['/audio/materials/c5-a.m4a', '/audio/materials/c5-b.m4a'] },
+  { note: 'Eb5+Ab5', freq: 625.1, files: ['/audio/materials/eb5ab5-a.m4a', '/audio/materials/eb5ab5-b.m4a'] },
+  { note: 'Bb5+Eb6', freq: 938.0, files: ['/audio/materials/bb5eb6-a.m4a'] },
 ];

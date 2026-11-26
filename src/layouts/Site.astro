@@ -152,8 +152,12 @@ const links = [
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
           const target = entry.target as HTMLElement;
-          target.style.transitionDelay = `${Math.min(order, 8) * 60}ms`;
+          // most things follow each other closely; a block can ask for a slower count
+          const step = Number(target.dataset.revealStep) || 60;
+          target.style.transitionDelay = `${Math.min(order, 8) * step}ms`;
           target.classList.add('is-seen');
+          // the wait is for the arrival only, not for anything the element does later
+          target.addEventListener('transitionend', () => (target.style.transitionDelay = ''), { once: true });
           seen.unobserve(target);
           order += 1;
         }
