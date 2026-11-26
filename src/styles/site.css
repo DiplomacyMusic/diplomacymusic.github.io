@@ -1768,7 +1768,7 @@ html.js .contact-stage:not(.is-done) .loud-button {
   --room-bottom: #cbcfc6;                       /* haze at the horizon */
   --room-fog: #8c9ca0;                          /* what distant shapes fade into */
   --room-ink: #f2f1f0;                          /* words, the button, the staff */
-  --room-ink-quiet: rgba(242, 241, 240, 0.82);  /* the label, the hint, the typed log */
+  --room-ink-quiet: rgba(242, 241, 240, 0.82);  /* the typed log, which lies over the dark water */
   position: relative;
   height: max(30rem, calc(100vh - 3rem - var(--foot-h))); /* 3rem: the header, as the contact scene counts it */
   overflow: hidden;
@@ -1807,16 +1807,12 @@ html.js .contact-stage:not(.is-done) .loud-button {
   line-height: 1.08;
 }
 
-/* the words sit on pale, misty sky and bright water, so each carries a
-   soft shadow of the lake's own dark to stay readable */
-.room-copy,
-.room-floor,
-.room-log pre {
-  text-shadow: 0 1px 2px rgba(28, 40, 46, 0.35), 0 0 18px rgba(28, 40, 46, 0.4);
-}
-
+/* Flat type, no shadow or glow behind it. Against the pale sky the quiet
+   lines take the page's own quiet ink, the same as the label and the
+   second half of the heading; only the first word and the button are
+   light. */
 .room-copy p:not(.overline) {
-  color: var(--room-ink-quiet);
+  color: var(--ink-quiet);
   font-size: 1.08rem;
 }
 
