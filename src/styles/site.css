@@ -1448,8 +1448,9 @@ body.has-player .site-foot {
    under the header for the whole of it. */
 .contact-scroll {
   --head: 3rem;
-  /* long enough to write the note and then hold the finished card */
-  height: calc(100svh - var(--head) + 170vh);
+  /* a short hold: the scene plays on its own clock, so the page only has
+     to wait long enough for it to be watched */
+  height: calc(100svh - var(--head) + 85vh);
 }
 
 .contact-stage {

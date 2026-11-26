@@ -592,11 +592,10 @@ const structuredData = {
 
     <!-- contact -->
     <!-- Contact is a short scene. The band holds still while the page scrolls:
-         the note writes itself out on the left beside the portrait. At its
-         last word the scroll lets go of the scene: the word, the signature,
-         and the button finish on their own and stay. The finished card then
-         holds for most of a screen before the lab comes up. Without scripts
-         or with reduced motion, everything simply shows. -->
+         once it is on screen the note writes itself out beside the portrait
+         on a clock of its own, then the signature and the button arrive,
+         and it stays finished. The scroll only decides when it starts.
+         Without scripts or with reduced motion, everything simply shows. -->
     <section class="band band-contact sand" id="contact" aria-label="Contact">
       <div class="contact-scroll" id="contact-scroll">
         <div class="contact-stage">
@@ -1457,12 +1456,11 @@ const structuredData = {
     near.observe(room);
   }
 
-  // ---- contact: the scene. While the band is held, the scroll writes the
-  // note out one letter at a time. When the writing reaches the last word
-  // the scroll lets go: the word, the signature, and the button finish on a
-  // clock of their own, and the finished card stays finished. The rest of
-  // the held stretch is just the card, standing still, so it is easy to
-  // read before the lab comes up underneath.
+  // ---- contact: the scene. When the band has come up onto the screen
+  // the whole of it plays once on its own clock: the note is typed, the
+  // signature appears, the button arrives, and it stays finished. The band
+  // is held for a short stretch so there is time to watch it, and then the
+  // lab comes up underneath.
   const contactScroll = document.getElementById('contact-scroll');
   if (contactScroll) {
     const stageEl = contactScroll.querySelector<HTMLElement>('.contact-stage');
@@ -1476,14 +1474,8 @@ const structuredData = {
       } else {
         const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
         const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-        // the share of the held stretch spent writing; the rest is the hold
-        const WRITING = 0.66;
-        const words = contactScroll.querySelectorAll('.tw-word');
-        const lastWord = words.length ? words[words.length - 1].children.length : 0;
-        const handoff = letters.length - lastWord;
         let shown = 0;
-        let queued = false;
-        let finishing = false;
+        let begun = false;
 
         const show = (count: number) => {
           if (count === shown) return;
@@ -1495,19 +1487,31 @@ const structuredData = {
           shown = count;
         };
 
-        // the scripted ending, once: last word, signature, button
-        const finish = async () => {
-          finishing = true;
-          for (let count = shown + 1; count <= letters.length; count++) {
+        // The whole scene, once, on its own clock: the note is typed at a
+        // steady pace while the portrait drifts, then the signature, then
+        // the button. Nothing in it waits on the scroll.
+        const LETTER_MS = 24;
+        const play = async () => {
+          const writing = letters.length * LETTER_MS;
+          const started = performance.now();
+          const drift = () => {
+            const along = clamp01((performance.now() - started) / (writing + 900));
+            stageEl.style.setProperty('--drift', (1 - Math.pow(1 - along, 2)).toFixed(4));
+            if (along < 1) requestAnimationFrame(drift);
+          };
+          requestAnimationFrame(drift);
+          for (let count = 1; count <= letters.length; count++) {
             show(count);
-            await wait(55);
+            // a breath at the end of a sentence, as a hand would take
+            const ch = letters[count - 1].textContent || '';
+            await wait(ch === '.' || ch === ',' ? LETTER_MS * 6 : LETTER_MS);
           }
           await wait(200);
           stageEl.classList.add('is-typed');
           await wait(300);
-          const began = performance.now();
+          const landing = performance.now();
           const arrive = () => {
-            const along = clamp01((performance.now() - began) / 800);
+            const along = clamp01((performance.now() - landing) / 800);
             stageEl.style.setProperty('--cta', (1 - Math.pow(1 - along, 3)).toFixed(3));
             if (along < 1) requestAnimationFrame(arrive);
             else stageEl.classList.add('is-done');
@@ -1515,38 +1519,17 @@ const structuredData = {
           requestAnimationFrame(arrive);
         };
 
-        const update = () => {
-          queued = false;
-          const vh = window.innerHeight;
-          const rect = contactScroll.getBoundingClientRect();
-          const pinTop = parseFloat(getComputedStyle(stageEl).top) || 0;
-          // the writing starts as the band comes up past the middle of the
-          // screen and is over two thirds of the way through the hold
-          const start = vh * 0.62;
-          const travel = Math.max(1, rect.height - stageEl.offsetHeight + (start - pinTop));
-          const written = clamp01((start - rect.top) / travel / WRITING);
-
-          // the backdrop portrait drifts while the note is written, then rests
-          stageEl.style.setProperty('--drift', written.toFixed(4));
-
-          if (finishing) return;
-          const count = Math.round(written * letters.length);
-          if (count >= handoff) {
-            show(handoff);
-            finish();
-          } else {
-            show(count);
-          }
+        // it begins when the band has come up to fill most of the screen
+        const check = () => {
+          if (begun) return;
+          if (contactScroll.getBoundingClientRect().top > window.innerHeight * 0.35) return;
+          begun = true;
+          window.removeEventListener('scroll', check);
+          play();
         };
-
-        const queue = () => {
-          if (queued) return;
-          queued = true;
-          requestAnimationFrame(update);
-        };
-        window.addEventListener('scroll', queue, { passive: true });
-        window.addEventListener('resize', queue);
-        update();
+        stageEl.style.setProperty('--drift', '0');
+        window.addEventListener('scroll', check, { passive: true });
+        check();
       }
     }
   }
