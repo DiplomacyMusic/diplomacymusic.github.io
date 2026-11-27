@@ -75,6 +75,7 @@ export function shouldAnimate() {
 // the room is easier to whip up: less drag, livelier bounces, a longer
 // leash, and quieter touches allowed to ring.
 const GRAVITY = 1.5;          // pull between planets while someone is playing: they find each other
+const SIBLING_PULL = 2;        // like draws like twice as hard as plain gravity would, charged or not
 const REPEL = 0.22;           // how hard unlike shapes push apart, as a share of the pull between like ones
 const IDLE_PULL = 0.2;        // the share of that pull left once the room is alone, so a
                               // huddle lets go and everything drifts back to its own place
@@ -101,6 +102,8 @@ const FALL_PULL = 9;          // gravity once the bottom of the page arrives
 const TILT_PULL = 5;          // how hard a tilted phone pulls
 const DRAG_RADIUS = 6.5;      // how close a dragged shape must come to wake another
 const HOLD_PULL_BOOST = 16;   // a held shape pulls like something far heavier
+const CALL_EVEN = 12;         // world units at which a charged shape's call is as strong as its old pull was there
+const CALL_SLOPE = 1 / (CALL_EVEN * (CALL_EVEN * CALL_EVEN + 2.5)); // and from there it grows in step with distance
 // Charge: a held shape carries the energy of the hand moving it, the way
 // a wet finger round the rim of a glass makes it sing. It is the speed of
 // the hand right now, squared, as kinetic energy is. The faster the hand,
@@ -437,10 +440,23 @@ export async function startEnvironment(container, options = {}) {
       const armAt = new Float32Array(count);
       for (let i = 0; i < count; i++) {
         const r = reach[i];
-        twist[i] = 0.28 * Math.exp(-r / 8) * hold[i];
-        funnel[i] = (0.65 * hold[i]) / (1 + (r * r) / 14);
-        arm[i] = 0.075 * hold[i] * Math.exp(-r / 16);
+        twist[i] = 0.7 * Math.exp(-r / 9) * hold[i];
+        funnel[i] = (1.6 * hold[i]) / (1 + (r * r) / 14);
+        arm[i] = 0.12 * hold[i] * Math.exp(-r / 16);
         armAt[i] = 3 * bearing[i] + r * 0.55;
+      }
+      // The singularity. Spin the room hard enough and the funnel stops
+      // being a dip and becomes a hole: a narrow throat that falls away
+      // to a point far below the lake, wound tight, and dark at the bottom.
+      const THROAT_FROM = 0.85; // the share of a full spin at which it begins to open
+      const THROAT_FULL = 1.8;  // and at which it is all the way down
+      const THROAT_DEEP = 17;   // world units the point falls
+      const throat = new Float32Array(count);
+      const wind = new Float32Array(count);
+      for (let i = 0; i < count; i++) {
+        const r = reach[i];
+        throat[i] = (THROAT_DEEP * hold[i]) / Math.pow(1 + (r / 2.2) * (r / 2.2), 0.9);
+        wind[i] = 2.8 * Math.exp(-r / 4.5) * hold[i];
       }
       // White caps: a facet that is tipped steeply enough turns to foam.
       // Each facet's own colour is kept, and its width, so steepness is
@@ -486,7 +502,7 @@ export async function startEnvironment(container, options = {}) {
         },
         update(dt, t, turnPerSecond) {
           const began = performance.now();
-          const want = cost.force !== null ? cost.force : Math.max(-1.6, Math.min(1.6, turnPerSecond / WHIRL_FULL));
+          const want = cost.force !== null ? cost.force : Math.max(-2, Math.min(2, turnPerSecond / WHIRL_FULL));
           whirl += (want - whirl) * Math.min(1, dt * 0.55); // slow to gather, slow to let go
           cost.whirl = whirl;
           const now = performance.now() / 1000;
@@ -510,7 +526,10 @@ export async function startEnvironment(container, options = {}) {
             still = true; // one last pass to lay it flat
           } else still = false;
           const power = whirl * whirl;
-          const armTurn = t * 1.4 * Math.sign(whirl);
+          let hole = (Math.abs(whirl) - THROAT_FROM) / (THROAT_FULL - THROAT_FROM);
+          hole = hole <= 0 ? 0 : hole >= 1 ? 1 : hole * hole * (3 - 2 * hole);
+          const holeWind = hole * Math.sign(whirl);
+          const armTurn = t * 2.2 * Math.sign(whirl);
           const armTall = Math.abs(whirl);
           const ahead = RING_WIDTH * 2.5;
           const behind = -RING_WIDTH * 4;
@@ -525,10 +544,10 @@ export async function startEnvironment(container, options = {}) {
             if (h > 0) {
               if (stirred) {
                 // dragged round, most near the middle; the funnel; the arms
-                const a = bearing[i] + whirl * twist[i];
+                const a = bearing[i] + whirl * twist[i] + holeWind * wind[i];
                 x = Math.cos(a) * reach[i];
                 z = Math.sin(a) * reach[i];
-                y += armTall * arm[i] * Math.sin(armAt[i] - armTurn) - power * funnel[i];
+                y += armTall * arm[i] * Math.sin(armAt[i] - armTurn) - power * funnel[i] - hole * throat[i];
               }
               for (let k = 0; k < live; k++) {
                 const dx = x - liveX[k];
@@ -551,7 +570,11 @@ export async function startEnvironment(container, options = {}) {
             const rise = Math.max(a, b, c) - Math.min(a, b, c) - restRise[f];
             let foam = (rise / across[f] - CAP_FROM) / (CAP_FULL - CAP_FROM);
             foam = foam <= 0 ? 0 : foam >= 1 ? 1 : foam * foam * (3 - 2 * foam);
-            for (let k = 0; k < 9; k++) paintOn[o + k] = calm[o + k] + (1.08 - calm[o + k]) * foam * 0.55; // a pale wash, never solid white
+            // down the throat the light goes: black by the bottom
+            let dark = hole ? (-(a + b + c) / 3 - 2.5) / 11 : 0;
+            dark = dark <= 0 ? 0 : dark >= 1 ? 1 : dark;
+            const lit = 1 - 0.97 * dark;
+            for (let k = 0; k < 9; k++) paintOn[o + k] = (calm[o + k] + (1.08 - calm[o + k]) * foam * 0.55 * (1 - dark)) * lit; // a pale wash, never solid white
           }
           tint.needsUpdate = true;
           at.needsUpdate = true;
@@ -2241,8 +2264,16 @@ export async function startEnvironment(container, options = {}) {
         const kin = other.userData.type === data.type;
         // the held shape's extra pull is only the energy the hand has put
         // into it: an empty charge pulls like any other shape
-        const boost = dragging && kin ? 1 + HOLD_PULL_BOOST * (1 + CHARGE_PULL) * charge : 1;
-        const pull = ((kin ? GRAVITY : -GRAVITY * REPEL) * presence * boost * data.mass * other.userData.mass) / d2;
+        let pull = ((kin ? GRAVITY * SIBLING_PULL : -GRAVITY * REPEL) * presence * data.mass * other.userData.mass) / d2;
+        // The call of a charged shape to its own kind runs the other way
+        // from gravity: it grows with distance. The farther a sibling has
+        // to come, the harder it is drawn, so the far ones fly and the
+        // near ones only lean, and the family arrives together.
+        if (dragging && kin) {
+          pull +=
+            GRAVITY * SIBLING_PULL * presence * HOLD_PULL_BOOST * (1 + CHARGE_PULL) * charge * data.mass * other.userData.mass *
+            Math.sqrt(d2) * CALL_SLOPE;
+        }
         force.addScaledVector(between.normalize(), pull);
         if (dragging) {
           force.addScaledVector(
