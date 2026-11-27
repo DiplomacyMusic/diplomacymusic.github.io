@@ -144,7 +144,7 @@ const SPIN_BRAKE = 4;          // radians a second taken off per radian a second
 // ring, each on its own note, breathing in and out at its own pace.
 const WHIRL_FULL = 4;          // radians a second of turn at which they ring their loudest
 const WHIRL_PEAK = 0.32;       // each shape's loudest, as a share of a full swell (there are many)
-const WHIRL_START = 0.06;      // below this share of the full turn the room is quiet
+const WHIRL_START = 0.2;       // below this share of the full turn the room is quiet
 const SWIRL_MAX = 4;           // radians a second; past this the water stops keeping up
 const GRAB_SLACK = 26;          // px a finger may miss a shape by and still take hold of it
 const HANDS_SECONDS = 4;       // how long after a hand leaves the room still counts as playing
@@ -155,6 +155,7 @@ const ZOOM_FAR = 13.5;          // or push it this much farther away: far enough
 const ZOOM_FAR_PORTRAIT = 19.5;  // a narrow screen has to stand farther back to take it in
 const TAP_DRIFT = 0.25;       // world units a mouse may wander before a press is a drag
 const TAP_DRIFT_TOUCH = 0.7;  // fingers wobble more than mice do
+const HOVER_SWELLS = false;    // the pointer passing over a shape no longer makes it sound
 const LONG_PRESS_MS = 300;    // a finger that stays this long starts the slow swell
 
 // options.room: the environment lives inside one section instead of
@@ -1168,6 +1169,22 @@ export async function startEnvironment(container, options = {}) {
     scene.add(mesh);
   }
 
+  // The notes are the recordings, exactly as they were played: nothing is
+  // retuned (each shape carries a tune of 0, and the engine can move a
+  // recording by semitones when Daniel decides to use that). There are ten of them and more shapes than that, so they are
+  // shared. Each family keeps its own rungs of the ladder, and its shapes
+  // are dealt across those rungs as evenly as they will go, the big ones
+  // low. Two shapes on one note is the cost of having ten recordings.
+  FAMILY_RUNGS.forEach((rungs, type) => {
+    const family = shapes.filter((m) => m.userData.type === type).sort((x, y) => y.userData.baseScale - x.userData.baseScale);
+    family.forEach((mesh, k) => {
+      const pitch = rungs[Math.min(rungs.length - 1, Math.floor((k * rungs.length) / family.length))];
+      mesh.userData.pitch = pitch;
+      mesh.userData.tune = 0; // the retuning path is kept for later and is not used: 0 is the recording as played
+      mesh.userData.note = SAMPLE_BANK[pitch].note;
+    });
+  });
+
   // Shadows the old way: a soft dark spot on the water under each shape,
   // cast along the line of the sun, spreading and fading as the shape
   // rises. No second drawing of the scene, just one small disc each.
@@ -1248,11 +1265,11 @@ export async function startEnvironment(container, options = {}) {
     data.lastStrike = time;
     if (liveWater) liveWater.ripple(mesh.position.x, mesh.position.z, gain);
 
-    engine.strike({ pitch: data.pitch, gain, pan: panOf(mesh) });
+    engine.strike({ pitch: data.pitch, tune: data.tune, gain, pan: panOf(mesh) });
     staff.note(data.pitch);
     logLine(
       engine.isOn()
-        ? `strike(${SHAPE_NAMES[data.type]}.${data.index}, { note: '${noteOf(data.pitch)}', gain: ${gain.toFixed(2)} })`
+        ? `strike(${SHAPE_NAMES[data.type]}.${data.index}, { note: '${data.note}', gain: ${gain.toFixed(2)} })`
         : `hit(${SHAPE_NAMES[data.type]}.${data.index}, { muted: true })`
     );
     data.glow = Math.min(1, data.glow + gain);
@@ -1268,7 +1285,7 @@ export async function startEnvironment(container, options = {}) {
       const sympathy = gain * (1 - 0.6 * (distance / RESONANCE_RADIUS)) * 0.9;
       if (sympathy < 0.03) continue;
       engine.strike({
-        pitch: other.userData.pitch,
+        pitch: other.userData.pitch, tune: other.userData.tune,
         gain: sympathy,
         pan: panOf(other),
         delay: distance * 0.045, // sound takes time to travel the room
@@ -1306,7 +1323,7 @@ export async function startEnvironment(container, options = {}) {
     const [sx, sy] = screenOf(mesh);
     score.cluster(sx, sy, gain);
     if (engine.isOn()) {
-      logLine(`cluster(${SHAPE_NAMES[data.type]}.${data.index}, '${noteOf(data.pitch)}' ± neighbors)`);
+      logLine(`cluster(${SHAPE_NAMES[data.type]}.${data.index}, '${data.note}' ± neighbors)`);
     }
   }
 
@@ -1316,7 +1333,7 @@ export async function startEnvironment(container, options = {}) {
     for (const other of shapes) {
       if (other === mesh || other.userData.type !== mesh.userData.type) continue;
       const voice = engine.swellStart({
-        pitch: other.userData.pitch,
+        pitch: other.userData.pitch, tune: other.userData.tune,
         pan: panOf(other),
       });
       if (voice) staff.note(other.userData.pitch);
@@ -1641,12 +1658,12 @@ export async function startEnvironment(container, options = {}) {
       longPressTimer = setTimeout(() => {
         if (!held || holdMoved > tapDrift || held.userData.swellVoice) return;
         held.userData.swellVoice = engine.swellStart({
-          pitch: held.userData.pitch,
+          pitch: held.userData.pitch, tune: held.userData.tune,
           pan: panOf(held),
         });
         if (held.userData.swellVoice) {
           staff.note(held.userData.pitch);
-          logLine(`swell(${SHAPE_NAMES[held.userData.type]}.${held.userData.index}, { note: '${noteOf(held.userData.pitch)}', held: true })`);
+          logLine(`swell(${SHAPE_NAMES[held.userData.type]}.${held.userData.index}, { note: '${held.userData.note}', held: true })`);
           const [sx, sy] = screenOf(held);
           score.squiggle(sx, sy, 1600);
         }
@@ -1704,11 +1721,10 @@ export async function startEnvironment(container, options = {}) {
       held.userData.swellVoice = null;
     }
     if (holdMoved < tapDrift && heldFor < 350 && !pressSwell) {
-      // a tap, not a throw: the hard attack cuts through, and the
-      // rest of the family answers with its soft one
+      // a tap, not a throw: one note, the shape's own, and nothing else.
+      // The family answers a hand in motion, not a touch.
       const tNow = performance.now() / 1000;
       strike(held, 0.75, tNow, false, true);
-      familySwell(held, tNow);
       held.userData.velocity.multiplyScalar(0);
     } else if (pressSwell && holdMoved < tapDrift) {
       // the long press was the swell; letting go lets it breathe out
@@ -1844,7 +1860,7 @@ export async function startEnvironment(container, options = {}) {
     if (!fresh || impact <= RING_SPEED) return;
     // the room tidying itself away is silent: only a hand's doing rings
     if (t - lastEnergyAt >= LISTEN_SECONDS || tidy > 0) return;
-    strike(mesh, Math.min(0.9, 0.1 + (impact - RING_SPEED) * 0.28), t);
+    strike(mesh, Math.min(0.9, 0.1 + (impact - RING_SPEED) * 0.28), t, false); // one note, no answer
   }
 
   // take away the speed a shape has toward an edge, and give some back
@@ -2065,14 +2081,15 @@ export async function startEnvironment(container, options = {}) {
           hovered.userData.swellVoice = null;
         }
         hovered = hitMesh;
-        // leaning in: the pitch blooms slowly under the pointer
-        hovered.userData.swellVoice = engine.swellStart({
-          pitch: hovered.userData.pitch,
-          pan: panOf(hovered),
-        });
+        // Leaning in used to bloom the pitch under the pointer. It is off:
+        // a shape now sounds only when it is touched or moved, so passing
+        // over one is silent and a click is one note. It still glows.
+        hovered.userData.swellVoice = HOVER_SWELLS
+          ? engine.swellStart({ pitch: hovered.userData.pitch, tune: hovered.userData.tune, pan: panOf(hovered) })
+          : null;
         if (hovered.userData.swellVoice) {
           staff.note(hovered.userData.pitch);
-          logLine(`swell(${SHAPE_NAMES[hovered.userData.type]}.${hovered.userData.index}, { note: '${noteOf(hovered.userData.pitch)}' })`);
+          logLine(`swell(${SHAPE_NAMES[hovered.userData.type]}.${hovered.userData.index}, { note: '${hovered.userData.note}' })`);
           const [sx, sy] = screenOf(hovered);
           score.squiggle(sx, sy, 1600);
         }
@@ -2168,7 +2185,7 @@ export async function startEnvironment(container, options = {}) {
         if (!data.whirlVoice && t - whirlSince < (data.index % 7) * 0.15) continue;
         if (!data.whirlVoice || t - data.whirlAt > breath) {
           if (data.whirlVoice) engine.swellEnd(data.whirlVoice);
-          data.whirlVoice = engine.swellStart({ pitch: data.pitch, pan: panOf(mesh), peak });
+          data.whirlVoice = engine.swellStart({ pitch: data.pitch, tune: data.tune, pan: panOf(mesh), peak });
           data.whirlAt = t - (data.whirlVoice ? 0 : breath - 0.5);
         } else if (t - data.whirlAt > 0.7) {
           engine.swellLevel(data.whirlVoice, peak);
@@ -2394,7 +2411,7 @@ export async function startEnvironment(container, options = {}) {
           const peak = 0.25 + 0.95 * charge;
           if (!chargeVoice || t - chargeVoiceAt > CHARGE_RETRIGGER) {
             if (chargeVoice) engine.swellEnd(chargeVoice);
-            chargeVoice = engine.swellStart({ pitch: hd.pitch, pan: panOf(held), peak });
+            chargeVoice = engine.swellStart({ pitch: hd.pitch, tune: hd.tune, pan: panOf(held), peak });
             chargeVoiceAt = t;
           } else if (t - chargeVoiceAt > 0.7) {
             engine.swellLevel(chargeVoice, peak);
@@ -2424,7 +2441,7 @@ export async function startEnvironment(container, options = {}) {
               const peak = 0.7 * (0.6 + 0.9 * charge);
               if (!od.dragVoice) {
                 od.dragVoice = engine.swellStart({
-                  pitch: od.pitch,
+                  pitch: od.pitch, tune: od.tune,
                   pan: panOf(other),
                   peak,
                 });
@@ -2487,8 +2504,12 @@ export async function startEnvironment(container, options = {}) {
               // its family to answer, so a single hit is one chord and its
               // echo, not two families speaking over each other.
               const aLeads = A.userData.velocity.lengthSq() >= B.userData.velocity.lengthSq();
-              strike(A, hitGain, t, aLeads);
-              strike(B, hitGain, t, !aLeads);
+              // The family answers only a hand in motion: a collision calls
+              // its kin when one of the two is being dragged with some speed.
+              // Anything else is two single notes.
+              const handed = (A === held || B === held) && charge > 0.15;
+              strike(A, hitGain, t, handed && aLeads);
+              strike(B, hitGain, t, handed && !aLeads);
             }
           }
         }

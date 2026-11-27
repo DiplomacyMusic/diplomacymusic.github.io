@@ -201,7 +201,9 @@ export const engine = {
   // some of the ring before it is heard: on these recordings it measured
   // about 19 dB under a strike at the same gain. The quicker bloom and the
   // higher level here are what make the resonance audible.
-  swellStart({ pitch = 0, pan = 0, peak = 1 } = {}) {
+  //   tune: semitones to move the recording by. Kept for later; the room
+  //         sends 0 for now, so every note is the recording as played.
+  swellStart({ pitch = 0, tune = 0, pan = 0, peak = 1 } = {}) {
     if (!state.on || !state.context) return null;
 
     const context = state.context;
@@ -229,10 +231,11 @@ export const engine = {
       slot.rr += 1;
       const source = context.createBufferSource();
       source.buffer = buffer;
+      if (tune) source.playbackRate.value = 2 ** (tune / 12);
       source.connect(level);
       source.start(now);
     } else {
-      const built = synthVoice(context, now, SAMPLE_BANK[index].freq);
+      const built = synthVoice(context, now, SAMPLE_BANK[index].freq * 2 ** (tune / 12));
       built.out.connect(level);
       // the understudy does not decay under the fade the way a recording
       // does, so it keeps the old, lower level
@@ -275,7 +278,8 @@ export const engine = {
   //   gain:  0..1
   //   pan:   -1..1, where the shape sits on screen
   //   delay: seconds before sounding, used for resonance traveling distance
-  strike({ pitch = 0, gain = 0.5, pan = 0, delay = 0 } = {}) {
+  //   tune:  semitones to move the recording by (kept for later, 0 for now)
+  strike({ pitch = 0, tune = 0, gain = 0.5, pan = 0, delay = 0 } = {}) {
     if (!state.on || !state.context) return;
 
     const context = state.context;
@@ -299,17 +303,19 @@ export const engine = {
     level.connect(panner).connect(state.pingBus);
 
     let stopAt;
+    const rate = 2 ** (tune / 12);
     const slot = state.bank && state.bank[index];
     if (slot && slot.buffers.length) {
       const buffer = slot.buffers[slot.rr % slot.buffers.length];
       slot.rr += 1;
       const source = context.createBufferSource();
       source.buffer = buffer;
+      if (tune) source.playbackRate.value = rate;
       source.connect(level);
       source.start(t0);
-      stopAt = t0 + buffer.duration;
+      stopAt = t0 + buffer.duration / rate;
     } else {
-      const built = synthVoice(context, t0, SAMPLE_BANK[index].freq);
+      const built = synthVoice(context, t0, SAMPLE_BANK[index].freq * rate);
       built.out.connect(level);
       // the understudy is louder per watt than the recordings
       level.gain.value *= 0.35;
