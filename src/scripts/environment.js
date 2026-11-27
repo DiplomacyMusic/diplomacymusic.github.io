@@ -796,7 +796,7 @@ export async function startEnvironment(container, options = {}) {
           mesh.instanceMatrix.needsUpdate = true;
         };
         world.add(mesh);
-        return { plant, standing, clear: () => mesh.instanceMatrix.clearUpdateRanges() };
+        return { plant, standing, planted, mesh, clear: () => mesh.instanceMatrix.clearUpdateRanges() };
       };
       const trees = makeStand(
         new THREE.ConeGeometry(0.6, 2.4, 5, 1),
@@ -833,6 +833,37 @@ export async function startEnvironment(container, options = {}) {
         (radius) => far(shade(rand() < 0.4 ? 0x41584a : 0x6c7479, 0.07), radius),
         true
       );
+      // and a foothill the camera comes up against lies down the same way
+      const duck = new Float32Array(COLS * HILLS).fill(1);
+      const hillBase = lakeY - 0.3;
+      const plantHills = (col, density) => {
+        hills.plant(col, density);
+        const c = ((col % COLS) + COLS) % COLS;
+        for (let k = 0; k < HILLS; k++) duck[c * HILLS + k] = 1; // freshly written: stood up, to be laid down again if near
+      };
+      const duckHills = (camX, camZ, camUp, ease) => {
+        const over = Math.max(0, camUp - 13); // clear of the tallest foothill
+        const live = hills.standing;
+        const from = hills.planted;
+        let changed = false;
+        for (let i = 0; i < COLS * HILLS; i++) {
+          const o = i * 16;
+          if (!live[o + 15]) continue; // not standing
+          const near = Math.hypot(from[o + 12] - camX, from[o + 14] - camZ, over);
+          const want = 0.08 + 0.92 * smooth(14, 32, near);
+          const next = duck[i] + (want - duck[i]) * ease;
+          if (Math.abs(next - duck[i]) < 0.002 && Math.abs(want - duck[i]) < 0.002) continue;
+          duck[i] = next;
+          // squash it toward the ground it stands on
+          live[o + 4] = from[o + 4] * next;
+          live[o + 5] = from[o + 5] * next;
+          live[o + 6] = from[o + 6] * next;
+          live[o + 13] = hillBase + (from[o + 13] - hillBase) * next;
+          hills.mesh.instanceMatrix.addUpdateRange(o, 16);
+          changed = true;
+        }
+        if (changed) hills.mesh.instanceMatrix.needsUpdate = true;
+      };
       for (let c = 0; c < COLS; c++) {
         plant(c, 0.25);
         hills.plant(c, 0.12);
@@ -947,10 +978,10 @@ export async function startEnvironment(container, options = {}) {
             const drive = 1 - Math.exp(-loudest * GAIN);
             set(c, 1.2 + jag[c] * (2.2 + TALLEST * drive));
             plant(c, tone * tone);
-            hills.plant(c, drive * 1.25);
+            plantHills(c, drive * 1.25);
             for (let g = 1; g <= GAP; g++) {
               plant(c + g, 0);
-              hills.plant(c + g, 0);
+              plantHills(c + g, 0);
             }
             // and the ground ahead is cleared, falling away to nothing
             for (let g = 1; g <= GAP; g++) set(c + g, Math.min(height[(c + g) % COLS], 0.2 + (GAP - g) * 0.4));
@@ -962,11 +993,19 @@ export async function startEnvironment(container, options = {}) {
           // range is always whole
           const camX = camera.position.x;
           const camZ = camera.position.z;
+          const camUp = camera.position.y - lakeY;
           const ease = Math.min(1, dt * 3.2);
           let moved = false;
           for (let c = 0; c < COLS; c++) {
+            // nearness to the whole of the peak's footprint, from its foot
+            // by the lake to the end of its long back slope
             const angle = (c / COLS) * Math.PI * 2;
-            const near = Math.hypot(Math.cos(angle) * RADIUS - camX, Math.sin(angle) * RADIUS - camZ);
+            const dirX = Math.cos(angle);
+            const dirZ = Math.sin(angle);
+            const back = Math.min(ISLAND_RADIUS - 2, RADIUS + 9 + height[c] * 0.95);
+            const along = Math.max(RADIUS - 10, Math.min(back, camX * dirX + camZ * dirZ));
+            // (a camera well above a peak is not up against it)
+            const near = Math.hypot(dirX * along - camX, dirZ * along - camZ, Math.max(0, camUp - height[c] - 4));
             const want = CUT_LEAST + (1 - CUT_LEAST) * smooth(CUT_NEAR, CUT_FAR, near);
             const next = stand[c] + (want - stand[c]) * ease;
             if (Math.abs(next - stand[c]) > 0.0015) {
@@ -976,6 +1015,7 @@ export async function startEnvironment(container, options = {}) {
               moved = true;
             }
           }
+          duckHills(camX, camZ, camUp, ease);
           if (moved) {
             for (let c = 0; c < COLS; c++) {
               if (!dirty[c]) continue;
@@ -1178,6 +1218,9 @@ export async function startEnvironment(container, options = {}) {
 
   function strike(mesh, gain, time, withResonance = true, force = false) {
     const data = mesh.userData;
+    // a turning room is a pad, not a rattle: while it swirls, and for a
+    // moment after, nothing knocks. Only a deliberate touch still strikes.
+    if (!force && (whirling || time - whirlEndedAt < WHIRL_HUSH)) return;
     if (!force && time - data.lastStrike < STRIKE_COOLDOWN) return;
     data.lastStrike = time;
     if (liveWater) liveWater.ripple(mesh.position.x, mesh.position.z, gain);
@@ -1217,6 +1260,7 @@ export async function startEnvironment(container, options = {}) {
   // cluster shimmer of Adams and Whitacre, never a thud.
   function clusterStrike(mesh, gain, time) {
     const data = mesh.userData;
+    if (whirling || time - whirlEndedAt < WHIRL_HUSH) return;
     if (time - data.lastStrike < STRIKE_COOLDOWN) return;
     data.lastStrike = time;
     if (liveWater) liveWater.ripple(mesh.position.x, mesh.position.z, gain);
@@ -1308,6 +1352,8 @@ export async function startEnvironment(container, options = {}) {
   let stoppedByHand = false; // this drag braked the turn to a standstill
   let whirl = 0;      // 0..1, how hard the whole room is turning, eased
   let whirling = false;
+  let whirlEndedAt = -10;
+  const WHIRL_HUSH = 0.9; // seconds after the turn dies away before knocks are heard again
   let whirlSince = 0;
   let tidy = 0; // how much tighter than usual the leash home is right now
   let yawTarget = 0;
@@ -2108,6 +2154,7 @@ export async function startEnvironment(container, options = {}) {
       }
     } else if (whirling) {
       whirling = false;
+      whirlEndedAt = t;
       for (const mesh of shapes) {
         if (mesh.userData.whirlVoice) engine.swellEnd(mesh.userData.whirlVoice);
         mesh.userData.whirlVoice = null;
@@ -2151,12 +2198,12 @@ export async function startEnvironment(container, options = {}) {
     // then growing exponentially once they have left it alone
     const idleFor = t - lastHandsAt - HANDS_SECONDS;
     tidy = idleFor > 0 && pile < 0.01 ? Math.min(RESET_MOST, Math.exp(idleFor * RESET_RATE) - 1) : 0;
-    // and the camera comes back to where it started with them, at a
-    // sixteenth of the rate the shapes settle, and it eases into the move
+    // and the camera comes back to where it started with them, at an
+    // eighth of the rate the shapes settle, and it eases into the move
     // over ten seconds: one long curve, slow to start and slow to arrive
     if (tidy > 0 && glass) {
       const on = Math.min(1, idleFor / 10);
-      const ease = Math.exp(-0.0625 * 2 * Math.sqrt(HOME_PULL * (1 + tidy)) * on * on * (3 - 2 * on) * dt);
+      const ease = Math.exp(-0.125 * 2 * Math.sqrt(HOME_PULL * (1 + tidy)) * on * on * (3 - 2 * on) * dt);
       zoomTarget = Math.exp(Math.log(zoomTarget) * ease);
       pitchTarget *= ease;
       rollTarget *= ease;
