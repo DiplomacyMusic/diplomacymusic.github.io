@@ -224,6 +224,7 @@ export async function startEnvironment(container, options = {}) {
   let staffImpl = null;
   const staff = {
     note(pitch) {
+      if (ridge) ridge.heard(pitch);
       // the score only transcribes what it can hear
       if (!engine.isOn()) return;
       if (portrait) return; // the score is hidden on phones for now
@@ -248,7 +249,8 @@ export async function startEnvironment(container, options = {}) {
   }
 
   // light like early morning: one warm sun, one cool sky
-  scene.add(new THREE.HemisphereLight(0xf2f1f0, 0x849396, 1.1));
+  const skyLight = new THREE.HemisphereLight(0xf2f1f0, 0x849396, 1.1);
+  scene.add(skyLight);
   const sun = new THREE.DirectionalLight(0xd9d7c2, 1.4);
   // In the lab the sun stands beyond the lake, ahead of the camera and a
   // little to the right, so the first view is into the light: the water
@@ -259,6 +261,14 @@ export async function startEnvironment(container, options = {}) {
   scene.add(sun);
 
   const glass = room && LAKE_WORLD;
+  // The living world: mountains, trees and foothills drawn from the sound,
+  // day and night, and water that answers. ?classic gives the fixed
+  // landscape it replaced.
+  const LIVE_RIDGE = !new URLSearchParams(window.location.search).has('classic');
+  const DEV = !!(import.meta.env && import.meta.env.DEV);
+  let ridge = null;
+  let liveWater = null; // the lake when it answers the room: whirlpool and ripples
+  let night = 0; // 0 by day, 1 in the dark; only the live ridge moves it
   if (glass) buildLakeWorld();
 
   // The lake world. Everything is flat shaded and coloured face by face,
@@ -290,6 +300,7 @@ export async function startEnvironment(container, options = {}) {
     const flat = () =>
       new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9, metalness: 0, fog: false });
     const world = new THREE.Group();
+    let moonDisc = null;
 
     // give every triangle one colour of its own, chosen by where it sits
     const paint = (geometry, choose) => {
@@ -377,10 +388,12 @@ export async function startEnvironment(container, options = {}) {
       moon.position.y += lakeY;
       moon.scale.setScalar(70);
       world.add(moon);
+      moonDisc = moon;
     }
 
     // the lake: a disc of facets, each a slightly different water
-    const water = new THREE.RingGeometry(0.01, LAKE_RADIUS, 30, 7);
+    // (the live lake is cut finer, so a ripple has facets to travel through)
+    const water = LIVE_RIDGE ? new THREE.RingGeometry(0.01, LAKE_RADIUS, 48, 15) : new THREE.RingGeometry(0.01, LAKE_RADIUS, 30, 7);
     water.rotateX(-Math.PI / 2);
     {
       const at = water.getAttribute('position');
@@ -395,6 +408,158 @@ export async function startEnvironment(container, options = {}) {
     );
     lake.position.y = lakeY;
     world.add(lake);
+    if (LIVE_RIDGE) liveWater = buildLiveWater(lake);
+
+    // The water answers the room. Turn the room and the lake is stirred
+    // into a whirlpool: the middle sinks, the facets are dragged round it,
+    // and arms run out from the centre. Strike a shape and a ring spreads
+    // from under it. Only the heights (and for the twist, the places) of
+    // the lake's own corners are moved; the flat shading does the rest.
+    function buildLiveWater(mesh) {
+      const at = mesh.geometry.getAttribute('position');
+      at.setUsage(THREE.DynamicDrawUsage);
+      const rest = at.array.slice();
+      const count = at.count;
+      const reach = new Float32Array(count);   // how far out each corner is
+      const bearing = new Float32Array(count); // and in which direction
+      const hold = new Float32Array(count);    // 0 at the shore, where the water must meet the land
+      for (let i = 0; i < count; i++) {
+        const x = rest[i * 3];
+        const z = rest[i * 3 + 2];
+        reach[i] = Math.hypot(x, z);
+        bearing[i] = Math.atan2(z, x);
+        hold[i] = Math.max(0, Math.min(1, (LAKE_RADIUS - 0.6 - reach[i]) / 4));
+      }
+      // everything about a corner that never changes is worked out once
+      const twist = new Float32Array(count);
+      const funnel = new Float32Array(count);
+      const arm = new Float32Array(count);
+      const armAt = new Float32Array(count);
+      for (let i = 0; i < count; i++) {
+        const r = reach[i];
+        twist[i] = 0.28 * Math.exp(-r / 8) * hold[i];
+        funnel[i] = (0.65 * hold[i]) / (1 + (r * r) / 14);
+        arm[i] = 0.075 * hold[i] * Math.exp(-r / 16);
+        armAt[i] = 3 * bearing[i] + r * 0.55;
+      }
+      // White caps: a facet that is tipped steeply enough turns to foam.
+      // Each facet's own colour is kept, and its width, so steepness is
+      // just how far apart in height its three corners are for its size.
+      const CAP_FROM = 0.13;  // rise over run at which foam begins
+      const CAP_FULL = 0.36; // and at which the facet is all white
+      const tint = mesh.geometry.getAttribute('color');
+      tint.setUsage(THREE.DynamicDrawUsage);
+      const calm = tint.array.slice();
+      const facets = count / 3;
+      const across = new Float32Array(facets);
+      const restRise = new Float32Array(facets); // the little tilt each facet has anyway
+      for (let f = 0; f < facets; f++) {
+        const o = f * 9;
+        const ab = Math.hypot(rest[o + 3] - rest[o], rest[o + 5] - rest[o + 2]);
+        const bc = Math.hypot(rest[o + 6] - rest[o + 3], rest[o + 8] - rest[o + 5]);
+        const ca = Math.hypot(rest[o] - rest[o + 6], rest[o + 2] - rest[o + 8]);
+        across[f] = Math.max(0.4, (ab + bc + ca) / 3);
+        restRise[f] = Math.max(rest[o + 1], rest[o + 4], rest[o + 7]) - Math.min(rest[o + 1], rest[o + 4], rest[o + 7]);
+      }
+      const liveX = new Float32Array(8);
+      const liveZ = new Float32Array(8);
+      const liveFront = new Float32Array(8);
+      const liveTall = new Float32Array(8);
+      const RINGS = 8;
+      const RING_SPEED_OUT = 4.5;   // world units a second a ripple travels
+      const RING_LIFE = 7;      // seconds before it is gone
+      const RING_WIDTH = 1.5;
+      const rings = Array.from({ length: RINGS }, () => ({ x: 0, z: 0, born: -100, tall: 0 }));
+      let next = 0;
+      let whirl = 0;     // the turn, smoothed, signed, 1 at a full spin
+      let still = true;  // nothing to draw and already flat
+      const cost = { frames: 0, ms: 0, whirl: 0, force: null };
+      if (DEV) window.__water = cost;
+      return {
+        ripple(x, z, gain) {
+          const ring = rings[next];
+          next = (next + 1) % RINGS;
+          ring.x = x;
+          ring.z = z;
+          ring.born = performance.now() / 1000;
+          ring.tall = 0.06 + 0.23 * Math.min(1, gain);
+        },
+        update(dt, t, turnPerSecond) {
+          const began = performance.now();
+          const want = cost.force !== null ? cost.force : Math.max(-1.6, Math.min(1.6, turnPerSecond / WHIRL_FULL));
+          whirl += (want - whirl) * Math.min(1, dt * 0.55); // slow to gather, slow to let go
+          cost.whirl = whirl;
+          const now = performance.now() / 1000;
+          let live = 0;
+          for (const ring of rings) {
+            const age = now - ring.born;
+            if (age >= RING_LIFE) continue;
+            // it swells up out of nothing and dies away just as gently
+            const rise = Math.min(1, age / 0.9);
+            const fall = 1 - age / RING_LIFE;
+            const fade = Math.sqrt(rise * rise * (3 - 2 * rise) * fall * fall * (3 - 2 * fall));
+            liveX[live] = ring.x;
+            liveZ[live] = ring.z;
+            liveFront[live] = age * RING_SPEED_OUT;
+            liveTall[live] = ring.tall * fade * fade;
+            live++;
+          }
+          const stirred = Math.abs(whirl) > 0.004;
+          if (!stirred && !live) {
+            if (still) return;
+            still = true; // one last pass to lay it flat
+          } else still = false;
+          const power = whirl * whirl;
+          const armTurn = t * 1.4 * Math.sign(whirl);
+          const armTall = Math.abs(whirl);
+          const ahead = RING_WIDTH * 2.5;
+          const behind = -RING_WIDTH * 4;
+          const spread = 1 / (2 * RING_WIDTH * RING_WIDTH);
+          const pos = at.array;
+          for (let i = 0; i < count; i++) {
+            const o = i * 3;
+            const h = hold[i];
+            let x = rest[o];
+            let y = rest[o + 1];
+            let z = rest[o + 2];
+            if (h > 0) {
+              if (stirred) {
+                // dragged round, most near the middle; the funnel; the arms
+                const a = bearing[i] + whirl * twist[i];
+                x = Math.cos(a) * reach[i];
+                z = Math.sin(a) * reach[i];
+                y += armTall * arm[i] * Math.sin(armAt[i] - armTurn) - power * funnel[i];
+              }
+              for (let k = 0; k < live; k++) {
+                const dx = x - liveX[k];
+                const dz = z - liveZ[k];
+                const off = Math.sqrt(dx * dx + dz * dz) - liveFront[k];
+                if (off > ahead || off < behind) continue;
+                y += liveTall[k] * h * Math.exp(-off * off * spread) * Math.cos(off * 1.6);
+              }
+            }
+            pos[o] = x;
+            pos[o + 1] = y;
+            pos[o + 2] = z;
+          }
+          const paintOn = tint.array;
+          for (let f = 0; f < facets; f++) {
+            const o = f * 9;
+            const a = pos[o + 1];
+            const b = pos[o + 4];
+            const c = pos[o + 7];
+            const rise = Math.max(a, b, c) - Math.min(a, b, c) - restRise[f];
+            let foam = (rise / across[f] - CAP_FROM) / (CAP_FULL - CAP_FROM);
+            foam = foam <= 0 ? 0 : foam >= 1 ? 1 : foam * foam * (3 - 2 * foam);
+            for (let k = 0; k < 9; k++) paintOn[o + k] = calm[o + k] + (1.08 - calm[o + k]) * foam * 0.55; // a pale wash, never solid white
+          }
+          tint.needsUpdate = true;
+          at.needsUpdate = true;
+          cost.frames++;
+          cost.ms += performance.now() - began;
+        },
+      };
+    }
 
     // the shore and the land behind it
     const ground = new THREE.RingGeometry(LAKE_RADIUS - 0.6, ISLAND_RADIUS, 40, 5);
@@ -477,8 +642,354 @@ export async function startEnvironment(container, options = {}) {
       mesh.rotation.y = rand() * Math.PI * 2;
       world.add(mesh);
     };
-    for (let i = 0; i < 15; i++) peak((i / 15) * Math.PI * 2 + rand() * 0.25, 42 + rand() * 7, 8 + rand() * 11);
-    for (let i = 0; i < 9; i++) peak((i / 9) * Math.PI * 2 + rand() * 0.4, 56 + rand() * 4, 17 + rand() * 9);
+    if (LIVE_RIDGE) ridge = buildRidge();
+    else {
+      for (let i = 0; i < 15; i++) peak((i / 15) * Math.PI * 2 + rand() * 0.25, 42 + rand() * 7, 8 + rand() * 11);
+      for (let i = 0; i < 9; i++) peak((i / 9) * Math.PI * 2 + rand() * 0.4, 56 + rand() * 4, 17 + rand() * 9);
+    }
+
+    // The live ridge: one ring of mountains that is a recording. A write
+    // head goes round it; where it passes, the range is redrawn at the
+    // height of the sound at that moment. It is a ring buffer you can see.
+    // One mesh, one draw call, and each frame only the few columns the
+    // head crossed are sent to the card again.
+    function buildRidge() {
+      const COLS = 90;           // columns round the ring: the resolution of the range
+      const RADIUS = 50;
+      const GAP = 3;             // columns ahead of the head that are wiped: the edge of time
+      const LOUD_SPEED = 10;     // columns a second at full activity; in silence the head stands still
+      const STILL = 0.004;       // below this the room is silent and time stops
+      const TALLEST = 36;
+      const GAIN = 2.6;          // how hard the sound is leaned on before it is height
+      const VERTS = 24;          // eight triangles between each pair of columns
+      const height = new Float32Array(COLS);
+      const jag = new Float32Array(COLS);     // each column's own roughness, fixed
+      const wobble = new Float32Array(COLS);  // and how far its crest stands off the ring
+      for (let i = 0; i < COLS; i++) {
+        jag[i] = 0.6 + rand() * 0.4;
+        wobble[i] = (rand() - 0.5) * 5;
+        height[i] = 1.2 + jag[i] * 2.2;       // before anything is played: low hills
+      }
+      // The cut-away. A peak the camera comes right up against bows down
+      // out of its way, and stands up again when it moves on. Nothing that was drawn is lost:
+      // each column keeps its height and only how much of it is standing
+      // changes.
+      const stand = new Float32Array(COLS).fill(1);
+      const CUT_NEAR = 16;    // world units: a peak this close to the camera is all the way down
+      const CUT_FAR = 34;     // and one this far or farther stands whole
+      const CUT_LEAST = 0.14; // how much of a peak is left at the middle of the gap
+      const dirty = new Uint8Array(COLS);
+      const positions = new Float32Array(COLS * VERTS * 3);
+      const colors = new Float32Array(COLS * VERTS * 3);
+      const geometry = new THREE.BufferGeometry();
+      const posAttr = new THREE.BufferAttribute(positions, 3).setUsage(THREE.DynamicDrawUsage);
+      const colAttr = new THREE.BufferAttribute(colors, 3).setUsage(THREE.DynamicDrawUsage);
+      geometry.setAttribute('position', posAttr);
+      geometry.setAttribute('color', colAttr);
+      const material = flat();
+      material.side = THREE.DoubleSide;
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.frustumCulled = false;
+      mesh.position.y = lakeY - 0.4;
+      world.add(mesh);
+
+      const FOREST = far(new THREE.Color(0x41584a), RADIUS);
+      const ROCK = far(new THREE.Color(0x6c7479), RADIUS);
+      // snow is kept nearly out of the haze, or it would not read as white
+      const SNOW = new THREE.Color(1.35, 1.35, 1.38); // brighter than paper, so it stays white in shade
+      const pts = new Float32Array(10 * 3); // foot, shoulder, crest, far shoulder, far foot, for two columns
+      const corner = (slot, col) => {
+        const angle = (col / COLS) * Math.PI * 2;
+        const h = height[col] * stand[col];
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        // broad in the back: the far side runs out a long way toward the
+        // edge of the island over a heavy shoulder
+        const radii = [
+          RADIUS - 3 - h * 0.55,
+          RADIUS - 1 - h * 0.22 + wobble[col] * 0.5,
+          RADIUS + wobble[col],
+          RADIUS + 5 + h * 0.4 - wobble[col] * 0.6,
+          Math.min(ISLAND_RADIUS - 2, RADIUS + 9 + h * 0.95),
+        ];
+        const ys = [0, h * (0.38 + jag[col] * 0.2), h, h * (0.34 + (1 - jag[col]) * 0.5), 0];
+        for (let k = 0; k < 5; k++) {
+          const o = (slot * 5 + k) * 3;
+          pts[o] = cos * radii[k];
+          pts[o + 1] = ys[k];
+          pts[o + 2] = sin * radii[k];
+        }
+      };
+      // the eight triangles, as indices into pts (a: 0..4, b: 5..9)
+      const TRIS = [0, 5, 1, 1, 5, 6, 1, 6, 2, 2, 6, 7, 2, 7, 3, 3, 7, 8, 3, 8, 4, 4, 8, 9];
+      const segment = (s) => {
+        const a = ((s % COLS) + COLS) % COLS;
+        const b = (a + 1) % COLS;
+        corner(0, a);
+        corner(1, b);
+        const base = a * VERTS * 3;
+        for (let tri = 0; tri < 8; tri++) {
+          let mid = 0;
+          for (let k = 0; k < 3; k++) {
+            const from = TRIS[tri * 3 + k] * 3;
+            const to = base + (tri * 3 + k) * 3;
+            positions[to] = pts[from];
+            positions[to + 1] = pts[from + 1];
+            positions[to + 2] = pts[from + 2];
+            mid += pts[from + 1] / 3;
+          }
+          const tint = mid > 17.5 ? SNOW : mid > 2.6 ? ROCK : FOREST;
+          const light = 0.94 + ((a * 7 + tri * 3) % 5) * 0.03;
+          for (let k = 0; k < 3; k++) {
+            const to = base + (tri * 3 + k) * 3;
+            colors[to] = tint.r * light;
+            colors[to + 1] = tint.g * light;
+            colors[to + 2] = tint.b * light;
+          }
+        }
+        posAttr.addUpdateRange(base, VERTS * 3);
+        colAttr.addUpdateRange(base, VERTS * 3);
+      };
+      for (let s = 0; s < COLS; s++) segment(s);
+      posAttr.clearUpdateRanges();
+      colAttr.clearUpdateRanges();
+
+      // The trees are drawn by pitch. Each column has room for a thick
+      // stand of them; how many are standing is how high the notes were
+      // when the head went by. The lowest notes leave bare ground.
+      const STAND = 32; // trees a column can hold
+      // A stand: so many of one small thing to a column, kept in order, of
+      // which the first few are standing. Trees and foothills are both one.
+      const makeStand = (geometry, per, put, tintOf, outward = false) => {
+        const mesh = new THREE.InstancedMesh(
+          geometry,
+          new THREE.MeshStandardMaterial({ flatShading: true, roughness: 0.95, fog: false }),
+          COLS * per
+        );
+        mesh.frustumCulled = false;
+        const planted = new Float32Array(COLS * per * 16); // each as it stands when it is there
+        const place = new THREE.Object3D();
+        for (let c = 0; c < COLS; c++) {
+          // outward: nearest first, so more of them reach farther out
+          const radii = Array.from({ length: per }, () => rand());
+          if (outward) radii.sort((x, y) => x - y);
+          for (let k = 0; k < per; k++) {
+            const i = c * per + k;
+            const radius = put(place, ((c + rand()) / COLS) * Math.PI * 2, radii[k]);
+            place.updateMatrix();
+            place.matrix.toArray(planted, i * 16);
+            mesh.setColorAt(i, tintOf(radius));
+          }
+        }
+        mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        const standing = mesh.instanceMatrix.array;
+        const plant = (col, density) => {
+          const c = ((col % COLS) + COLS) % COLS;
+          const count = Math.round(per * Math.max(0, Math.min(1, density)));
+          const from = c * per * 16;
+          for (let k = 0; k < per; k++) {
+            const o = from + k * 16;
+            if (k < count) for (let m = 0; m < 16; m++) standing[o + m] = planted[o + m];
+            else standing.fill(0, o, o + 16);
+          }
+          mesh.instanceMatrix.addUpdateRange(from, per * 16);
+          mesh.instanceMatrix.needsUpdate = true;
+        };
+        world.add(mesh);
+        return { plant, standing, clear: () => mesh.instanceMatrix.clearUpdateRanges() };
+      };
+      const trees = makeStand(
+        new THREE.ConeGeometry(0.6, 2.4, 5, 1),
+        STAND,
+        (place, angle, out) => {
+          const radius = LAKE_RADIUS + 0.6 + Math.pow(out, 1.4) * 11;
+          const size = 0.8 + rand() * 1.2;
+          place.position.set(Math.cos(angle) * radius, lakeY + 0.12 + 1.2 * size, Math.sin(angle) * radius);
+          place.scale.set(size, size, size);
+          place.rotation.set(0, rand() * Math.PI, 0);
+          return radius;
+        },
+        // a real green, and held back from the haze so it stays one
+        (radius) => far(shade(0x2e623e, 0.09), radius, 0.61)
+      );
+      const plant = trees.plant;
+      const standing = trees.standing;
+      // Foothills: loose low peaks thrown out behind the range toward the
+      // edge of the island. The harder the room is played, the more of
+      // them there are and the farther out they reach.
+      const HILLS = 9;
+      const hills = makeStand(
+        new THREE.ConeGeometry(1, 1, 5, 1),
+        HILLS,
+        (place, angle, out) => {
+          const radius = RADIUS + 12 + out * (ISLAND_RADIUS - RADIUS - 15);
+          const tall = (2.5 + rand() * 6.5) * (1 - out * 0.45); // smaller toward the edge
+          const wide = tall * (0.9 + rand() * 0.7);
+          place.position.set(Math.cos(angle) * radius, lakeY + tall / 2 - 0.3, Math.sin(angle) * radius);
+          place.scale.set(wide, tall, wide * (0.8 + rand() * 0.4));
+          place.rotation.set((rand() - 0.5) * 0.25, rand() * Math.PI, (rand() - 0.5) * 0.25);
+          return radius;
+        },
+        (radius) => far(shade(rand() < 0.4 ? 0x41584a : 0x6c7479, 0.07), radius),
+        true
+      );
+      for (let c = 0; c < COLS; c++) {
+        plant(c, 0.25);
+        hills.plant(c, 0.12);
+      }
+      trees.clear();
+      hills.clear();
+      let tone = 0.5; // how high the room has been singing, 0 the lowest note, 1 the highest
+
+      // Day and night, told by the head: three times round the ring is
+      // twelve hours. The one lamp in the scene is the sun by day and the
+      // moon by night, and the sky, the fog and the air dim with it.
+      const TURNS_A_DAY = 6;
+      const DAWN_HOUR = 8;       // the hour the room opens on
+      const sunFace = document.createElement('canvas');
+      sunFace.width = sunFace.height = 64;
+      {
+        const pen = sunFace.getContext('2d');
+        const glow = pen.createRadialGradient(32, 32, 4, 32, 32, 31);
+        glow.addColorStop(0, '#fffaf0');
+        glow.addColorStop(0.45, '#fbe9c4');
+        glow.addColorStop(1, 'rgba(251, 233, 196, 0)');
+        pen.fillStyle = glow;
+        pen.fillRect(0, 0, 64, 64);
+      }
+      const sunDisc = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(sunFace), fog: false, transparent: true, depthWrite: false }));
+      sunDisc.scale.setScalar(90);
+      world.add(sunDisc);
+      const sunMap = sunDisc.material.map;
+      const moonHalo = new THREE.Sprite(new THREE.SpriteMaterial({ map: sunMap, color: 0xbfd2ec, fog: false, transparent: true, depthWrite: false, opacity: 0 }));
+      moonHalo.scale.setScalar(260);
+      world.add(moonHalo);
+      const DAY_SUN = new THREE.Color(0xd9d7c2);
+      const LOW_SUN = new THREE.Color(0xf0a068);
+      const MOONLIGHT = new THREE.Color(0xa9c0e6);
+      const NIGHT_SKY = new THREE.Color(0x243450);
+      const DUSK_SKY = new THREE.Color(0xf2b890);
+      const WHITE = new THREE.Color(0xffffff);
+      const fogBase = scene.fog.color.clone();
+      const tint = new THREE.Color();
+      const sunDir = new THREE.Vector3();
+      const moonDir = new THREE.Vector3();
+      const smooth = (a, b, x) => {
+        const u = Math.max(0, Math.min(1, (x - a) / (b - a)));
+        return u * u * (3 - 2 * u);
+      };
+      const daylight = (turns) => {
+        const hour = (DAWN_HOUR + (turns / TURNS_A_DAY) * 24) % 24;
+        const arc = ((hour - 6) / 24) * Math.PI * 2; // up at six, down at eighteen
+        sunDir.set(Math.cos(arc) * 0.9, Math.sin(arc), -0.45).normalize();
+        moonDir.set(-Math.cos(arc) * 0.9, -Math.sin(arc), -0.45).normalize();
+        const day = smooth(-0.14, 0.22, sunDir.y);
+        const low = day * (1 - smooth(0.05, 0.5, sunDir.y)); // the sun near the horizon
+        sunDisc.position.copy(sunDir).multiplyScalar(SKY_RADIUS * 0.8);
+        sunDisc.position.y += lakeY;
+        sunDisc.material.color.copy(WHITE).lerp(LOW_SUN, low);
+        if (moonDisc) {
+          moonDisc.position.copy(moonDir).multiplyScalar(SKY_RADIUS * 0.8);
+          moonDisc.position.y += lakeY;
+          moonDisc.material.opacity = 0.35 + 0.65 * (1 - day);
+          moonHalo.position.copy(moonDir).multiplyScalar(SKY_RADIUS * 0.81);
+          moonHalo.position.y += lakeY;
+          moonHalo.material.opacity = 0.75 * (1 - day);
+        }
+        night = 1 - day;
+        // the lamp: whichever of the two is up
+        const lamp = day > 0.25 || sunDir.y > moonDir.y ? sunDir : moonDir;
+        sun.position.copy(lamp).multiplyScalar(14);
+        if (sun.position.y < 2) sun.position.y = 2;
+        sun.color.copy(MOONLIGHT).lerp(tint.copy(DAY_SUN).lerp(LOW_SUN, low), day);
+        sun.intensity = 0.95 + 0.45 * day;
+        skyLight.intensity = 1.1 * (0.34 + 0.66 * day);
+        tint.copy(NIGHT_SKY).lerp(WHITE, day).lerp(DUSK_SKY, low * 0.55);
+        sky.material.color.copy(tint);
+        scene.fog.color.copy(fogBase).multiply(tint);
+        stats.hour = hour;
+      };
+
+      const HEAD_START = COLS * 0.75; // straight ahead of the first view
+      let head = HEAD_START;
+      let written = Math.floor(head);
+      let loudest = 0;         // the loudest moment since the last column was written
+      let activity = 0;
+      const stats = { frames: 0, ms: 0, columns: 0, peak: 0, height, at: () => head % COLS, offset: 0, hills: () => Array.from({ length: COLS }, (_, c) => { let n = 0; for (let k = 0; k < HILLS; k++) if (hills.standing[(c * HILLS + k) * 16 + 15]) n++; return n; }), trees: () => Array.from({ length: COLS }, (_, c) => { let n = 0; for (let k = 0; k < STAND; k++) if (standing[(c * STAND + k) * 16 + 15]) n++; return n; }) };
+      if (DEV) window.__ridge = stats;
+      const set = (col, h) => {
+        const c = ((col % COLS) + COLS) % COLS;
+        height[c] = h;
+        segment(c - 1);
+        segment(c);
+      };
+      return {
+        // every note the room sounds, as its rung of the ladder
+        heard(pitch) {
+          tone += (pitch / (PITCH_COUNT - 1) - tone) * 0.7;
+          stats.tone = tone;
+        },
+        update(dt) {
+          const began = performance.now();
+          const level = engine.level();
+          if (level > stats.peak) stats.peak = level;
+          if (level > loudest) loudest = level;
+          activity = level > activity ? level : activity * Math.exp(-dt / 0.96);
+          if (activity < STILL) activity = 0;
+          head += LOUD_SPEED * Math.min(1, activity * GAIN) * dt;
+          const reached = Math.floor(head);
+          if (written < reached) posAttr.needsUpdate = colAttr.needsUpdate = true;
+          while (written < reached) {
+            written++;
+            const c = written % COLS;
+            // leaned on, but never clipped: it flattens toward the top and
+            // each column's own roughness keeps that from being a mesa
+            const drive = 1 - Math.exp(-loudest * GAIN);
+            set(c, 1.2 + jag[c] * (2.2 + TALLEST * drive));
+            plant(c, tone * tone);
+            hills.plant(c, drive * 1.25);
+            for (let g = 1; g <= GAP; g++) {
+              plant(c + g, 0);
+              hills.plant(c + g, 0);
+            }
+            // and the ground ahead is cleared, falling away to nothing
+            for (let g = 1; g <= GAP; g++) set(c + g, Math.min(height[(c + g) % COLS], 0.2 + (GAP - g) * 0.4));
+            loudest = level;
+            stats.columns++;
+          }
+          // the cut-away, by nearness alone: only a peak the camera is
+          // right up against gives way, so from a landscape distance the
+          // range is always whole
+          const camX = camera.position.x;
+          const camZ = camera.position.z;
+          const ease = Math.min(1, dt * 3.2);
+          let moved = false;
+          for (let c = 0; c < COLS; c++) {
+            const angle = (c / COLS) * Math.PI * 2;
+            const near = Math.hypot(Math.cos(angle) * RADIUS - camX, Math.sin(angle) * RADIUS - camZ);
+            const want = CUT_LEAST + (1 - CUT_LEAST) * smooth(CUT_NEAR, CUT_FAR, near);
+            const next = stand[c] + (want - stand[c]) * ease;
+            if (Math.abs(next - stand[c]) > 0.0015) {
+              stand[c] = next;
+              dirty[c] = 1;
+              dirty[(c + COLS - 1) % COLS] = 1;
+              moved = true;
+            }
+          }
+          if (moved) {
+            for (let c = 0; c < COLS; c++) {
+              if (!dirty[c]) continue;
+              dirty[c] = 0;
+              segment(c);
+            }
+            posAttr.needsUpdate = colAttr.needsUpdate = true;
+          }
+          daylight((head - HEAD_START) / COLS + stats.offset);
+          stats.frames++;
+          stats.ms += performance.now() - began;
+        },
+      };
+    }
 
     // the forest: one small tree, placed four hundred times along the shore
     const TREES = 420;
@@ -499,6 +1010,7 @@ export async function startEnvironment(container, options = {}) {
     forest.instanceMatrix.needsUpdate = true;
     if (forest.instanceColor) forest.instanceColor.needsUpdate = true;
     world.add(forest);
+    if (LIVE_RIDGE) forest.visible = false; // the live ridge plants its own
 
     scene.add(world);
   }
@@ -597,6 +1109,8 @@ export async function startEnvironment(container, options = {}) {
   // cast along the line of the sun, spreading and fading as the shape
   // rises. No second drawing of the scene, just one small disc each.
   const blobs = [];
+  const shapeLamp = new THREE.PointLight(0xe8dcc0, 0, 70, 1.3);
+  if (LIVE_RIDGE && glass) scene.add(shapeLamp);
   const blobSun = sun.position.clone().normalize();
   if (glass) {
     const spot = document.createElement('canvas');
@@ -631,9 +1145,24 @@ export async function startEnvironment(container, options = {}) {
       const up = Math.max(0, p.y - field.floor - radius);
       const along = (p.y - field.floor) / Math.max(0.2, blobSun.y);
       const blob = blobs[i];
-      blob.position.set(p.x - blobSun.x * along, water, p.z - blobSun.z * along);
-      blob.scale.setScalar(radius * 1.15 * (1 + up * 0.06));
-      blob.material.opacity = BLOB_DARK * Math.max(0, 1 - up / BLOB_FADE);
+      // By day it is a shadow. In the dark it is the other thing: the
+      // shape's own light lying on the water under it.
+      const lit = night > 0.5;
+      const turn = Math.abs(night - 0.5) * 2;
+      if (lit !== blob.userData.lit) {
+        blob.userData.lit = lit;
+        blob.material.blending = lit ? THREE.AdditiveBlending : THREE.NormalBlending;
+        blob.material.color.set(lit ? (shapes[i].userData.clearColor || 0xd9d7c2) : 0x1c2a30);
+      }
+      if (lit) {
+        blob.position.set(p.x, water, p.z);
+        blob.scale.setScalar(radius * 2.8 * (1 + up * 0.08));
+        blob.material.opacity = 0.13 * turn * Math.max(0, 1 - up / (BLOB_FADE * 1.4));
+      } else {
+        blob.position.set(p.x - blobSun.x * along, water, p.z - blobSun.z * along);
+        blob.scale.setScalar(radius * 1.15 * (1 + up * 0.06));
+        blob.material.opacity = BLOB_DARK * turn * Math.max(0, 1 - up / BLOB_FADE);
+      }
       blob.visible = blob.material.opacity > 0.01 && Math.hypot(blob.position.x, blob.position.z) < LAKE_RADIUS;
     }
   }
@@ -651,6 +1180,7 @@ export async function startEnvironment(container, options = {}) {
     const data = mesh.userData;
     if (!force && time - data.lastStrike < STRIKE_COOLDOWN) return;
     data.lastStrike = time;
+    if (liveWater) liveWater.ripple(mesh.position.x, mesh.position.z, gain);
 
     engine.strike({ pitch: data.pitch, gain, pan: panOf(mesh) });
     staff.note(data.pitch);
@@ -689,6 +1219,7 @@ export async function startEnvironment(container, options = {}) {
     const data = mesh.userData;
     if (time - data.lastStrike < STRIKE_COOLDOWN) return;
     data.lastStrike = time;
+    if (liveWater) liveWater.ripple(mesh.position.x, mesh.position.z, gain);
 
     // the neighbours are the shape's own family's notes, not the ladder's
     const rungs = FAMILY_RUNGS[data.type];
@@ -903,6 +1434,7 @@ export async function startEnvironment(container, options = {}) {
     const zoomBy = (factor, least) => {
       zoomTarget = Math.max(least, Math.min(zoomFar, zoomTarget * factor));
       lastEnergyAt = performance.now() / 1000;
+      lastHandsAt = lastEnergyAt; // zooming is a hand on the room: it does not drift back yet
     };
     let bottomSince = 0;
     window.addEventListener('wheel', (event) => {
@@ -910,8 +1442,9 @@ export async function startEnvironment(container, options = {}) {
       if (event.clientY < rect.top || event.clientY > rect.bottom) return;
       const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
       const dy = Math.max(-120, Math.min(120, event.deltaY * unit));
-      if (event.ctrlKey) {
-        // a pinch: never the browser's own page zoom while over the room
+      if (event.ctrlKey || event.altKey) {
+        // a pinch, or the wheel with option held: the room zooms and the
+        // page stays put, never the browser's own page zoom
         event.preventDefault();
         zoomBy(Math.exp(dy * 0.012), ZOOM_NEAR);
         return;
@@ -952,6 +1485,7 @@ export async function startEnvironment(container, options = {}) {
         event.preventDefault();
         zoomTarget = Math.max(ZOOM_NEAR, Math.min(zoomFar, gestureFrom / Math.max(0.05, event.scale)));
         lastEnergyAt = performance.now() / 1000;
+        lastHandsAt = lastEnergyAt;
       });
       window.addEventListener('gestureend', (event) => {
         if (overRoom(event)) event.preventDefault();
@@ -1338,12 +1872,66 @@ export async function startEnvironment(container, options = {}) {
     }
   }
 
+  // Two guards so the shapes are not lost. A shape that is on screen and
+  // travels to the edge of the view meets it like a wall. A shape left
+  // outside because the view itself moved (a zoom in, a turn) is adrift:
+  // it is drawn back to the nearest edge at three times the usual rate of
+  // settling, which is nine times the pull.
+  const CATCH_UP = HOME_PULL * 9;
+  let viewMoving = false;
+  function keepOnScreen(mesh, t, dt) {
+    const data = mesh.userData;
+    fromCam.subVectors(mesh.position, camera.position);
+    const depth = -fromCam.dot(camBack);
+    if (depth < 0.5) return;
+    const halfY = Math.max(0.5, depth * tanHalf - data.radius * EDGE_KEEP);
+    const halfX = Math.max(0.5, depth * tanHalf * camera.aspect - data.radius * EDGE_KEEP);
+    const x = fromCam.dot(camRight);
+    const y = fromCam.dot(camUp);
+    const overX = Math.abs(x) > halfX ? x - Math.sign(x) * halfX : 0;
+    const overY = Math.abs(y) > halfY ? y - Math.sign(y) * halfY : 0;
+    if (!overX && !overY) {
+      data.adrift = false;
+      data.onScreen = true;
+      return;
+    }
+    if (data.onScreen && !data.adrift && !viewMoving) {
+      // it went there itself: the edge is a wall
+      if (overX) {
+        mesh.position.addScaledVector(camRight, -overX);
+        edgeHit(mesh, turnBack(data, edge.copy(camRight).multiplyScalar(Math.sign(overX)), WALL_BOUNCE), t);
+      }
+      if (overY) {
+        mesh.position.addScaledVector(camUp, -overY);
+        edgeHit(mesh, turnBack(data, edge.copy(camUp).multiplyScalar(Math.sign(overY)), WALL_BOUNCE), t);
+      }
+      return;
+    }
+    // the view left it behind: bring it back, quickly and without swing,
+    // aiming a little inside the edge so it does arrive
+    data.adrift = true;
+    data.onScreen = false;
+    const inX = overX ? overX + Math.sign(overX) * Math.min(halfX, data.radius + 0.6) : 0;
+    const inY = overY ? overY + Math.sign(overY) * Math.min(halfY, data.radius + 0.6) : 0;
+    data.velocity.addScaledVector(camRight, -inX * CATCH_UP * dt);
+    data.velocity.addScaledVector(camUp, -inY * CATCH_UP * dt);
+    data.velocity.multiplyScalar(Math.exp(-2 * Math.sqrt(CATCH_UP) * dt));
+  }
+
+  if (DEV) {
+    window.__labView = {
+      view: () => ({ zoom: zoomTarget, pitch: pitchTarget, roll: rollTarget, tidy }),
+      shapes: () => ({ all: shapes.length, off: shapes.filter((m) => !m.userData.onScreen).length, adrift: shapes.filter((m) => m.userData.adrift).length }),
+    };
+  }
+
   let lastFrameAt = performance.now();
   let lastScrollY = window.scrollY;
   let pile = 0; // eases toward 1 when the bottom of the page arrives
   let pileAsked = 0; // the last answer to "is the floor wanted", to catch the change
   let presence = IDLE_PULL; // eases toward 1 while someone is playing
   let wasPlaying = false;
+  let hintDone = false;
 
   function frame() {
     const now = performance.now();
@@ -1378,7 +1966,13 @@ export async function startEnvironment(container, options = {}) {
     // or the room turned. The page fades its hint for as long, and a few
     // seconds more.
     if (held || orbitPointer !== null || gesture) lastHandsAt = t;
+    // on a touch screen the hint has done its work once the sound is on
+    // and a hand is in the room: it goes, and does not come back
     const playing = t - lastHandsAt < WORDS_BACK_SECONDS;
+    if (!hintDone && coarse && playing && engine.awake()) {
+      hintDone = true;
+      container.classList.add('hint-done');
+    }
     if (playing !== wasPlaying) {
       wasPlaying = playing;
       container.classList.toggle('is-playing', playing);
@@ -1557,6 +2151,19 @@ export async function startEnvironment(container, options = {}) {
     // then growing exponentially once they have left it alone
     const idleFor = t - lastHandsAt - HANDS_SECONDS;
     tidy = idleFor > 0 && pile < 0.01 ? Math.min(RESET_MOST, Math.exp(idleFor * RESET_RATE) - 1) : 0;
+    // and the camera comes back to where it started with them, at a
+    // sixteenth of the rate the shapes settle, and it eases into the move
+    // over ten seconds: one long curve, slow to start and slow to arrive
+    if (tidy > 0 && glass) {
+      const on = Math.min(1, idleFor / 10);
+      const ease = Math.exp(-0.0625 * 2 * Math.sqrt(HOME_PULL * (1 + tidy)) * on * on * (3 - 2 * on) * dt);
+      zoomTarget = Math.exp(Math.log(zoomTarget) * ease);
+      pitchTarget *= ease;
+      rollTarget *= ease;
+    }
+    viewMoving =
+      Math.abs(zoomTarget - zoom) > 0.002 * zoom ||
+      Math.abs(turned.yaw) + Math.abs(turned.pitch) + Math.abs(turned.roll) > 0.0004;
     const perSecond = 1 / Math.max(dt, 0.008);
     swirl
       .set(0, 0, 0)
@@ -1607,7 +2214,7 @@ export async function startEnvironment(container, options = {}) {
 
       // the leash home keeps the system composed, until the floor arrives
       between.subVectors(data.home, mesh.position);
-      force.addScaledVector(between, HOME_PULL * (1 + tidy) * data.mass * (1 - pile));
+      if (!data.adrift) force.addScaledVector(between, HOME_PULL * (1 + tidy) * data.mass * (1 - pile));
 
       // a faint idle breath so rest never looks frozen
       force.y += Math.sin(t * data.bobSpeed + data.bobPhase) * 0.12 * data.mass;
@@ -1647,6 +2254,8 @@ export async function startEnvironment(container, options = {}) {
       if (tidy > 0) data.velocity.multiplyScalar(Math.exp(-2 * Math.sqrt(HOME_PULL * (1 + tidy)) * dt));
       mesh.position.addScaledVector(data.velocity, dt);
       keepInView(mesh, t, dt);
+      if (glass && pile < 0.01) keepOnScreen(mesh, t, dt);
+      else data.adrift = false;
 
       // the floor is real once the pile begins: land, settle, and sing
       if (pile > 0.3 && mesh.position.y - data.radius < field.floor) {
@@ -1840,12 +2449,28 @@ export async function startEnvironment(container, options = {}) {
         mesh.material.transmission = active;
         mesh.material.roughness = 0.55 - 0.47 * active; // clear glass when fully awake
         mesh.material.emissiveIntensity = active * 0.05; // the faintest light of its own
+        if (ridge) {
+          // in the dark every shape is a lantern, brighter when it speaks
+          mesh.material.emissive.copy(data.clearColor);
+          mesh.material.emissiveIntensity += night * (0.14 + 0.45 * active);
+        }
       } else {
         mesh.material.emissiveIntensity = data.glow * 0.6 + data.hoverGlow;
       }
     }
 
     if (blobs.length) placeBlobs();
+    if (liveWater) liveWater.update(dt, t, turned.yaw / Math.max(dt, 0.008));
+    if (ridge) {
+      ridge.update(dt);
+      blobSun.copy(sun.position).normalize();
+      // one lamp stands for all the lanterns: it sits in the middle of
+      // the shapes and lights the water and the shore around them
+      shapeLamp.position.set(0, 0, 0);
+      for (const mesh of shapes) shapeLamp.position.addScaledVector(mesh.position, 1 / shapes.length);
+      shapeLamp.position.y += 3;
+      shapeLamp.intensity = night * 9;
+    }
     renderer.render(scene, camera);
     if (room) shadeWords();
   }

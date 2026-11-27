@@ -57,6 +57,14 @@ function buildGraph() {
   echo.connect(feedback).connect(echo);
   echo.connect(wet).connect(master);
 
+  // a meter on the side: it listens to what the fader lets through and
+  // changes nothing. The room draws with it.
+  const meter = context.createAnalyser();
+  meter.fftSize = 1024;
+  master.connect(meter);
+  state.meter = meter;
+  state.scope = new Float32Array(meter.fftSize);
+
   state.context = context;
   state.master = master;
   state.pingBus = pingBus;
@@ -120,6 +128,18 @@ function synthVoice(context, t0, freq) {
 export const engine = {
   isOn() {
     return state.on;
+  },
+
+  // the loudest moment of the last 23 milliseconds, 0 when nothing sounds
+  level() {
+    if (!state.meter) return 0;
+    state.meter.getFloatTimeDomainData(state.scope);
+    let peak = 0;
+    for (let i = 0; i < state.scope.length; i++) {
+      const v = Math.abs(state.scope[i]);
+      if (v > peak) peak = v;
+    }
+    return peak;
   },
 
   // Browsers keep audio asleep until the visitor's first gesture.

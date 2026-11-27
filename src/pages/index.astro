@@ -651,7 +651,13 @@ const structuredData = {
       <p class="room-hint" data-shade>Touch a shape. Throw one.<br />Make your wave[form]</p>
     </div>
     <!-- the one control, at the far end of the line that names the room -->
-    <button class="line-button room-floor" type="button" id="room-floor" data-shade aria-pressed="false">Let them fall</button>
+    <button class="room-floor gravity-switch" type="button" id="room-floor" data-shade aria-pressed="false" aria-label="Gravity is off. Turn gravity on." title="Gravity">
+      <!-- a body and the ground: it hangs in the air, or it rests -->
+      <svg viewBox="0 0 40 34" width="40" height="34" aria-hidden="true">
+        <line x1="5" y1="30" x2="35" y2="30" />
+        <circle class="gravity-body" cx="20" cy="22.5" r="6.5" />
+      </svg>
+    </button>
     <!-- on a phone, while the header is held down, the way back out -->
     <button class="line-button room-exit" type="button" id="room-exit" data-shade>Exit</button>
     <!-- the room, as it happens: every strike, swell, throw, and landing
@@ -1552,7 +1558,7 @@ const structuredData = {
       floorButton?.addEventListener('click', () => {
         falling = !falling;
         floorButton.setAttribute('aria-pressed', String(falling));
-        floorButton.textContent = falling ? 'Let them float' : 'Let them fall';
+        floorButton.setAttribute('aria-label', falling ? 'Gravity is on. Turn gravity off.' : 'Gravity is off. Turn gravity on.');
       });
 
       if (shouldAnimate()) startEnvironment(room, { room: true, pile: () => falling });
