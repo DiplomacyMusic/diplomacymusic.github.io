@@ -27,6 +27,19 @@ const GRAPHIC_SCORE = false;
 // shapes, so turning the room turns it too. It started as a mock-up and
 // stayed. Flip this off and the lab is the shapes alone again.
 const LAKE_WORLD = true;
+// With the lake world the shapes are not held to the screen: their room is
+// the lake itself, a drum of air as wide as the water and this tall.
+const LAKE_RADIUS = 30;
+const LAKE_KEEP = 1.5;         // a shape's edge stays this far inside the shore
+const LAKE_CEILING = 20;       // world units of sky above the water they may use
+const LENS_KEEP = 2.5;         // and never closer to the camera than this
+// The world is an island in the sky: land out to ISLAND_RADIUS, rock
+// hanging beneath it, and open air all round, so a pinch can pull right
+// back and see the whole of it floating.
+const ISLAND_RADIUS = 90;
+const ISLAND_DEPTH = 64;       // how far the rock hangs below the water
+const SKY_RADIUS = 520;        // the air the island floats in
+const ABOVE_WATER = 0.8;       // the camera never comes nearer the water than this, let alone under
 
 // The staff has two builds and Daniel keeps going back and forth,
 // reasonably. true: the gigantic blurred structure in the fog.
@@ -67,6 +80,11 @@ const IDLE_PULL = 0.2;        // the share of that pull left once the room is al
                               // huddle lets go and everything drifts back to its own place
 const SOFTEN = 2.5;           // close passes may slingshot a little
 const HOME_PULL = 0.12;       // a long leash back to each home position
+// Left alone, the room tidies itself: once nobody has touched it for
+// HANDS_SECONDS, the leash home tightens, faster and faster, until every
+// shape is back in its place in the middle, and there it settles.
+const RESET_RATE = 1.1;       // how quickly the tightening grows, per second (exponential)
+const RESET_MOST = 60;        // the tightest it gets, as a multiple of the usual leash
 const DAMPING = 0.975;        // thin water: a throw carries about twice as far
 const RESTITUTION = 0.82;     // collisions bounce on, so one hit starts others
 // Depth of the room; its sides are the edges of the screen. Nearly the
@@ -83,6 +101,15 @@ const FALL_PULL = 9;          // gravity once the bottom of the page arrives
 const TILT_PULL = 5;          // how hard a tilted phone pulls
 const DRAG_RADIUS = 6.5;      // how close a dragged shape must come to wake another
 const HOLD_PULL_BOOST = 16;   // a held shape pulls like something far heavier
+// Charge: a held shape carries the energy of the hand moving it, the way
+// a wet finger round the rim of a glass makes it sing. It is the speed of
+// the hand right now, squared, as kinetic energy is. The faster the hand,
+// the harder it draws its own kind, the farther its call reaches, and the
+// louder they all ring; slow down and all of it falls away at once.
+const CHARGE_SPEED = 14;      // world units a second of hand speed that is a full charge
+const CHARGE_PULL = 15;       // a full charge pulls sixteen times harder than an empty one: it gathers its whole family fast
+const CHARGE_REACH = 1.2;     // and its call reaches this much farther again
+const CHARGE_RETRIGGER = 1.6; // seconds between fresh breaths of the held shape's own ring
 const STIR = 0.2;             // dragging stirs the water, momentum passed by proximity
 const THROW_MAX = 20;         // the fastest a thrown shape may leave the hand
 const RING_SPEED = 0.5;       // how hard two things must meet before they speak
@@ -93,12 +120,36 @@ const ORBIT_TURN = 0.0045;     // radians of turn per pixel dragged across empty
 const ORBIT_PITCH_MAX = 1.05;  // how far over the top or under the view may go
 const WORLD_PITCH_MIN = -0.28; // with the lake world, the camera stays above the water
 const SWIRL = 1.4;             // how hard a turning room drags the shapes round with it
+// The room turns like a playground roundabout: a flick across empty space
+// sets it going and it carries on by itself; flick it again while it is
+// going and it goes faster. The faster it goes the longer it takes to come
+// to rest, since most of what slows it is in proportion to its speed.
+const SPIN_PUSH = 0.25;        // how much of a flick's speed it takes on: it is heavy
+// and the faster it already goes, the less each push adds, so the top
+// speed is earned with many hard flicks, never reached by accident
+const SPIN_HEAVY = 2;
+const SPIN_MAX = 8;            // radians a second; it will go no faster
+const SPIN_DRAG = 0.16;        // the share of its speed it loses each second
+const SPIN_FRICTION = 0.025;   // and a little more, so in the end it does stop
+// A hand dragging against the turn brakes it, there and then, in
+// proportion to how fast the hand is going: a slow drag against it eases
+// it down, a hard one stops it short. It brakes to a standstill and no
+// further; only a flick let go of after that sends it the other way.
+const SPIN_BRAKE = 4;          // radians a second taken off per radian a second of counter movement, each second
+// A turning room makes every shape in it sing, like glasses on a turning
+// tray: the faster the whole scene goes round, the louder all of them
+// ring, each on its own note, breathing in and out at its own pace.
+const WHIRL_FULL = 4;          // radians a second of turn at which they ring their loudest
+const WHIRL_PEAK = 0.32;       // each shape's loudest, as a share of a full swell (there are many)
+const WHIRL_START = 0.06;      // below this share of the full turn the room is quiet
 const SWIRL_MAX = 4;           // radians a second; past this the water stops keeping up
 const GRAB_SLACK = 26;          // px a finger may miss a shape by and still take hold of it
 const HANDS_SECONDS = 4;       // how long after a hand leaves the room still counts as playing
 const WORDS_BACK_SECONDS = 2;   // how long after a hand leaves before the words and the log return
+const DRIFT = 0.03;            // radians: how far the never-still camera wanders, about two degrees
 const ZOOM_NEAR = 0.7;         // a pinch may bring the camera this much closer
-const ZOOM_FAR = 1.3;          // or push it this much farther away, short of the fog
+const ZOOM_FAR = 13.5;          // or push it this much farther away: far enough to see the island whole
+const ZOOM_FAR_PORTRAIT = 19.5;  // a narrow screen has to stand farther back to take it in
 const TAP_DRIFT = 0.25;       // world units a mouse may wander before a press is a drag
 const TAP_DRIFT_TOUCH = 0.7;  // fingers wobble more than mice do
 const LONG_PRESS_MS = 300;    // a finger that stays this long starts the slow swell
@@ -129,7 +180,7 @@ export async function startEnvironment(container, options = {}) {
     42,
     container.clientWidth / container.clientHeight,
     0.1,
-    100
+    LAKE_WORLD && options.room === true ? SKY_RADIUS * 2 : 100
   );
   // pulled back a step on portrait so the field reads whole
   camera.position.set(0, 0, portrait ? 19 : 16);
@@ -141,7 +192,7 @@ export async function startEnvironment(container, options = {}) {
   const halfW = halfH * camera.aspect;
   const field = portrait
     ? {
-        count: 10,
+        count: 15,
         spreadX: halfW * 1.7,
         spreadY: halfH * 1.6,
         spreadZ: 10, // deep, so the dolly streaks near shapes past far ones
@@ -149,7 +200,7 @@ export async function startEnvironment(container, options = {}) {
         floor: -(halfH * 0.9),
       }
     : {
-        count: 14,
+        count: 21,
         spreadX: Math.min(22, halfW * 1.7),
         spreadY: Math.min(11, halfH * 1.6),
         spreadZ: 10,
@@ -264,16 +315,19 @@ export async function startEnvironment(container, options = {}) {
       return color;
     };
 
-    // the sky: a dome, deep overhead and pale at the horizon
-    const dome = new THREE.SphereGeometry(72, 18, 12);
+    // the sky: a sphere of air the island floats in, deep overhead, pale
+    // at the horizon, and below the island a cooler haze going down
+    const dome = new THREE.SphereGeometry(SKY_RADIUS, 24, 16);
     {
       const at = dome.getAttribute('position');
       const colors = new Float32Array(at.count * 3);
       const zenith = new THREE.Color(0x7b919a); // a pale, misted blue overhead
+      const depths = new THREE.Color(0x96a6aa); // the air far under the island
       const color = new THREE.Color();
       for (let i = 0; i < at.count; i++) {
-        const up = Math.max(0, at.getY(i) / 72);
-        color.copy(HAZE).lerp(zenith, Math.pow(up, 0.8));
+        const y = at.getY(i) / SKY_RADIUS;
+        if (y >= 0) color.copy(HAZE).lerp(zenith, Math.pow(y, 0.8));
+        else color.copy(HAZE).lerp(depths, Math.pow(-y, 0.7));
         color.toArray(colors, i * 3);
       }
       dome.setAttribute('color', new THREE.BufferAttribute(colors, 3));
@@ -282,8 +336,50 @@ export async function startEnvironment(container, options = {}) {
     sky.position.y = lakeY;
     world.add(sky);
 
+    // the moon: a flat, painted disc hung in the sky the way an old
+    // console game hangs one, a small blurry picture always turned to face
+    // you, far beyond the peaks. Its texture is tiny on purpose; the
+    // smoothing that stretches it is the look.
+    {
+      const MOON_PX = 48;
+      const face = document.createElement('canvas');
+      face.width = face.height = MOON_PX;
+      const pen = face.getContext('2d');
+      const mid = MOON_PX / 2;
+      const body = pen.createRadialGradient(mid - 6, mid - 7, 2, mid, mid, mid - 1);
+      body.addColorStop(0, '#f6f4ec');
+      body.addColorStop(0.7, '#e3e0d2');
+      body.addColorStop(1, '#c9c8bc');
+      pen.fillStyle = body;
+      pen.beginPath();
+      pen.arc(mid, mid, mid - 1, 0, Math.PI * 2);
+      pen.fill();
+      // the seas and craters, the same few every visit
+      pen.save();
+      pen.clip();
+      for (let i = 0; i < 11; i++) {
+        const x = 8 + rand() * (MOON_PX - 16);
+        const y = 8 + rand() * (MOON_PX - 16);
+        const r = 1.5 + rand() * (i < 3 ? 7 : 3);
+        pen.fillStyle = `rgba(132, 147, 150, ${0.18 + rand() * 0.2})`;
+        pen.beginPath();
+        pen.arc(x, y, r, 0, Math.PI * 2);
+        pen.fill();
+      }
+      pen.restore();
+      const moonMap = new THREE.CanvasTexture(face);
+      moonMap.generateMipmaps = false;
+      moonMap.minFilter = THREE.LinearFilter;
+      moonMap.magFilter = THREE.LinearFilter;
+      const moon = new THREE.Sprite(new THREE.SpriteMaterial({ map: moonMap, fog: false, transparent: true }));
+      const toward = new THREE.Vector3(0.1, 0.2, -1).normalize();
+      moon.position.copy(toward).multiplyScalar(SKY_RADIUS * 0.8);
+      moon.position.y += lakeY;
+      moon.scale.setScalar(70);
+      world.add(moon);
+    }
+
     // the lake: a disc of facets, each a slightly different water
-    const LAKE_RADIUS = 30;
     const water = new THREE.RingGeometry(0.01, LAKE_RADIUS, 30, 7);
     water.rotateX(-Math.PI / 2);
     {
@@ -301,7 +397,7 @@ export async function startEnvironment(container, options = {}) {
     world.add(lake);
 
     // the shore and the land behind it
-    const ground = new THREE.RingGeometry(LAKE_RADIUS - 0.6, 71, 36, 4);
+    const ground = new THREE.RingGeometry(LAKE_RADIUS - 0.6, ISLAND_RADIUS, 40, 5);
     ground.rotateX(-Math.PI / 2);
     const land = new THREE.Mesh(
       paint(ground, (centre) => far(shade(0x4c5a4c, 0.06), Math.hypot(centre.x, centre.z))),
@@ -309,6 +405,50 @@ export async function startEnvironment(container, options = {}) {
     );
     land.position.y = lakeY + 0.12;
     world.add(land);
+
+    // beneath it all, the rock the island is torn from: a rough cone
+    // hanging point down, earth under the grass, stone below, paling into
+    // the air toward the tip
+    const rock = new THREE.ConeGeometry(ISLAND_RADIUS + 0.4, ISLAND_DEPTH, 18, 7, true);
+    rock.rotateX(Math.PI);
+    {
+      const at = rock.getAttribute('position');
+      for (let i = 0; i < at.count; i++) {
+        const down = 0.5 - at.getY(i) / ISLAND_DEPTH; // 0 at the rim, 1 at the tip
+        if (down > 0.02 && down < 0.98) {
+          const jag = 0.78 + rand() * 0.44;
+          at.setX(i, at.getX(i) * jag);
+          at.setZ(i, at.getZ(i) * jag);
+          at.setY(i, at.getY(i) + (rand() - 0.5) * 4);
+        }
+      }
+    }
+    const underside = new THREE.Mesh(
+      paint(rock, (centre) => {
+        const down = 0.5 - centre.y / ISLAND_DEPTH;
+        const hex = down < 0.12 ? 0x4e433d : down < 0.55 ? 0x5f5a52 : 0x6c6a64;
+        return shade(hex, 0.08).lerp(HAZE, Math.min(0.85, 0.35 + down * 0.5));
+      }),
+      flat()
+    );
+    underside.position.y = lakeY + 0.1 - ISLAND_DEPTH / 2;
+    world.add(underside);
+
+    // and a few stones that came loose, hanging in the air nearby
+    for (let i = 0; i < 9; i++) {
+      const size = 2 + rand() * 6;
+      const stone = new THREE.DodecahedronGeometry(size, 0);
+      stone.scale(1, 0.7 + rand() * 0.5, 1);
+      const angle = rand() * Math.PI * 2;
+      const out = ISLAND_RADIUS * (1.15 + rand() * 0.5);
+      const mesh = new THREE.Mesh(
+        paint(stone, () => shade(0x5f5a52, 0.1).lerp(HAZE, 0.45)),
+        flat()
+      );
+      mesh.position.set(Math.cos(angle) * out, lakeY - 8 - rand() * 40, Math.sin(angle) * out);
+      mesh.rotation.set(rand() * 3, rand() * 3, rand() * 3);
+      world.add(mesh);
+    }
 
     // the mountains: two rings of peaks, forest at the foot, rock above,
     // snow on the tall ones. The far ring is bigger and paler.
@@ -453,6 +593,51 @@ export async function startEnvironment(container, options = {}) {
     scene.add(mesh);
   }
 
+  // Shadows the old way: a soft dark spot on the water under each shape,
+  // cast along the line of the sun, spreading and fading as the shape
+  // rises. No second drawing of the scene, just one small disc each.
+  const blobs = [];
+  const blobSun = sun.position.clone().normalize();
+  if (glass) {
+    const spot = document.createElement('canvas');
+    spot.width = spot.height = 64;
+    const paintSpot = spot.getContext('2d');
+    const fall = paintSpot.createRadialGradient(32, 32, 0, 32, 32, 32);
+    fall.addColorStop(0, 'rgba(255,255,255,1)');
+    fall.addColorStop(0.55, 'rgba(255,255,255,0.7)');
+    fall.addColorStop(1, 'rgba(255,255,255,0)');
+    paintSpot.fillStyle = fall;
+    paintSpot.fillRect(0, 0, 64, 64);
+    const spotMap = new THREE.CanvasTexture(spot);
+    const disc = new THREE.PlaneGeometry(2, 2);
+    disc.rotateX(-Math.PI / 2);
+    for (const mesh of shapes) {
+      const blob = new THREE.Mesh(
+        disc,
+        new THREE.MeshBasicMaterial({ map: spotMap, color: 0x1c2a30, transparent: true, depthWrite: false, fog: false })
+      );
+      blob.renderOrder = 1;
+      blobs.push(blob);
+      scene.add(blob);
+    }
+  }
+  const BLOB_DARK = 0.5;   // how dark a shape's shadow is when it sits on the water
+  const BLOB_FADE = 14;    // world units of height at which it has faded away
+  function placeBlobs() {
+    const water = field.floor + 0.09; // just clear of the ripples in the lake
+    for (let i = 0; i < blobs.length; i++) {
+      const p = shapes[i].position;
+      const radius = shapes[i].userData.radius;
+      const up = Math.max(0, p.y - field.floor - radius);
+      const along = (p.y - field.floor) / Math.max(0.2, blobSun.y);
+      const blob = blobs[i];
+      blob.position.set(p.x - blobSun.x * along, water, p.z - blobSun.z * along);
+      blob.scale.setScalar(radius * 1.15 * (1 + up * 0.06));
+      blob.material.opacity = BLOB_DARK * Math.max(0, 1 - up / BLOB_FADE);
+      blob.visible = blob.material.opacity > 0.01 && Math.hypot(blob.position.x, blob.position.z) < LAKE_RADIUS;
+    }
+  }
+
   // -------------------------------------------------------------------------
   // sound: strike a planet, and its material family answers
   // -------------------------------------------------------------------------
@@ -569,6 +754,9 @@ export async function startEnvironment(container, options = {}) {
   let tapDrift = TAP_DRIFT;
   let longPressTimer = 0;
   const throwVelocity = new THREE.Vector3();
+  let charge = 0;          // 0..1, the energy the held shape has built up
+  let chargeVoice = null;  // the held shape's own ring while it is charged
+  let chargeVoiceAt = -10;
 
   let tiltX = 0;
   let tiltY = 0;
@@ -584,7 +772,13 @@ export async function startEnvironment(container, options = {}) {
   let orbitX = 0;
   let orbitY = 0;
   let orbitMovedAt = 0;
-  let yawDrift = 0;
+  let orbitSpeed = 0; // radians a second the hand is turning the room
+  let spin = 0;       // radians a second the room is turning on its own
+  let stoppedByHand = false; // this drag braked the turn to a standstill
+  let whirl = 0;      // 0..1, how hard the whole room is turning, eased
+  let whirling = false;
+  let whirlSince = 0;
+  let tidy = 0; // how much tighter than usual the leash home is right now
   let yawTarget = 0;
   let pitchTarget = 0;
   let yaw = 0;
@@ -653,8 +847,10 @@ export async function startEnvironment(container, options = {}) {
       orbitX = event.clientX;
       orbitY = event.clientY;
       yawTarget += dx * ORBIT_TURN;
-      yawDrift = dx * ORBIT_TURN;
-      orbitMovedAt = performance.now();
+      const movedAt = performance.now();
+      const instant = (dx * ORBIT_TURN * 1000) / Math.max(8, movedAt - orbitMovedAt);
+      orbitSpeed = movedAt - orbitMovedAt > 120 ? instant : orbitSpeed * 0.5 + instant * 0.5;
+      orbitMovedAt = movedAt;
       if (!orbitTouch) {
         pitchTarget = Math.max(pitchMin, Math.min(ORBIT_PITCH_MAX, pitchTarget + dy * ORBIT_TURN * 0.8));
       }
@@ -691,10 +887,77 @@ export async function startEnvironment(container, options = {}) {
     if (twist < -Math.PI) twist += Math.PI * 2;
     rollTarget += twist;
     // fingers apart brings the camera in, fingers together sends it back
-    zoomTarget = Math.max(ZOOM_NEAR, Math.min(ZOOM_FAR, (zoomTarget * gesture.spread) / now.spread));
+    zoomTarget = Math.max(ZOOM_NEAR, Math.min(portrait ? ZOOM_FAR_PORTRAIT : ZOOM_FAR, (zoomTarget * gesture.spread) / now.spread));
     gesture = now;
     lastEnergyAt = performance.now() / 1000;
   }, { passive: false });
+
+  // Zoom on a desktop. A trackpad pinch (which reaches the page as a wheel
+  // with the control key held, or as a gesture in Safari) zooms the room
+  // at any time. Plain scrolling keeps scrolling the page, until the page
+  // has run out at the bottom: the lab is the last thing on it, so going
+  // on scrolling down pulls the camera back, and scrolling up brings it in
+  // again, all the way to where it started, before the page moves.
+  if (room) {
+    const zoomFar = portrait ? ZOOM_FAR_PORTRAIT : ZOOM_FAR;
+    const zoomBy = (factor, least) => {
+      zoomTarget = Math.max(least, Math.min(zoomFar, zoomTarget * factor));
+      lastEnergyAt = performance.now() / 1000;
+    };
+    let bottomSince = 0;
+    window.addEventListener('wheel', (event) => {
+      const rect = container.getBoundingClientRect();
+      if (event.clientY < rect.top || event.clientY > rect.bottom) return;
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
+      const dy = Math.max(-120, Math.min(120, event.deltaY * unit));
+      if (event.ctrlKey) {
+        // a pinch: never the browser's own page zoom while over the room
+        event.preventDefault();
+        zoomBy(Math.exp(dy * 0.012), ZOOM_NEAR);
+        return;
+      }
+      const doc = document.documentElement;
+      const atBottom = window.innerHeight + window.scrollY >= doc.scrollHeight - 2;
+      const now = performance.now();
+      if (!atBottom) {
+        bottomSince = 0;
+        return;
+      }
+      // a fling that runs into the bottom of the page settles there first;
+      // only a scroll that carries on after that pulls the camera back
+      if (!bottomSince) bottomSince = now;
+      if (now - bottomSince < 350 && zoomTarget <= 1.001) return;
+      if (dy > 0 || zoomTarget > 1.001) {
+        event.preventDefault();
+        // coming back in stops at where the room started, then the page scrolls
+        zoomBy(Math.exp(dy * 0.004), dy < 0 ? Math.min(1, zoomTarget) : ZOOM_NEAR);
+      }
+    }, { passive: false });
+
+    // Safari on a Mac reports a trackpad pinch as a gesture, not a wheel.
+    // On a touch screen the two finger handling above owns the pinch.
+    if (window.matchMedia('(pointer: fine)').matches) {
+      let gestureFrom = 1;
+      const overRoom = (event) => {
+        const rect = container.getBoundingClientRect();
+        return event.clientY === undefined || (event.clientY >= rect.top && event.clientY <= rect.bottom);
+      };
+      window.addEventListener('gesturestart', (event) => {
+        if (!overRoom(event)) return;
+        event.preventDefault();
+        gestureFrom = zoomTarget;
+      });
+      window.addEventListener('gesturechange', (event) => {
+        if (!overRoom(event)) return;
+        event.preventDefault();
+        zoomTarget = Math.max(ZOOM_NEAR, Math.min(zoomFar, gestureFrom / Math.max(0.05, event.scale)));
+        lastEnergyAt = performance.now() / 1000;
+      });
+      window.addEventListener('gestureend', (event) => {
+        if (overRoom(event)) event.preventDefault();
+      });
+    }
+  }
 
   const endTwoFingers = (event) => {
     if (!gesture || event.touches.length >= 2) return;
@@ -748,7 +1011,8 @@ export async function startEnvironment(container, options = {}) {
       orbitTouch = event.pointerType !== 'mouse' && !playingNow();
       orbitX = event.clientX;
       orbitY = event.clientY;
-      yawDrift = 0;
+      orbitSpeed = 0;
+      stoppedByHand = false;
       orbitMouse = event.pointerType === 'mouse';
       if (orbitMouse) {
         event.preventDefault();
@@ -808,8 +1072,15 @@ export async function startEnvironment(container, options = {}) {
   function releaseHold(event) {
     if (event.pointerId === orbitPointer) {
       orbitPointer = null;
-      // let go in the middle of a turn and the room coasts a little further
-      if (event.type === 'pointerup' && performance.now() - orbitMovedAt < 80) yawTarget += yawDrift * 4;
+      // let go in the middle of a turn and the room is pushed: it takes on
+      // the speed of the flick on top of whatever it already had, so a
+      // flick the same way speeds it up and one against it slows it down
+      // A flick against a turn has already done its work as a brake.
+      const against = spin && Math.sign(orbitSpeed) !== Math.sign(spin);
+      if (event.type === 'pointerup' && performance.now() - orbitMovedAt < 80 && !against && !stoppedByHand) {
+        const headroom = Math.max(0, 1 - Math.abs(spin) / SPIN_MAX) ** SPIN_HEAVY;
+        spin = Math.max(-SPIN_MAX, Math.min(SPIN_MAX, spin + orbitSpeed * SPIN_PUSH * headroom));
+      }
       const degrees = (radians) => Math.round((radians * 180) / Math.PI);
       logLine(`turn(room, { yaw: ${degrees(yawTarget)}, pitch: ${degrees(pitchTarget)} })`);
       if (orbitMouse) {
@@ -852,6 +1123,10 @@ export async function startEnvironment(container, options = {}) {
         other.userData.dragVoice = null;
       }
     }
+    if (chargeVoice) engine.swellEnd(chargeVoice);
+    chargeVoice = null;
+    if (charge > 0.05) logLine(`release(${SHAPE_NAMES[held.userData.type]}.${held.userData.index}, { charge: ${charge.toFixed(2)} })`);
+    charge = 0;
     document.body.style.userSelect = '';
     document.body.style.webkitUserSelect = '';
     // no phantom hover where the finger lifted
@@ -948,7 +1223,8 @@ export async function startEnvironment(container, options = {}) {
     const fresh = t - (data.floorAt === undefined ? -10 : data.floorAt) > 0.25;
     data.floorAt = t;
     if (!fresh || impact <= RING_SPEED + restingSpeed(dt)) return;
-    if (t - lastEnergyAt >= LISTEN_SECONDS) return;
+    // the room tidying itself away is silent: only a hand's doing rings
+    if (t - lastEnergyAt >= LISTEN_SECONDS || tidy > 0) return;
     logLine(`land(${SHAPE_NAMES[data.type]}.${data.index}, impact = ${impact.toFixed(1)})`);
     clusterStrike(mesh, Math.min(0.45, impact * 0.08), t);
   }
@@ -963,7 +1239,8 @@ export async function startEnvironment(container, options = {}) {
     const fresh = t - (data.edgeAt === undefined ? -10 : data.edgeAt) > 0.25;
     data.edgeAt = t;
     if (!fresh || impact <= RING_SPEED) return;
-    if (t - lastEnergyAt >= LISTEN_SECONDS) return;
+    // the room tidying itself away is silent: only a hand's doing rings
+    if (t - lastEnergyAt >= LISTEN_SECONDS || tidy > 0) return;
     strike(mesh, Math.min(0.9, 0.1 + (impact - RING_SPEED) * 0.28), t);
   }
 
@@ -974,7 +1251,50 @@ export async function startEnvironment(container, options = {}) {
     return outward;
   }
 
+  // The lake room: a drum as wide as the lake. A shape bounces off the
+  // shore, off the water, and off the top of the sky it is allowed, and
+  // never comes onto the lens. Everything inside is play space, wherever
+  // the camera has been turned or pulled back to.
+  const lakeOut = new THREE.Vector3();
+  function keepInLake(mesh, t, dt) {
+    const data = mesh.userData;
+    const p = mesh.position;
+    const reach = LAKE_RADIUS - LAKE_KEEP - data.radius;
+    const across = Math.hypot(p.x, p.z);
+    if (across > reach) {
+      lakeOut.set(p.x / across, 0, p.z / across);
+      p.x = lakeOut.x * reach;
+      p.z = lakeOut.z * reach;
+      edgeHit(mesh, turnBack(data, lakeOut, WALL_BOUNCE), t);
+    }
+    const low = field.floor + data.radius;
+    if (p.y < low) {
+      p.y = low;
+      const landing = pile > 0.3;
+      const impact = turnBack(data, lakeOut.set(0, -1, 0), landing ? 0.22 : WALL_BOUNCE);
+      if (landing) touchDown(mesh, impact, t, dt);
+      else edgeHit(mesh, impact, t);
+    }
+    const high = field.floor + LAKE_CEILING - data.radius;
+    if (p.y > high) {
+      p.y = high;
+      edgeHit(mesh, turnBack(data, lakeOut.set(0, 1, 0), WALL_BOUNCE), t);
+    }
+    lakeOut.subVectors(p, camera.position);
+    const gap = lakeOut.length();
+    const least = LENS_KEEP + data.radius;
+    if (gap < least && gap > 0.0001) {
+      lakeOut.divideScalar(gap);
+      p.addScaledVector(lakeOut, least - gap);
+      turnBack(data, lakeOut.negate(), WALL_BOUNCE);
+    }
+  }
+
   function keepInView(mesh, t, dt) {
+    if (glass) {
+      keepInLake(mesh, t, dt);
+      return;
+    }
     const data = mesh.userData;
     // The room keeps one size. Its edges are the edges of the view as it
     // is before any pinch, so coming in close looks at part of the room
@@ -1142,6 +1462,23 @@ export async function startEnvironment(container, options = {}) {
     // and last a roll about the line of sight. What moved this frame is
     // kept, because the next frame's water turns by it.
     const before = { yaw, pitch, roll };
+    // a hand moving against the turn brakes it, by how fast it moves
+    if (spin && orbitPointer !== null && now - orbitMovedAt < 100 && Math.sign(orbitSpeed) !== Math.sign(spin)) {
+      const brake = SPIN_BRAKE * Math.abs(orbitSpeed) * dt;
+      if (Math.abs(spin) <= brake) {
+        spin = 0;
+        stoppedByHand = true;
+      } else {
+        spin -= Math.sign(spin) * brake;
+      }
+    }
+    // the roundabout carries on, slowing as it goes
+    if (spin) {
+      yawTarget += spin * dt;
+      const slow = (SPIN_DRAG * Math.abs(spin) + SPIN_FRICTION) * dt;
+      spin = Math.abs(spin) <= slow ? 0 : spin - Math.sign(spin) * slow;
+      lastEnergyAt = t;
+    }
     yaw += (yawTarget - yaw) * 0.14;
     pitch += (pitchTarget - pitch) * 0.14;
     roll += (rollTarget - roll) * 0.14;
@@ -1149,9 +1486,63 @@ export async function startEnvironment(container, options = {}) {
     turned.yaw = yaw - before.yaw;
     turned.pitch = pitch - before.pitch;
     turned.roll = roll - before.roll;
-    camera.position.copy(rig).multiplyScalar(zoom).applyAxisAngle(AXIS_X, -pitch).applyAxisAngle(AXIS_Y, -yaw);
+
+    // the whole room turning sets every shape ringing
+    const turnRate = Math.abs(turned.yaw) / Math.max(dt, 0.008);
+    whirl += (Math.min(1, turnRate / WHIRL_FULL) - whirl) * 0.08;
+    if (whirl > WHIRL_START) {
+      if (!whirling) {
+        logLine(`resonate(room, { turn: ${turnRate.toFixed(1)} })`);
+        whirlSince = t;
+      }
+      whirling = true;
+      for (const mesh of shapes) {
+        const data = mesh.userData;
+        const peak = WHIRL_PEAK * whirl;
+        // each shape breathes at its own pace, so the ring shimmers
+        const breath = 2 + (data.index % 7) * 0.35;
+        // they come in one after another, not all on the same instant
+        if (!data.whirlVoice && t - whirlSince < (data.index % 7) * 0.15) continue;
+        if (!data.whirlVoice || t - data.whirlAt > breath) {
+          if (data.whirlVoice) engine.swellEnd(data.whirlVoice);
+          data.whirlVoice = engine.swellStart({ pitch: data.pitch, pan: panOf(mesh), peak });
+          data.whirlAt = t - (data.whirlVoice ? 0 : breath - 0.5);
+        } else if (t - data.whirlAt > 0.7) {
+          engine.swellLevel(data.whirlVoice, peak);
+        }
+        data.glow = Math.max(data.glow, whirl * 0.5);
+      }
+    } else if (whirling) {
+      whirling = false;
+      for (const mesh of shapes) {
+        if (mesh.userData.whirlVoice) engine.swellEnd(mesh.userData.whirlVoice);
+        mesh.userData.whirlVoice = null;
+      }
+    }
+    // The camera is never quite still: it breathes, a slow drift of a degree
+    // or two made of waves that never line up, like being held by a hand.
+    // It is only the view; the water does not feel it.
+    const driftYaw = DRIFT * (Math.sin(t * 0.11) + 0.45 * Math.sin(t * 0.27 + 1.3));
+    const driftPitch = DRIFT * 0.6 * (Math.sin(t * 0.09 + 0.7) + 0.4 * Math.sin(t * 0.23 + 2.1));
+    const driftRoll = DRIFT * 0.18 * Math.sin(t * 0.07 + 0.4);
+    camera.position
+      .copy(rig)
+      .multiplyScalar(zoom * (1 + DRIFT * 0.35 * Math.sin(t * 0.06 + 2.6)))
+      .applyAxisAngle(AXIS_X, -Math.max(pitchMin, pitch + driftPitch))
+      .applyAxisAngle(AXIS_Y, -(yaw + driftYaw));
+    if (glass) {
+      // never under the lake: when a turn and a pinch together would take
+      // the camera below the water, it comes in closer instead
+      const lowest = field.floor + ABOVE_WATER;
+      if (camera.position.y < lowest && camera.position.y < 0) camera.position.multiplyScalar(lowest / camera.position.y);
+      // the shapes' own fog stands back as the camera does, so pulling
+      // away shows them small, not gone
+      const away = camera.position.length() / Math.max(1, rig.length());
+      scene.fog.near = 16 * away;
+      scene.fog.far = 70 * away;
+    }
     camera.lookAt(0, 0, 0);
-    if (roll) camera.rotateZ(roll);
+    if (roll + driftRoll) camera.rotateZ(roll + driftRoll);
 
     // where the camera is looking from, for the edges of the room
     camera.updateMatrixWorld();
@@ -1162,6 +1553,10 @@ export async function startEnvironment(container, options = {}) {
     // how fast the room was turned this frame, as one spin: around the
     // upright for a sideways turn, around the camera's own level for a tip
     // over the top, and around the line of sight for a twist
+    // how tight the leash home is: nothing while anyone is in the room,
+    // then growing exponentially once they have left it alone
+    const idleFor = t - lastHandsAt - HANDS_SECONDS;
+    tidy = idleFor > 0 && pile < 0.01 ? Math.min(RESET_MOST, Math.exp(idleFor * RESET_RATE) - 1) : 0;
     const perSecond = 1 / Math.max(dt, 0.008);
     swirl
       .set(0, 0, 0)
@@ -1190,7 +1585,9 @@ export async function startEnvironment(container, options = {}) {
         // pushed, weakly, away from every other kind. So the families
         // gather into their own groups and drift apart from each other.
         const kin = other.userData.type === data.type;
-        const boost = dragging && kin ? HOLD_PULL_BOOST : 1;
+        // the held shape's extra pull is only the energy the hand has put
+        // into it: an empty charge pulls like any other shape
+        const boost = dragging && kin ? 1 + HOLD_PULL_BOOST * (1 + CHARGE_PULL) * charge : 1;
         const pull = ((kin ? GRAVITY : -GRAVITY * REPEL) * presence * boost * data.mass * other.userData.mass) / d2;
         force.addScaledVector(between.normalize(), pull);
         if (dragging) {
@@ -1210,7 +1607,7 @@ export async function startEnvironment(container, options = {}) {
 
       // the leash home keeps the system composed, until the floor arrives
       between.subVectors(data.home, mesh.position);
-      force.addScaledVector(between, HOME_PULL * data.mass * (1 - pile));
+      force.addScaledVector(between, HOME_PULL * (1 + tidy) * data.mass * (1 - pile));
 
       // a faint idle breath so rest never looks frozen
       force.y += Math.sin(t * data.bobSpeed + data.bobPhase) * 0.12 * data.mass;
@@ -1245,6 +1642,9 @@ export async function startEnvironment(container, options = {}) {
 
       data.velocity.addScaledVector(force, dt / data.mass);
       data.velocity.multiplyScalar(DAMPING ** (dt * 60));
+      // as the leash tightens the water thickens with it, so they come home
+      // and settle there rather than swinging through
+      if (tidy > 0) data.velocity.multiplyScalar(Math.exp(-2 * Math.sqrt(HOME_PULL * (1 + tidy)) * dt));
       mesh.position.addScaledVector(data.velocity, dt);
       keepInView(mesh, t, dt);
 
@@ -1278,6 +1678,44 @@ export async function startEnvironment(container, options = {}) {
         holdPointSeen = true;
         between.copy(holdPoint).add(grabOffset);
         held.position.lerp(between, 0.4);
+        if (glass) {
+          // the hand may lead it anywhere on the lake, no farther
+          const hp = held.position;
+          const reach = LAKE_RADIUS - LAKE_KEEP - held.userData.radius;
+          const across = Math.hypot(hp.x, hp.z);
+          if (across > reach) {
+            hp.x *= reach / across;
+            hp.z *= reach / across;
+          }
+          hp.y = Math.max(field.floor + held.userData.radius, Math.min(field.floor + LAKE_CEILING - held.userData.radius, hp.y));
+        }
+
+        // the charge is the hand's kinetic energy right now, nothing
+        // stored: it goes with the square of the speed, so a slow drag
+        // barely registers and a fast spin is full, and it falls the moment
+        // the hand slows
+        const speed = holdMoved > tapDrift ? Math.min(1, throwVelocity.length() / CHARGE_SPEED) : 0;
+        charge = speed * speed;
+        const hd = held.userData;
+        // a charged shape spins on its own axis and glows from inside
+        held.rotation.y += charge * 7 * dt;
+        held.rotation.x += charge * 2.5 * dt;
+        hd.glow = Math.max(hd.glow, charge * 0.85);
+        // and rings: a fresh breath of its own note every so often, louder
+        // the fuller it is, so a steady circle keeps it singing
+        if (charge > 0.12) {
+          const peak = 0.25 + 0.95 * charge;
+          if (!chargeVoice || t - chargeVoiceAt > CHARGE_RETRIGGER) {
+            if (chargeVoice) engine.swellEnd(chargeVoice);
+            chargeVoice = engine.swellStart({ pitch: hd.pitch, pan: panOf(held), peak });
+            chargeVoiceAt = t;
+          } else if (t - chargeVoiceAt > 0.7) {
+            engine.swellLevel(chargeVoice, peak);
+          }
+        } else if (chargeVoice) {
+          engine.swellEnd(chargeVoice);
+          chargeVoice = null;
+        }
 
         // a dragged shape wakes only what it passes close to: each
         // neighbor swells in as you approach and lets go as you leave
@@ -1293,15 +1731,20 @@ export async function startEnvironment(container, options = {}) {
             if (other === held) continue;
             const od = other.userData;
             // a dragged shape wakes only its own kind
-            const near = od.type === held.userData.type && held.position.distanceTo(other.position) < DRAG_RADIUS;
+            const reach = DRAG_RADIUS * (1 + CHARGE_REACH * charge);
+            const near = od.type === held.userData.type && held.position.distanceTo(other.position) < reach;
             if (near) {
+              const peak = 0.7 * (0.6 + 0.9 * charge);
               if (!od.dragVoice) {
                 od.dragVoice = engine.swellStart({
                   pitch: od.pitch,
                   pan: panOf(other),
-                  peak: 0.7,
+                  peak,
                 });
+                od.dragVoiceAt = t;
                 if (od.dragVoice) staff.note(od.pitch);
+              } else if (t - (od.dragVoiceAt || 0) > 0.7) {
+                engine.swellLevel(od.dragVoice, peak);
               }
               od.resonateUntil = t + 0.35;
             } else if (od.dragVoice) {
@@ -1346,7 +1789,7 @@ export async function startEnvironment(container, options = {}) {
           // idle drift grazes stay silent: a collision speaks only when
           // it is a real impact, and only while the visitor is present
           const speed = Math.abs(closing);
-          if (speed > RING_SPEED + restingSpeed(dt) && t - lastEnergyAt < LISTEN_SECONDS) {
+          if (speed > RING_SPEED + restingSpeed(dt) && t - lastEnergyAt < LISTEN_SECONDS && tidy === 0) {
             const hitGain = Math.min(0.9, 0.1 + (speed - RING_SPEED) * 0.28);
             if (pile > 0.5) {
               // tumbling at the bottom speaks in soft clusters, not strikes
@@ -1402,6 +1845,7 @@ export async function startEnvironment(container, options = {}) {
       }
     }
 
+    if (blobs.length) placeBlobs();
     renderer.render(scene, camera);
     if (room) shadeWords();
   }

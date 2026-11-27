@@ -68,7 +68,7 @@ const links = [
     <slot />
 
     <footer class="site-foot">
-      <span class="brand-mask site-foot-mark" role="img" aria-label="Diplomacy"></span>
+      <span>Diplomacy</span>
       <span>Sound is listening.</span>
       <span>Chicago</span>
     </footer>
@@ -161,12 +161,14 @@ const links = [
       // in the lab the header stays down to its one line, whichever way the
       // page is moving, so the room keeps the screen
       const inLab = lab ? lab.getBoundingClientRect().top < window.innerHeight * 0.6 : false;
+      lab?.classList.toggle('is-held', inLab);
       if (inLab) head.classList.add('is-tucked');
       else if (y < 80) head.classList.remove('is-tucked');
       else if (y > lastY + 6) head.classList.add('is-tucked');
       else if (y < lastY - 6) head.classList.remove('is-tucked');
     } else {
       head?.classList.remove('is-tucked');
+      lab?.classList.remove('is-held');
     }
     if (Math.abs(y - lastY) > 6 || y < 80) lastY = y;
   };

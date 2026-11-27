@@ -32,7 +32,15 @@ function buildGraph() {
   const context = sharedContext();
   const master = context.createGain();
   master.gain.value = 1;
-  master.connect(context.destination);
+  // a soft ceiling: a fully charged family ringing at once leans into it
+  // instead of breaking up. Below it, nothing is touched.
+  const ceiling = context.createDynamicsCompressor();
+  ceiling.threshold.value = -6;
+  ceiling.knee.value = 6;
+  ceiling.ratio.value = 12;
+  ceiling.attack.value = 0.003;
+  ceiling.release.value = 0.25;
+  master.connect(ceiling).connect(context.destination);
 
   // strike bus: dry plus a quiet feedback echo, shared by all voices
   const pingBus = context.createGain();
@@ -213,9 +221,19 @@ export const engine = {
       level.gain.linearRampToValueAtTime(peak * 0.3, now + SWELL_ATTACK);
     }
 
-    const voice = { level, swell: true };
+    // the understudy sits lower, and stays lower when leaned on
+    const voice = { level, swell: true, scale: slot && slot.buffers.length ? 1 : 0.3 };
     state.voices.push(voice);
     return voice;
+  },
+
+  // Lean a sounding swell louder or softer, gliding there, never a jump.
+  swellLevel(voice, peak) {
+    if (!voice || !state.context) return;
+    const now = state.context.currentTime;
+    voice.level.gain.cancelScheduledValues(now);
+    voice.level.gain.setValueAtTime(voice.level.gain.value, now);
+    voice.level.gain.linearRampToValueAtTime(Math.max(0, peak) * (voice.scale ?? 1), now + 0.12);
   },
 
   // Let a swell go: a gentle release, never a cut.

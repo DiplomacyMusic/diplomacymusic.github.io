@@ -1882,6 +1882,28 @@ html.js .contact-stage:not(.is-done) .loud-button {
   color: var(--room-ink);
 }
 
+/* Exit: only on a phone, only while the header is held down in the room,
+   at the bottom left just above the footer's line */
+.room-exit {
+  position: absolute;
+  left: 1.25rem;
+  bottom: calc(var(--foot-h) + 1rem);
+  z-index: 2;
+  color: var(--room-ink);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 1400ms var(--ease-drift), color 700ms var(--ease-drift), visibility 0s 1400ms;
+}
+
+@media (max-width: 720px) {
+  .room.is-held .room-exit {
+    opacity: 0.75;
+    visibility: visible;
+    transition: opacity 700ms var(--ease-drift), color 700ms var(--ease-drift), visibility 0s;
+  }
+  .room.is-held.is-playing .room-exit { opacity: 0.4; }
+}
+
 /* reduced motion: the room stays still, so the play controls step back */
 .room.is-still #room-floor {
   display: none;
@@ -1896,11 +1918,11 @@ html.js .contact-stage:not(.is-done) .loud-button {
   z-index: 3;
   margin-top: -2.6rem;
   pointer-events: none;
-  /* one thin line */
+  /* one thin line, its three words spread evenly across the width */
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  justify-content: center;
+  justify-content: space-evenly;
   gap: 2rem;
   min-height: 2.6rem;
   padding: 0 1.5rem;
@@ -1909,13 +1931,6 @@ html.js .contact-stage:not(.is-done) .loud-button {
   letter-spacing: 0.24em;
   text-transform: uppercase;
   white-space: nowrap;
-}
-
-.site-foot-mark {
-  --brand-asset: url('/brand/diplomacy-wordmark.png');
-  width: 7rem;
-  aspect-ratio: 3182 / 418;
-  background: #fff;
 }
 
 /* ---------- the credit sheet ---------- */
@@ -1930,6 +1945,20 @@ html.js .contact-stage:not(.is-done) .loud-button {
   background: var(--paper);
   box-shadow: 0 40px 100px -30px rgba(0, 0, 0, 0.6);
   overflow: auto;
+  overscroll-behavior: contain;
+}
+
+/* the page holds still behind an open sheet: pinned where it was, so a
+   phone has nothing to scroll past the sheet's edges */
+html.is-sheet-open,
+html.is-sheet-open body {
+  overflow: hidden;
+}
+
+html.is-sheet-open body {
+  position: fixed;
+  inset-inline: 0;
+  top: var(--sheet-hold, 0);
 }
 
 .credit-dialog::backdrop {
@@ -2009,21 +2038,45 @@ html.js .contact-stage:not(.is-done) .loud-button {
 
 .dialog-close {
   position: absolute;
-  top: 1rem;
-  right: 1.2rem;
+  top: 0.8rem;
+  right: 0.8rem;
   z-index: 1;
-  font: inherit;
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-quiet);
-  background: none;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
   border: 0;
+  border-radius: 50%;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(48, 45, 38, 0.32);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   cursor: pointer;
+  opacity: 0.8;
+  transition: opacity var(--t-soft) var(--ease-drift);
 }
 
-.dialog-close:hover {
-  color: var(--ink);
+/* the X: two hairlines */
+.dialog-close::before,
+.dialog-close::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.85rem;
+  height: 1.5px;
+  background: var(--paper);
+  translate: -50% -50%;
+  rotate: 45deg;
+}
+
+.dialog-close::after {
+  rotate: -45deg;
+}
+
+.dialog-close:hover,
+.dialog-close:focus-visible {
+  opacity: 1;
 }
 
 /* ---------- smaller screens ---------- */
@@ -2250,7 +2303,6 @@ html.js .contact-stage:not(.is-done) .loud-button {
     font-size: 0.54rem;
     letter-spacing: 0.16em;
   }
-  .site-foot-mark { width: 4.4rem; }
 
   .lockup {
     max-height: 3rem;
