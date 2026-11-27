@@ -508,6 +508,19 @@ html:not(.js) .company-repeat {
   }
 }
 
+/* The cards ride behind the page: the recognition band is its own layer
+   underneath, and the paper bands either side lie over it, so as the
+   cards lag behind the scroll they slip under the white and out of view.
+   The band's name rides with them, as one block. */
+.band-company,
+.band-work {
+  z-index: 1;
+}
+
+.band-recognition {
+  z-index: 0;
+}
+
 .band-recognition {
   /* room above and below for the cards to float without touching the edges */
   padding-block: clamp(3.5rem, 8vw, 5.5rem) clamp(4rem, 8.5vw, 6.5rem);

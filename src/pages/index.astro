@@ -360,13 +360,16 @@ const structuredData = {
     <!-- recognition -->
     <section class="band band-recognition deep" aria-label="Recognition">
       <!-- this band is a dim window onto the stage: the one lake video, by now far out of focus -->
-      <div class="band-inner" data-depth="0.07">
+      <!-- the name and the cards ride as one block, well behind the page,
+           halfway between the far lake and the paper, so the white bands
+           either side pass over them -->
+      <div class="recognition-layer" data-depth="-0.14">
+      <div class="band-inner">
         <p class="overline" data-reveal>Recognition</p>
       </div>
       <!-- the cards ease in one after another, left to right and top to bottom,
-           the same quiet rise as the ledger rows further down. The whole block
-           rides a little faster than the band, so it floats over the lake -->
-      <div class="band-inner facts" id="facts" data-depth="0.07">
+           the same quiet rise as the ledger rows further down -->
+      <div class="band-inner facts" id="facts">
         {recognition.map((fact, i) => (
           <div class="fact" style={`--i: ${i}`} data-reveal data-reveal-step="120">
             <span class="fact-head">
@@ -395,6 +398,7 @@ const structuredData = {
             )}
           </div>
         ))}
+      </div>
       </div>
     </section>
 
